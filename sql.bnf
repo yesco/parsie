@@ -1,0 +1,14 @@
+W= |[A-Z]|_
+N= [0-9]
+D= N.N
+M= |W|N
+V= WM*
+T= V|D|N
+P= P*P|P/P|T
+E= P+P|P-P|
+R= |=|<=|<|>=|>
+C= not C|C and C|C or C
+
+S= E,E|E
+F= G V
+Q= select S?from F,,,?where C?gropu by S?order by S?having C
