@@ -31,11 +31,31 @@ char* match(char r, char* s) {
 #define MAXRES 256
 int nres= 0;
 char* res[MAXRES]= {0};
+char* pgen= NULL;
+
+char* parset_gen(char* r, char* s, char* p) {
+  // TODO: use dstrprintf?
+  char buf[16*1024]= {0};
+  printf("\n>>>>>\n");
+  while(*r && *r++!=']') {
+    if (*r=='$') {
+      char n= *++r;
+      // TODO: offset in res
+      if (isdigit(n)) strcat(buf, res[n-'0']);
+      else if (n=='$') strncat(buf, s, p-s);
+    } else strncat(buf, r, 1);
+  }
+  printf("%s\n<<<<<<\n", buf);
+  // TODO: offset in res
+  pgen= strdup(buf);
+  return p;
+}
 
 // parse a term
 // extract term match
 char* parset(char target, char* s) {
   int n= nres++;
+  pgen= NULL;
   char* r= parset_hlp(target, s);
   nres--;
   if (r==s) return NULL;
@@ -43,7 +63,7 @@ char* parset(char target, char* s) {
   assert(n<MAXRES);
   free(res[n]);
   // TODO: keep pointer+len???
-  res[n]= strndup(s, r-s);
+  res[n]= pgen?pgen:strndup(s, r-s);
   printf("  --(%d)= '%s'\n", n, res[n]);
   nres= n+1;
   return r;
@@ -64,23 +84,7 @@ char* parset_hlp(char target, char* s) {
     while(isspace(*s)) s++;
 
     // action == accept, gen out
-    if (*r=='[') {
-      // TODO: use dstrprintf?
-      char buf[1024]= {0};
-      printf("\n>>>>>\n");
-      while(*r && *r++!=']') {
-	if (*r=='$') {
-	  char n= *++r;
-	  // TODO: offset in res
-	  if (isdigit(n)) strcat(buf, res[n-'0']);
-	  else if (n=='$') strncat(buf, s, p-s);
-	} else strncat(buf, r, 1);
-      }
-      printf("%s\n<<<<<<\n", buf);
-      // TODO: offset in res
-      res[0]= strdup(buf);
-      return p;
-    }
+    if (*r=='[') return parset_gen(r, s, p);
 
     char* m= match(*r, p);
     if (!m) {
