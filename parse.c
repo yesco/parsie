@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <ctype.h>
 
 char* NT[128]= {0};
 
@@ -7,6 +8,14 @@ int eor(char* r) {
   return !*r || *r=='\n' || *r=='|';
 }
  
+char* parse(char target, char* s);
+
+char* match(char r, char* s) {
+  if (r==*s) return s+1;
+  if (r>='A' && r<='Z') return parse(r, s);
+  return NULL;
+}
+  
 // match S to TARGET rule
 // null if not match
 // otherwise remaining string
@@ -16,13 +25,14 @@ char* parse(char target, char* s) {
   char* p= s;
   printf("  '%s'\t'%s", p, r);
   while(!eor(r)) {
-    if (*p!=*r) {
+    char* m= match(*r, p);
+    if (!m) {
       // failed: look for alt
       while(*r && *r++!='|');
       p= s;
       ok= 0;
     } else {
-      r++, p++;
+      r++, p= m;
       ok= 1;
     }
     printf("  '%s'\t%s", p, r);
@@ -50,9 +60,10 @@ int main(void) {
   test('D', "44");
   test('D', "a");
 
-  printf("one\n");
   test('N', "42");
-  printf("one\n");
+  test('N', "428");
+  test('N', "4");
+  test('N', "a428");
 }
 
 
