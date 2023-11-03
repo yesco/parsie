@@ -65,15 +65,20 @@ char* parset_hlp(char target, char* s) {
 
     // action == accept, gen out
     if (*r=='[') {
+      // TODO: use dstrprintf?
+      char buf[1024]= {0};
       printf("\n>>>>>\n");
       while(*r && *r++!=']') {
 	if (*r=='$') {
 	  char n= *++r;
-	  if (isdigit(n)) printf("%s", res[n-'0']);
-	  else if (n=='$') printf("%*s", p-s, s);
-	} else putchar(*r);
+	  // TODO: offset in res
+	  if (isdigit(n)) strcat(buf, res[n-'0']);
+	  else if (n=='$') strncat(buf, s, p-s);
+	} else strncat(buf, r, 1);
       }
-      printf("\n<<<<<\n");
+      printf("%s\n<<<<<<\n", buf);
+      // TODO: offset in res
+      res[0]= strdup(buf);
       return p;
     }
 
