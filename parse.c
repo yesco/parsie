@@ -59,7 +59,7 @@ int main(void) {
   //NT['D']= "0|1|2|33|3|4|5|6|7|8|9\n";
   NT['D']= "0|1|2|3|4|5|6|7|8|9\nn";
   NT['N']= "DN|D\n";
-  NT['Q']= "select N, N from int(N, N) i\n";
+  NT['Q']= "select N, N from int(N, N) i [ COLS($1,$2)\n IOTA($2,32) ]\n";
   
   test('D', "0");
   test('D', "1");
