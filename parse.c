@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <ctype.h>
+#include <assert.h>
 
 // char==name of NonTerminals
 char* NT[128]= {0};
@@ -16,7 +17,7 @@ int eor(char* r) {
 char* parset_hlp(char target, char* s);
 char* parset(char target, char* s);
 
-// space is always removed
+// match a char or a NT with S
 char* match(char r, char* s) {
   // one space matches zero or more
   //if (r==' ') { while(isspace(*s)) s++; return s; }
@@ -27,15 +28,19 @@ char* match(char r, char* s) {
   return NULL;
 }
   
+#define MAXRES 256
 int nres= 0;
-char* res[256]= {0};
+char* res[MAXRES]= {0};
 
+// parse a term
+// extract term match
 char* parset(char target, char* s) {
   int n= nres++;
   char* r= parset_hlp(target, s);
   nres--;
   if (r==s) return NULL;
   // sub rule matched - store
+  assert(n<MAXRES);
   free(res[n]);
   // TODO: keep pointer+len???
   res[n]= strndup(s, r-s);
@@ -58,6 +63,20 @@ char* parset_hlp(char target, char* s) {
     while(isspace(*r)) r++;
     while(isspace(*s)) s++;
 
+    // action == accept, gen out
+    if (*r=='[') {
+      printf("\n>>>>>\n");
+      while(*r && *r++!=']') {
+	if (*r=='$') {
+	  char n= *++r;
+	  if (isdigit(n)) printf("%s", res[n-'0']);
+	  else if (n=='$') printf("%*s", p-s, s);
+	} else putchar(*r);
+      }
+      printf("\n<<<<<\n");
+      return p;
+    }
+
     char* m= match(*r, p);
     if (!m) {
       // failed: look for alt
@@ -74,6 +93,11 @@ char* parset_hlp(char target, char* s) {
 }
 
 char* parse(char target, char* s) {
+  for(int i=0; i<MAXRES; i++)
+    if (res[i]) {
+      free(res[i]);
+      res[i]= NULL;
+    }
   nres= 0;
   return parset(target, s);
 }
@@ -96,8 +120,8 @@ int main(void) {
   //NT['D']= "0|1|2|33|3|4|5|6|7|8|9\n";
   NT['D']= "0|1|2|3|4|5|6|7|8|9\n";
   NT['N']= "DN|D\n";
-  NT['Q']= "select N, N from int(N, N) i [ COLS($1,$2)\n IOTA($2,32) ]\n";
   NT['Q']= "select N, N from int(N, N) i\n";
+  NT['Q']= "select N, N from int(N, N) i [ QUERY($$)\n COLS($1,$2)\n IOTA($3,$4) ]\n";
   
   test('D', "0");
   test('D', "1");
