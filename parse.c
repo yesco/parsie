@@ -22,6 +22,7 @@ char* match(char r, char* s) {
   // one space matches zero or more
   //if (r==' ') { while(isspace(*s)) s++; return s; }
   // spaceis always removed
+  printf("\nMATCH '%c' '%s'\n", r, s);
   while(isspace(*s)) s++;
   if (r==*s) return s+1;
   if (nont(r)) return parset(r, s);
@@ -58,7 +59,7 @@ char* parset(char target, char* s) {
   pgen= NULL;
   char* r= parset_hlp(target, s);
   nres--;
-  if (r==s) return NULL;
+  if (r==s) return NULL; // failed
   // sub rule matched - store
   assert(n<MAXRES);
   free(res[n]);
@@ -85,17 +86,26 @@ char* parset_hlp(char target, char* s) {
 
     // action == accept, gen out
     if (*r=='[') return parset_gen(r, s, p);
-
-    char* m= match(*r, p);
-    if (!m) {
+    //if (*r=='{') return eval(r, s, p); // TODO:
+    // $, $; - delimited-list
+    int min=1, max=1;
+    if (*r=='$') {
+      switch(*++r) {
+      case ',': case ';': break; // TODO
+      case '/': break; // TODO: rest is optional
+      }
+      min= (*r=='?'||*r=='*')?0:1;
+      max= (*r=='+'||*r=='*')?9999:1;
+      r++;
+    }
+    char* m, *last= m;
+    // TODO: concat captures?
+    while(max-- && (m=match(*r, p))) last=p, p= m;
+    if (min && !m) {
       // failed: look for alt
       while(*r && *r++!='|');
-      p= s;
-      ok= 0;
-    } else {
-      r++, p= m;
-      ok= 1;
-    }
+      ok= 0, p= s;
+    } else ok= 1, r++; //, p= m, 
     printf("  '%s'\t%s", p, r);
   }
   return (ok && eor(r)) ? p : 0;
@@ -131,6 +141,7 @@ int main(void) {
   NT['N']= "DN|D\n";
   NT['Q']= "select N, N from int(N, N) i\n";
   NT['Q']= "select N, N from int(N, N) i [ QUERY($$)\n COLS($1,$2)\n IOTA($3,$4) ]\n";
+  NT['O']= "a$+ba";
   
   test('D', "0");
   test('D', "1");
@@ -146,6 +157,10 @@ int main(void) {
   test('N', "a428");
 
   test('Q', "select 2222,123456 from int(1, 10) i");
+
+  test('O', "aa");
+  test('O', "aba");
+  test('O', "abba");
 }
 
 
