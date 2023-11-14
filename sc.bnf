@@ -1,0 +1,12 @@
+I=$a$+w
+N=$+d
+D=V|F
+P=$+D
+V=int I;
+F=void I(){$*S}
+S=if(E){$*s}|while(E){$*S}|asm N;|I();|$?R I=E;
+R=*(int*)
+E=U$?T
+T=O U
+U=R I|&I|(E)|I|N
+O=+|-|&|\||^|<<|>>|==|!=|<|>|<=|>=

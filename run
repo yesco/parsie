@@ -1,0 +1,2 @@
+wc parse.c
+clang parse.c && time ./a.out 
