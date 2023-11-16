@@ -131,6 +131,8 @@ char* skip(char* p) {
 
 
 char* alf(char* p, int args, int n, int iff) {
+  printf("\n===ALF >>>%s<<<\n", p);
+  if (!p) return NULL;
   int x; char* e= NULL;
  next:
   printf("\n>>> "); for(int i=0; i<sp; i++) printf("%.20lg ", S[i]); printf("\t  '%c'\n", *p);
@@ -146,9 +148,9 @@ char* alf(char* p, int args, int n, int iff) {
 #define OP(op,e) case #op[0]: S[sp-2]=S[sp-1] op##e S[sp-2]; sp--; goto next;
 OP(+,);OP(-,);OP(*,);OP(/,);OP(<,);OP(>,);OP(=,=);OP(|,|);OP(&,&);
   case '%': S[sp-2]=(long)S[sp-1] % (long)S[sp-2]; sp--; goto next;
-  case '~': S[sp]= ~(long)S[sp]; goto next;
-  case 'n': S[sp]= -(long)S[sp]; goto next;
-  case 'z': S[sp]= !S[sp]; goto next;
+  case '~': S[sp-1]= ~(long)S[sp-1]; goto next;
+  case 'n': S[sp-1]= -(long)S[sp-1]; goto next;
+  case 'z': S[sp-1]= !S[sp-1]; goto next;
     
   // TODO: << >> bit& bit|
 
@@ -184,6 +186,8 @@ OP(+,);OP(-,);OP(*,);OP(/,);OP(<,);OP(>,);OP(=,=);OP(|,|);OP(&,&);
     goto next;
   }
   case '?': {
+    // maybe if find {} etc just patch
+    // with jumps? (128..255)
     if (S[--sp]) { // true
       switch(*p++){
       case '}': return NULL; // again
@@ -197,6 +201,7 @@ OP(+,);OP(-,);OP(*,);OP(/,);OP(<,);OP(>,);OP(=,=);OP(|,|);OP(&,&);
     } else { // false
       if (*p=='{') {
 	p= skip(p+1);
+	if (!iff) goto next;
 	//return p;
 	//goto next;
       }
@@ -222,9 +227,9 @@ if(0){
 }
 
   //alf("1.{2.}3.", 0, 0, 0);
-  alf("1d.?{2d.}{3d.}.4.", 0, 0, 0);
-  alf("0d.?{2d.}{3d.}.4.", 0, 0, 0);
+//alf("1d.?{2d.}{3d.}.4.", 0, 0, 0);
+//  alf("0d.?{2d.}{3d.}.4.", 0, 0, 0);
 
-  alf("1.{2.1?}3.", 0, 0, 0);
+  alf("1.{2.1 3<?}3.", 0, 0, 0);
   return 0;
 }
