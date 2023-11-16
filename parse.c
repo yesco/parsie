@@ -82,7 +82,6 @@ char* parset_hlp(char target, char* s) {
     // TODO: end?
     while(isspace(*r)) r++;
     while(isspace(*s)) s++;
-
     // action == accept, gen out
     if (*r=='[') return parset_gen(r, s, p);
     //if (*r=='{') return eval(r, s, p); // TODO:
@@ -97,15 +96,18 @@ char* parset_hlp(char target, char* s) {
       if (strchr("?*+,; ", c)) c= *++r;
       switch(c) {
       case 'a': case 'd': case 'w': c=c+128; printf("\nCCCC %d\n", c); break;
-      case '/': c=*++r; break; // TODO: rest is optional
+      case '/': c=*++r; break; // TODO: rest is optional, how about gen?
       }
     }
+    if (*r=='\\') r++; // quoted char
+
     char* m, *last= NULL;
     // TODO: concat captures?
     while(max-- && (m=match(c, p))) {
       if (*m && *m==delim) m++;
       last= p= m;
     }
+
     if (min && !last) {
       // failed: look for alt
       while(*r && *r++!='|');
