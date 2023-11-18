@@ -9,7 +9,7 @@ int debug= 1;
 char* NT[128]= {0};
 
 int eor(char* r) {
-  return !*r || *r=='\n' || *r=='|';
+  return !r || !*r || *r=='\n' || *r=='|';
 }
  
 char* parset_hlp(char target, char* s);
@@ -71,9 +71,9 @@ char* parset(char target, char* s) {
   return r;
 }
 
-// match S to TARGET rule
-// null if not match
-// otherwise remaining string
+// match TARGET rule to string S
+//   NULL if not match
+//   otherwise remaining string
 char* parset_hlp(char target, char* s) {
   char* r= NT[target];
   int ok= 0;
@@ -134,9 +134,9 @@ char* parse(char target, char* s) {
 void test(char target, char* s) {
   char* p= parse(target, s);
 
-  printf("\tTEST '%s' -> '%s'\n", s, p);
+  printf("\t%s rule -> '%s'\n", p?"UNPARSED":"FAILED", s, p);
   for(int i=0; i<nres; i++)
-    printf("\t[%d]= '%s'\n", i, res[i]);
+    printf("\tRESULT[%d]= '%s'\n", i, res[i]);
   printf("\t======================\n");
   // print previous
   for(int i=nres; i<256; i++)
@@ -144,15 +144,28 @@ void test(char target, char* s) {
   printf("\n");
 }
 
+// A=foo|bar|X
+// ?A
+// foo
+// barf
+// @
+// A=fie fum
+// foo
+// fie
+// *A
+// fie
+// fum
 void readparser(FILE* f) {
-  char rule, *ln= NULL; size_t z= 0;
-  while(getline(&ln, &z, f)>0){
-    if (ln && ln[strlen(ln)-1]=='\n') ln[strlen(ln)-1]= 0;
+  char rule, *ln= NULL; size_t z= 0, d='\n';
+  while(getdelim(&ln, &z, d, f)>0){
+    if (ln && ln[strlen(ln)-1]=='\n') ln[strlen(ln)-1]= 0; // rule
     if (debug) printf("%s\n", ln);
     if (!ln) break; if (!*ln) continue;
     if (ln[1]=='=' && isalpha(*ln) && isupper(*ln)) NT[ln[0]]= strdup(ln+2);
     else if (*ln=='#') ; // comment
     else if (*ln=='?') rule=ln[1];
+    else if (*ln=='@') for(int i=0; i<127; i++) { free(NT[i]); NT[i]=NULL; }
+    else if (*ln=='*') { rule=ln[1]; d=0; }
     else test(rule, ln);
   }
   free(ln);
