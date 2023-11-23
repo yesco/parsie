@@ -25,6 +25,7 @@ char* match(char r, char* s) {
   if (r=='a'+128) return isalpha(*s) || *s=='_' ? s+1 : NULL;
   if (r=='d'+128) return isdigit(*s) ? s+1 : NULL;
   if (r=='w'+128) return isalnum(*s) || *s=='_' ? s+1 : NULL;
+  if (r=='e'+128) return !*s ? s : NULL;;
   if (r==*s) return s+1;
   if (isupper(r)) return parset(r, s);
   return NULL;
@@ -37,15 +38,21 @@ char* pgen= NULL;
 
 char* parset_gen(char* r, char* s, char* p) {
   // TODO: use dstrprintf?
-  char buf[16*1024]= {0};
-  if (debug>=1) printf("\n\t>>>>>\n");
-  while(*r && *r++!=']') {
+  char buf[16*1024]= {0}; // TODO: fix unsafe
+  //  if (debug>=1)
+  //printf("\n\tGEN>>>>>\n");
+  while(*r && *r!=']') {
     if (*r=='$') {
-      char n= *++r;
+      char n= *++r; r++;
       // TODO: offset in res
-      if (isdigit(n)) strcat(buf, res[n-'0']);
+      if (isdigit(n)) {
+	printf("GEN $%c\n", n);
+	printf("  buf=%s\n", buf);
+	printf("  res=%s\n", res[n-'0']);
+	if (res[n-'0']) strcat(buf, res[n-'0']);
+      }
       else if (n=='$') strncat(buf, s, p-s);
-    } else strncat(buf, r, 1);
+    } else strncat(buf, r++, 1);
   }
   if (debug>=1) printf("\t%s\n<<<<<<\n", buf);
   // TODO: offset in res
@@ -85,7 +92,7 @@ char* parset_hlp(char target, char* s) {
     while(isspace(*r)) r++;
     while(isspace(*s)) s++;
     // action == accept, gen out
-    if (*r=='[') return parset_gen(r, s, p);
+    if (*r=='[') return parset_gen(r+1, s, p);
     //if (*r=='{') return eval(r, s, p); // TODO:
     // $, $; - delimited-list
     int min=1, max=1, delim= 0;
@@ -97,7 +104,7 @@ char* parset_hlp(char target, char* s) {
       max= (c=='+'||c=='*'||delim)?9999:1;
       if (strchr("?*+,; ", c)) c= *++r;
       switch(c) {
-      case 'a': case 'd': case 'w': c=c+128; break;
+      case 'a': case 'd': case 'w': case 'e': c=c+128; break;
       case '/': c=*++r; break; // TODO: rest is optional, how about gen?
       }
     }
@@ -134,7 +141,7 @@ char* parse(char target, char* s) {
 void test(char target, char* s) {
   char* p= parse(target, s);
 
-  printf("\t%s rule -> '%s'\n", p?"UNPARSED":"FAILED", s, p);
+  printf("\t%s rule -> '%s'\n", p?"UNPARSED":"FAILED", p);
   for(int i=0; i<nres; i++)
     printf("\tRESULT[%d]= '%s'\n", i, res[i]);
   printf("\t======================\n");
