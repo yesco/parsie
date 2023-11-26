@@ -46,10 +46,10 @@ char* parset_gen(char* r, char* s, char* p) {
       char n= *++r; r++;
       // TODO: offset in res
       if (isdigit(n)) {
-	printf("GEN $%c\n", n);
-	printf("  buf=%s\n", buf);
-	printf("  res=%s\n", res[n-'0']);
+	printf("GEN: take $%c '%s'\n", n, res[n-'0']);
+	printf("  :  buf=%s\n", buf);
 	if (res[n-'0']) strcat(buf, res[n-'0']);
+	printf("  => buf=%s\n", buf);
       }
       else if (n=='$') strncat(buf, s, p-s);
     } else strncat(buf, r++, 1);
@@ -173,6 +173,11 @@ void readparser(FILE* f) {
     else if (*ln=='?') rule=ln[1];
     else if (*ln=='@') for(int i=0; i<127; i++) { free(NT[i]); NT[i]=NULL; }
     else if (*ln=='*') { rule=ln[1]; d=0; }
+    else if (*ln=='$' && strchr("[{(<", ln[1])) {
+      parset_gen(ln+1, "", NULL);
+      printf("GEN: %s\n", pgen);
+      free(pgen); pgen= NULL;
+    }
     else test(rule, ln);
   }
   free(ln);

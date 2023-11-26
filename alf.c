@@ -6,17 +6,25 @@
 
 #define SMAX 1024
 double S[SMAX]={0};
-int sp= 0;
+int sp= 0, memsize= 0;
+char *mem= NULL, *here= NULL;
+#define T S[sp-1]
 
 char* F['Z'-'A'+1]= {0};
-
 // 31 ops:
-// dup \=drop s=swap 0=ret ' ' num call
-// + - / * %   < > = ! & | <! >!
-// ~ n . e(emit)
-// : ; ( ) [ ] p=param v=variable
-// '=char "=printstring
+// dup \=drop s=swap o=over
+// 0=ret ' ' num call
+// + - / * %   < > = ! & |
+// ~ n
+// : ; (param) [frame]
+// p0-p9=param  v0-v9=set var
+// '=char e=emit "=prstr .=printnum
 // x=execute
+// h=here a=allot m="malloc"
+//
+//
+// FREE: , _ ` bc fg ijkl qr u w y
+//             128-255
 //
 //   Missing:
 //     bit& bit| bit==?
@@ -26,11 +34,44 @@ char* F['Z'-'A'+1]= {0};
 //     quit if type for loop while
 
 /*
+  == ctrl-a -- ctrl-z reserve for edit?
+  0 - end of c-string
+  1 ctrl-a start of heading
+  2 ctrl-b start of text
+  3 ctrl-c end of text
+  4 ctrl-d end of transmission
+  5 ctrl-e enquire
+  6 ctrl-f acknowledge
+( 7 ctrl-g - abort/alarm/interrupt? )
+( 8 ctrl-h - rubout )
+  9 ctrl-i - tab/indent
+ 10 j lf - down
+ 11 k vt - up
+ 12 l ff - new/clear page
+ 13 m cr - beginning line
+(14 n shift out )
+(15 o shift in )
+ 16 p data link escape
+ 17 r device control one (XON)
+ 18 s device ccontrol two
+ 19 t device control three (XOFF)
+ 20 u device control four
+ 21 v negative acknowledge
+ 22 w sync idle
+ 23 x end of transmission block
+ 24 y cancel
+ 25 z end of medium
+ 26   substitue
+ 27 [ escpae
+ 28   file separator
+ 29   group separator
+ 30   record separator
+ 31   unit separator
   <spc> - delimiter
-( ! - store )
+  ! - store
   " - print string
   #
-  $
+( $ - reserved for parser vars )
   % - mod
   & - and
   ' - char
@@ -39,7 +80,6 @@ char* F['Z'-'A'+1]= {0};
   * - mul
   + - add
 ( , - write word, here )
-  - - invert bits
   . - print number
   / - div
   0123456789 - number
@@ -48,44 +88,51 @@ char* F['Z'-'A'+1]= {0};
   < - less than
   = - equal
   > - greater than
-( ? - if )
-( @ - read )
-  ABCDEFGHIJKLMNOPQRSTUVWXYZ - sub
-  [ - enter param
+  ? - if
+  ?] - if true exit {loop}
+  ?} - if true begin again
+  ?{ - 1?{then}{else}
+  @ - read
+  ABCDEFGHIJKLMNOPQRSTUVWXYZ - UDF
+  [ - enter parameter frame
   \ - drop
-  ] - exit param
+  ] - exit param frame
 ( ^ - xor )
-  _
-( ` - address? )
-  a
+( _ - name define? )
+( ` - address of name? )
+  a - alloc (inc here)
 ( b - bit )
 ( b& )
 ( b| )
 ( b^ )
-  c
+( c - char ops prefix !@ )
   d - drop
   e - emit
   fg
-( h - here )
-  ijkl
-( m - malloc/alloc? here )
+  h - here 
+  ij
+( k - key key?)
+  l
+  m - here swap malloc
   n - negate
-( o - over )
+  o - over
   p - parameter N
   qr
   s - swap
 ( t - type )
   u
   v - variable (set parameter) N
-  w
+( w - *8== word+align)?
   x - execute (call char f stack)
   y
   z - =0? zero?, invert?
-  {
+  { - loop begin
   | - or
-  }
-  ~ - bit negate
-  <del>
+  } - loop end
+  ~ - bit invert
+( <del> )
+( 128-255 - longname slots? )
+  
 */
 
 /*
@@ -116,6 +163,11 @@ char* F['Z'-'A'+1]= {0};
 	    C ?}
  */
 
+void initalf(size_t sz) {
+  here= mem= calloc(memsize= sz, 1);
+  // zero S F
+}
+
 // skips a { block } returns after
 char* skip(char* p) {
   printf("skipping.... >>>%s<<<\n", p);
@@ -133,25 +185,31 @@ char* skip(char* p) {
 char* alf(char* p, int args, int n, int iff) {
   printf("\n===ALF >>>%s<<<\n", p);
   if (!p) return NULL;
-  int x; char* e= NULL;
+  long x; char* e= NULL;
  next:
-  printf("\n>>> "); for(int i=0; i<sp; i++) printf("%.20lg ", S[i]); printf("\t  '%c'\n", *p);
+  printf("\t>>> "); for(int i=0; i<sp; i++) printf("%.20lg ", S[i]); printf("\t  '%c'\n", *p);
   switch(*p++){
   case 0: case ';': case ')': return p;
-  case ' ': goto next;
-  case 'd': S[sp]= S[sp-1]; sp++; break; case '\\': sp--; goto next;
-  case 's': x=S[sp-1]; S[sp-1]= S[sp-2]; S[sp-2]= x; goto next;
+  case ' ': case '\n': case '\t': case '\r': goto next;
+  case 'd': S[sp]= T; sp++; goto next; case '\\': sp--; goto next;
+  case 'o': S[sp]= S[sp-2]; sp++; goto  next;
+  case 's': x=T; T= S[sp-2]; S[sp-2]= x; goto next;
   case '0'...'9': S[sp++]= atoi(p-1); while(isdigit(*p))p++; goto next;
   case 'A'...'Z': alf(F[p[-1]-'A'], 0, 0, 0); goto next;
   case 'x': { char x[]={S[--sp],0}; alf(x, 0, 0, 0); goto next; }
 
-#define OP(op,e) case #op[0]: S[sp-2]=S[sp-1] op##e S[sp-2]; sp--; goto next;
+#define OP(op,e) case #op[0]: S[sp-2]=T op##e S[sp-2]; sp--; goto next;
 OP(+,);OP(-,);OP(*,);OP(/,);OP(<,);OP(>,);OP(=,=);OP(|,|);OP(&,&);
-  case '%': S[sp-2]=(long)S[sp-1] % (long)S[sp-2]; sp--; goto next;
-  case '~': S[sp-1]= ~(long)S[sp-1]; goto next;
-  case 'n': S[sp-1]= -(long)S[sp-1]; goto next;
-  case 'z': S[sp-1]= !S[sp-1]; goto next;
+  case '%': S[sp-2]=(long)T % (long)S[sp-2]; sp--; goto next;
+  case '~': T= ~(long)T; goto next;
+  case 'n': T= -(long)T; goto next;
+  case 'z': T= !T; goto next;
     
+  case 'h': S[sp++]= here-mem; goto next;
+  case 'm': x= T; T= here-mem; here+= x; goto next;
+  case 'a': here+= (long)S[--sp]; goto next;
+  case '@': T= mem[8*(long)T]; goto next;
+  case '!': mem[8*(long)T]= S[sp-2]; sp-=2; goto next;
   // TODO: << >> bit& bit|
 
   // TODO: STORE case
@@ -171,8 +229,8 @@ OP(+,);OP(-,);OP(*,);OP(/,);OP(<,);OP(>,);OP(=,=);OP(|,|);OP(&,&);
   // 99]        -> .. 99 (and exit)
     // TODO: by call alf, ret on ')'
   case '(': { int fp= sp; p= alf(p, args, n, 1); S[sp++]= fp; goto next; }
-  case '[': args= S[sp-1]; n= S[sp]= sp-args-1; sp++; goto next;
-  case ']': S[args]= S[sp-1]; sp= args+1; return p;
+  case '[': args= T; n= S[sp]= sp-args-1; sp++; goto next;
+  case ']': S[args]= T; sp= args+1; return p;
 
   case 'p': S[sp++]= S[args+*p-'0']; p++; goto next;
   case 'v': S[args+*p-'0']= S[--sp]; p++; goto next;
@@ -217,6 +275,8 @@ OP(+,);OP(-,);OP(*,);OP(/,);OP(<,);OP(>,);OP(=,=);OP(|,|);OP(&,&);
 }
 
 int main(int argc, char** argv) {
+  initalf(16*1024);
+
 if(0){
   alf("3d.4d.+. 44444d. 1111111d. + . 3 3=. 4 3=. 1 0|. 7 3|. 1 0&. 1 3&.", 0, 0, 0);
   alf(":A666;333Ad.+.", 0, 0, 0);
@@ -224,12 +284,15 @@ if(0){
   alf("666 'A . 'a. ' .", 0, 0, 0);
   alf("\"Foo=\" 42. '\"e", 0, 0, 0);
   alf(":P...; 11 22 33 'P x", 0, 0, 0);
+  alf("1.{2.1 3<?}3.", 0, 0, 0);
 }
 
   //alf("1.{2.}3.", 0, 0, 0);
 //alf("1d.?{2d.}{3d.}.4.", 0, 0, 0);
 //  alf("0d.?{2d.}{3d.}.4.", 0, 0, 0);
 
-  alf("1.{2.1 3<?}3.", 0, 0, 0);
+  char* ln= NULL; size_t sz= 0;
+  while(getline(&ln, &sz, stdin)>=0)
+    alf(ln, 0, 0, 0);
   return 0;
 }

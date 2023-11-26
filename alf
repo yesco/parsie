@@ -1,0 +1,2 @@
+wc alf.c
+clang alf.c && time ./a.out 
