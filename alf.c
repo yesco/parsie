@@ -100,7 +100,7 @@ char* F['Z'-'A'+1]= {0};
 ( ^ - xor )
 ( _ - name define? )
 ( ` - address of name? )
-  a - alloc (inc here)
+  a - allot (inc here)
 ( b - bit )
 ( b& )
 ( b| )
@@ -291,6 +291,7 @@ if(0){
 //alf("1d.?{2d.}{3d.}.4.", 0, 0, 0);
 //  alf("0d.?{2d.}{3d.}.4.", 0, 0, 0);
 
+  // read-eval
   char* ln= NULL; size_t sz= 0;
   while(getline(&ln, &sz, stdin)>=0)
     alf(ln, 0, 0, 0);
