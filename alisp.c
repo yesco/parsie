@@ -1,5 +1,17 @@
 #define MAXC 16*1024
 
+// A small alphabetical (letter)
+// dispatched lisp.
+
+// Can we make it eval strings?
+
+// compare-tinylisp.c 19 funcs (+3)
+//   eval quote cons car cdr + - * /
+//   int < eq? or and not cond if
+//   let lambda define
+//   ( apply assoc leta )
+//
+
 typedef double L;
 L nul= 0; // TODO: erh
 typedef struct C { L a, L d; } C;
