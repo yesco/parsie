@@ -1,5 +1,6 @@
 # count code lines (LOC):
 # - no full comment lines '//' '#'
+# - no comment sections /* ... */
 # - no empty lines
 # - no single '{' or '}'
 # - no include
@@ -12,6 +13,8 @@
 # shorter lol!
 # tr -d -c ";" $* | wc | (read a b c ; echo $c)
 
+# TODO: not working - /* */
+#sed ":a; s:/\\*[\\n.]*?\\*/::g" | \
 
 ls -1 $* | xargs -I% sh -c "
 cat % | \
