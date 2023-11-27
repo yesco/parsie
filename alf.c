@@ -37,16 +37,15 @@ char*alf(char*p,int args,int n,int iff){long x;char*e=NULL;if(!p)return NULL;
 
   // -- math stuff
 #define L (long)
+#define SL (sizeof(long))
 #define OP(op,e) case #op[0]: S[sp-2]=T op##e S[sp-2]; sp--;NXT
 OP(+,);OP(-,);OP(*,);OP(/,);OP(<,);OP(>,);OP(=,=);OP(|,|);OP(&,&);
   case '%': S[sp-2]=L T % L S[sp-2]; sp--;NXT
   case 'z': T= !T;NXT case '~': T= ~L T;NXT case 'n': T= -L T;NXT
   
   // -- memory stuff
-  case 'h': S[sp++]= H-M;NXT
-  case 'm': x= T; T= H-M;H+=x;NXT
-  case 'a': H+=L S[--sp];NXT
-
+  case'h':S[sp++]=H-M;NXT case'm':x=T;T=H-M;H+=x;NXT case'a':H+=L S[--sp];NXT
+  case ',': H=(char*)((((L H)+SL-1)/SL)*SL);memcpy(H,&S[--sp],SL);H+=SL;NXT
   case '@': T=M[8*L T];NXT case '!': M[8*L T]= S[sp-2]; sp-=2;NXT
   // TODO: << >> bit& bit|
 
