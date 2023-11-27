@@ -94,7 +94,7 @@ OP(+,);OP(-,);OP(*,);OP(/,);OP(<,);OP(>,);OP(=,=);OP(|,|);OP(&,&);
  NXT
 }
 
-// eNDWCOUNT
+// ENDWCOUNT
 
 // -- 41 ops:
 // dup \=drop s=swap o=over
