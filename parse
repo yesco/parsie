@@ -1,0 +1,3 @@
+echo "PARSE: lines `./wcode parse.c`"
+gcc parse.c && ./a.out
+

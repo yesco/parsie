@@ -1,2 +1,2 @@
-wc alf.c
+echo "ALF: lines `./wcode alf.c`"
 clang alf.c && time ./a.out 
