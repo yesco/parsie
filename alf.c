@@ -28,33 +28,28 @@ char*alf(char*p,int args,int n,int iff){long x;char*e=NULL;if(!p)return NULL;
   switch(*p++){
   case 0:case';':case')':return p;case' ':case'\n':case'\t':case'\r':NXT
   // -- stack stuff
-  case 'd': S[sp]= T; sp++;NXT case '\\': sp--;NXT
-  case 'o': S[sp]= S[sp-2]; sp++;NXT case 's': x=T; T= S[sp-2]; S[sp-2]= x;NXT
+  case'd': S[sp]= T; sp++;NXT case '\\': sp--;NXT
+  case'o': S[sp]= S[sp-2]; sp++;NXT case 's': x=T; T= S[sp-2]; S[sp-2]= x;NXT
 
-  case '0'...'9': S[sp++]= atoi(p-1); while(isdigit(*p))p++;NXT
-  case 'A'...'Z': alf(F[p[-1]-'A'], 0, 0, 0);NXT
-  case 'x': { char x[]={S[--sp],0}; alf(x, 0, 0, 0);NXT }
+  case'0'...'9': S[sp++]= atoi(p-1); while(isdigit(*p))p++;NXT
+  case'A'...'Z': alf(F[p[-1]-'A'], 0, 0, 0);NXT
+  case'x': { char x[]={S[--sp],0}; alf(x, 0, 0, 0);NXT }
 
   // -- math stuff
 #define L (long)
 #define SL (sizeof(long))
 #define OP(op,e) case #op[0]: S[sp-2]=T op##e S[sp-2]; sp--;NXT
 OP(+,);OP(-,);OP(*,);OP(/,);OP(<,);OP(>,);OP(=,=);OP(|,|);OP(&,&);
-  case '%': S[sp-2]=L T % L S[sp-2]; sp--;NXT
-  case 'z': T= !T;NXT case '~': T= ~L T;NXT case 'n': T= -L T;NXT
+  case'%': S[sp-2]=L T % L S[sp-2]; sp--;NXT
+  case'z': T= !T;NXT case '~': T= ~L T;NXT case 'n': T= -L T;NXT
   
   // -- memory stuff
   case'h':S[sp++]=H-M;NXT case'm':x=T;T=H-M;H+=x;NXT case'a':H+=L S[--sp];NXT
-  case ',': H=(char*)((((L H)+SL-1)/SL)*SL);memcpy(H,&S[--sp],SL);H+=SL;NXT
-  case '@': T=M[8*L T];NXT case '!': M[8*L T]= S[sp-2]; sp-=2;NXT
-  // TODO: << >> bit& bit|
-
-  // TODO: STORE case
-
-  case '.': printf("%.20lg ", S[--sp]);NXT
-  case 'e': putchar(S[--sp]);NXT
-  case '\'': S[sp++]= *p++;NXT
-  case '"': while(*p&&*p!='"')putchar(*p++);p++;NXT
+  case',': H=(char*)((((L H)+SL-1)/SL)*SL);memcpy(H,&S[--sp],SL);H+=SL;NXT
+  case'@': T=M[8*L T];NXT case '!': M[8*L T]= S[sp-2]; sp-=2;NXT
+  // -- printers
+  case'.': printf("%.20lg ", S[--sp]);NXT case 'e': putchar(S[--sp]);NXT
+  case'\'': S[sp++]= *p++;NXT case'"':while(*p&&*p!='"')putchar(*p++);p++;NXT
 
   case ':':{char*e=strchr(p,';');if(e) F[*p-'A']=strndup(p+1,e-p),p=e+1;break;}
 
@@ -65,23 +60,23 @@ OP(+,);OP(-,);OP(*,);OP(/,);OP(<,);OP(>,);OP(=,=);OP(|,|);OP(&,&);
   // p1 p3      -> 11 33
   // 99]        -> .. 99 (and exit)
     // TODO: by call alf, ret on ')'
-  case '(': { int fp= sp; p= alf(p, args, n, 1); S[sp++]= fp;NXT }
-  case '[': args= T; n= S[sp]= sp-args-1; sp++;NXT
-  case ']': S[args]= T; sp= args+1; return p;
+  case'(': { int fp= sp; p= alf(p, args, n, 1); S[sp++]= fp;NXT }
+  case'[': args= T; n= S[sp]= sp-args-1; sp++;NXT
+  case']': S[args]= T; sp= args+1; return p;
 
-  case 'p': S[sp++]= S[args+*p-'0']; p++;NXT
-  case 'v': S[args+*p-'0']= S[--sp]; p++;NXT
+  case'p': S[sp++]= S[args+*p-'0']; p++;NXT
+  case'v': S[args+*p-'0']= S[--sp]; p++;NXT
     
   // control/IF/FOR/WHILE - ? { }
-  case '}': return iff?p:NULL;
-  case '{': { char* r; while(!((r=alf(p, args, n, 0)))){}; p= r; NXT }
+  case'}': return iff?p:NULL;
+  case'{': { char* r; while(!((r=alf(p, args, n, 0)))){}; p= r; NXT }
   // -- control flow
   // ?] = break
   // ?} = again
   // ?{ = if{then}{else}
-  case '?': if (S[--sp]) { switch(*p++){
-    case '}': return NULL; case ']': return p;
-    case '{': p= alf(p, args, n, 1);if (*p=='{') p=skip(p+1);NXT
+  case'?': if (S[--sp]) { switch(*p++){
+    case'}': return NULL; case']': return p;
+    case'{': p= alf(p, args, n, 1);if (*p=='{') p=skip(p+1);NXT
     default: p=alf(p, args, n, 1);
     }
  } else { // false
