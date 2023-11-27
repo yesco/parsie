@@ -96,16 +96,17 @@ OP(+,);OP(-,);OP(*,);OP(/,);OP(<,);OP(>,);OP(=,=);OP(|,|);OP(&,&);
 
 // ENDWCOUNT
 
-// 31 ops:
+// -- 41 ops:
 // dup \=drop s=swap o=over
-// 0=ret ' ' num call
-// + - / * %   < > = ! & |
+// 0=ret ' ' num Call_udf
+// + - / * %   < > = & |
 // ~ n
 // : ; (param) [frame]
-// p0-p9=param  v0-v9=set var
+// p0-p9=param  v0-v9=set_var
 // '=char e=emit "=prstr .=printnum
 // x=execute
-// h=here a=allot m="malloc"
+// ?]=break ?}=continue ?{=if-then-else
+// !=store @=read h=here a=allot m="malloc"
 //
 //
 // FREE: , _ ` bc fg ijkl qr u w y
@@ -113,10 +114,11 @@ OP(+,);OP(-,);OP(*,);OP(/,);OP(<,);OP(>,);OP(=,=);OP(|,|);OP(&,&);
 //
 //   Missing:
 //     bit& bit| bit==?
-//     over pick key
-//     math? library use external dlopen?
+//     char!@
+//     pick key
+//     math? lib: use ext w dlopen
 //
-//     quit if type for loop while
+//     quit type
 
 /*
   == ctrl-a -- ctrl-z reserve for edit?
