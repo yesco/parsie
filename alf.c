@@ -4,10 +4,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+int debug= 1; // DEBUG
+#define DEBUG(D) if (debug) do{D;}while(0);
+
 #define SMAX 1024
 double S[SMAX]={0};
 int sp= 0, memsize= 0;
-char *mem= NULL, *here= NULL;
+char *M= NULL, *H= NULL;
 #define T S[sp-1]
 
 char* F['Z'-'A'+1]= {0};
@@ -163,61 +166,49 @@ char* F['Z'-'A'+1]= {0};
 	    C ?}
  */
 
-void initalf(size_t sz) {
-  here= mem= calloc(memsize= sz, 1);
-  // zero S F
-}
+void initalf(size_t sz) { H=M=calloc(memsize= sz, 1); } // TODO: ?zero S F
 
 // skips a { block } returns after
-char* skip(char* p) {
-  printf("skipping.... >>>%s<<<\n", p);
-  if (!p) return NULL;
-  int n= 1;
-  while(n && *p) {
-    n+= (*p=='{') - (*p=='}');
-    p++;
-  }
-  printf("SKIPPED..... >>>%s<<<\n", p);
-  return p;
-}
-
+char* skip(char* p){ int n=1;while(n&&*p)n+=(*p=='{')-(*p=='}'),p++;return p;}
 
 char* alf(char* p, int args, int n, int iff) {
-  printf("\n===ALF >>>%s<<<\n", p);
+  DEBUG(printf("\n===ALF >>>%s<<<\n", p))
   if (!p) return NULL;
   long x; char* e= NULL;
- next:
-  printf("\t>>> "); for(int i=0; i<sp; i++) printf("%.20lg ", S[i]); printf("\t  '%c'\n", *p);
+#define NXT goto next;
+ next: DEBUG(printf("\t>>> "); for(int i=0; i<sp; i++) printf("%.20lg ", S[i]); printf("\t  '%c'\n", *p))
   switch(*p++){
-  case 0: case ';': case ')': return p;
-  case ' ': case '\n': case '\t': case '\r': goto next;
-  case 'd': S[sp]= T; sp++; goto next; case '\\': sp--; goto next;
-  case 'o': S[sp]= S[sp-2]; sp++; goto  next;
-  case 's': x=T; T= S[sp-2]; S[sp-2]= x; goto next;
-  case '0'...'9': S[sp++]= atoi(p-1); while(isdigit(*p))p++; goto next;
-  case 'A'...'Z': alf(F[p[-1]-'A'], 0, 0, 0); goto next;
-  case 'x': { char x[]={S[--sp],0}; alf(x, 0, 0, 0); goto next; }
+  case 0:case';':case')':return p;case' ':case'\n':case'\t':case'\r':NXT
+  // -- stack stuff
+  case 'd': S[sp]= T; sp++;NXT case '\\': sp--;NXT
+  case 'o': S[sp]= S[sp-2]; sp++;NXT
+  case 's': x=T; T= S[sp-2]; S[sp-2]= x;NXT
 
-#define OP(op,e) case #op[0]: S[sp-2]=T op##e S[sp-2]; sp--; goto next;
+  case '0'...'9': S[sp++]= atoi(p-1); while(isdigit(*p))p++;NXT
+  case 'A'...'Z': alf(F[p[-1]-'A'], 0, 0, 0);NXT
+  case 'x': { char x[]={S[--sp],0}; alf(x, 0, 0, 0);NXT }
+
+  // -- math stuff
+#define L (long)
+#define OP(op,e) case #op[0]: S[sp-2]=T op##e S[sp-2]; sp--;NXT
 OP(+,);OP(-,);OP(*,);OP(/,);OP(<,);OP(>,);OP(=,=);OP(|,|);OP(&,&);
-  case '%': S[sp-2]=(long)T % (long)S[sp-2]; sp--; goto next;
-  case '~': T= ~(long)T; goto next;
-  case 'n': T= -(long)T; goto next;
-  case 'z': T= !T; goto next;
-    
-  case 'h': S[sp++]= here-mem; goto next;
-  case 'm': x= T; T= here-mem; here+= x; goto next;
-  case 'a': here+= (long)S[--sp]; goto next;
-  case '@': T= mem[8*(long)T]; goto next;
-  case '!': mem[8*(long)T]= S[sp-2]; sp-=2; goto next;
+  case '%': S[sp-2]=L T % L S[sp-2]; sp--;NXT
+  case 'z': T= !T;NXT case '~': T= ~L T;NXT case 'n': T= -L T;NXT
+  
+  // -- memory stuff
+  case 'h': S[sp++]= H-M;NXT
+  case 'm': x= T; T= H-M;H+=x;NXT
+  case 'a': H+=L S[--sp];NXT
+
+  case '@': T=M[8*L T];NXT case '!': M[8*L T]= S[sp-2]; sp-=2;NXT
   // TODO: << >> bit& bit|
 
   // TODO: STORE case
 
-  case '.': printf("%.20lg ", S[--sp]); goto next;
-  case 'e': putchar(S[--sp]); goto next;
-  case '\'': S[sp++]= *p++; goto next;
-  case '"': while(*p&&*p!='"')putchar(*p++); p++; goto next;
+  case '.': printf("%.20lg ", S[--sp]);NXT
+  case 'e': putchar(S[--sp]);NXT
+  case '\'': S[sp++]= *p++;NXT
+  case '"': while(*p&&*p!='"')putchar(*p++);p++;NXT
 
   case ':':{char*e=strchr(p,';');if(e) F[*p-'A']=strndup(p+1,e-p),p=e+1;break;}
 
@@ -228,52 +219,37 @@ OP(+,);OP(-,);OP(*,);OP(/,);OP(<,);OP(>,);OP(=,=);OP(|,|);OP(&,&);
   // p1 p3      -> 11 33
   // 99]        -> .. 99 (and exit)
     // TODO: by call alf, ret on ')'
-  case '(': { int fp= sp; p= alf(p, args, n, 1); S[sp++]= fp; goto next; }
-  case '[': args= T; n= S[sp]= sp-args-1; sp++; goto next;
+  case '(': { int fp= sp; p= alf(p, args, n, 1); S[sp++]= fp;NXT }
+  case '[': args= T; n= S[sp]= sp-args-1; sp++;NXT
   case ']': S[args]= T; sp= args+1; return p;
 
-  case 'p': S[sp++]= S[args+*p-'0']; p++; goto next;
-  case 'v': S[args+*p-'0']= S[--sp]; p++; goto next;
+  case 'p': S[sp++]= S[args+*p-'0']; p++;NXT
+  case 'v': S[args+*p-'0']= S[--sp]; p++;NXT
     
   // control/IF/FOR/WHILE - ? { }
   case '}': return iff?p:NULL;
-  case '{': {
-    char* r;
-    while(!((r=alf(p, args, n, 0))));
-    p= r;
-    goto next;
-  }
-  case '?': {
-    // maybe if find {} etc just patch
-    // with jumps? (128..255)
-    if (S[--sp]) { // true
-      switch(*p++){
-      case '}': return NULL; // again
-      case ']': return p; // break
-      case '{': p= alf(p, args, n, 1);
-	printf("AFTER ALF >>>%s<<<\n", p);
-	if (*p=='{') p= skip(p+1);
-	goto next; // if
-      default: p=alf(p, args, n, 1);
-      }
-    } else { // false
-      if (*p=='{') {
-	p= skip(p+1);
-	if (!iff) goto next;
-	//return p;
-	//goto next;
-      }
-      if (p) p= alf(p+1, args, n, 1);
-      else return NULL;
+  case '{': { char* r; while(!((r=alf(p, args, n, 0)))){}; p= r; NXT }
+  // -- control flow
+  // ?] = break
+  // ?} = again
+  // ?{ = if{then}{else}
+  case '?': if (S[--sp]) { // true
+    switch(*p++){
+    case '}': return NULL;
+    case ']': return p;
+    case '{': p= alf(p, args, n, 1);if (*p=='{') p=skip(p+1);	NXT
+    default: p=alf(p, args, n, 1);
     }
-    goto next;
-  }
+  } else { // false
+    if (*p=='{') { p=skip(p+1); if (!iff) NXT }
+    if (p) p= alf(p+1, args, n, 1); else return NULL; }
 
   default: printf("\n[%% Undefined op '%c']\n", p[-1]);
   }
-  goto next;
+ NXT
 }
 
+// ENDWCOUNT
 int main(int argc, char** argv) {
   initalf(16*1024);
 
