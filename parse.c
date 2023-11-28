@@ -133,6 +133,7 @@ void test(char target, char* s) { char* p= parse(target, s);
   printf("\n"); // DEBUG
 }
 
+// # comment
 // A=foo|bar|X
 // ?A
 // foo
@@ -144,15 +145,13 @@ void test(char target, char* s) { char* p= parse(target, s);
 // *A
 // fie
 // fum
-void readparser(FILE* f) {
-  char rule, *ln= NULL; size_t z= 0, d='\n';
-  while(getdelim(&ln, &z, d, f)>0){
-    if (ln && ln[strlen(ln)-1]=='\n') ln[strlen(ln)-1]= 0; // rule
+void readparser(FILE* f) { char rule, *ln= NULL; size_t z= 0, d='\n';
+  while(getdelim(&ln, &z, d, f)>0) {
+    if (ln && ln[strlen(ln)-1]=='\n') ln[strlen(ln)-1]= 0;
     DEBUG(printf("%s\n", ln))
     if (!ln) break; if (!*ln) continue;
     if (ln[1]=='=' && isalpha(*ln) && isupper(*ln)) NT[ln[0]]= strdup(ln+2);
-    else if (*ln=='#') ; // comment
-    else if (*ln=='?') rule=ln[1];
+    else if (*ln=='#') ; else if (*ln=='?') rule=ln[1];
     else if (*ln=='@') for(int i=0; i<127; i++) { free(NT[i]); NT[i]=NULL; }
     else if (*ln=='*') { rule=ln[1]; d=0; }
     else if (*ln=='$' && strchr("[{(<", ln[1])) {
