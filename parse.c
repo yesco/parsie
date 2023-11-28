@@ -125,7 +125,7 @@ char* parse(char target, char* s) {
   
 void test(char target, char* s) { char* p= parse(target, s);
 
-  printf("\t%s rule -> '%s'\n", p?"UNPARSED":"FAILED", p); // DEBUG
+  printf("%%%s rule -> '%s'\n", p?(*p?"UNPARSED":"MATCHED!"):"FAILED", p); // DEBUG
   for(int i=0; i<nres; i++) printf("\tRESULT[%d]= '%s'\n", i, res[i]); // DEBUG
   printf("\t======================\n"); // DEBUG
   // print previous
