@@ -167,7 +167,7 @@ void readparser(FILE* f) {
 // ENDWCOUNT
 
 int main(void) {
-  if (0) {
+  if (0) { // test dictionary
     long nl= atom("NULL", 0);
     long foo= atom("foo", 14);
     long bar= atom("bar", 42);
