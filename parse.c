@@ -6,29 +6,22 @@
 int debug= 1; // DEBUG
 #define DEBUG(D) if (debug) do{D;}while(0);
 
+#define SL sizeof(long)
+
 // simple dictionary
 #define DICTSIZE 16*1024
 char dict[DICTSIZE]= {0};
 // set/restore to do dynamic scoping!
-int dictix= 0;
+int dix= 0;
 
 // register atom, set val first time
 long atom(char* s, long val) { long i= 0;
-  while(i<dictix) {
-    if (0==strcmp(s, dict+i)) return i;
-    i+= strlen(dict+i)+1+sizeof(val);
-  }
-  strcpy(dict+dictix, s); dictix+= strlen(s)+1;
-  memcpy(dict+dictix, &val, sizeof(val)); dictix+= sizeof(val);
-  return i;
+  while(i<dix){if(0==strcmp(s,dict+i))return i;i+=strlen(dict+i)+1+SL;}
+  strcpy(dict+dix,s);dix+=strlen(s)+1;memcpy(dict+dix,&val,SL);dix+=SL;return i;
 }
 
 // get value for atom
-long atomval(long i) {
-  long r;
-  memcpy(&r, dict+i+strlen(dict+i)+1, sizeof(r));
-  return r;
-}
+long atomval(long i) {long r;memcpy(&r,dict+i+strlen(dict+i)+1,SL);return r;}
 
 // char==name of NonTerminals
 char* NT[128]= {0};
@@ -56,27 +49,20 @@ char* match(char r, char* s) {
 int nres= 0;
 char *res[MAXRES]= {0}, *pgen= NULL;
 
-char* parset_gen(char* r, char* s, char* p) {
-  // TODO: use dstrprintf?
-  char buf[16*1024]= {0}; // TODO: fix unsafe
+char* parsgen(char* r, char* s, char* p) { char buf[16*1024]= {0}; // unsafe
   DEBUG(if (debug>=1) printf("\n\tGEN>>>>>\n"))
-  while(*r && *r!=']') {
-    if (*r=='$') {
-      char n= *++r; r++;
-      // TODO: offset in res
-      if (isdigit(n)) {
-	printf("GEN: take $%c '%s'\n", n, res[n-'0']); // DEBUG
-	printf("  :  buf=%s\n", buf); /// DEBUG
-	if (res[n-'0']) strcat(buf, res[n-'0']);
-	printf("  => buf=%s\n", buf); // DEBUG
-      }
-      else if (n=='$') strncat(buf, s, p-s);
-    } else strncat(buf, r++, 1);
-  }
+  while(*r && *r!=']') if (*r=='$') {
+    char n= *++r; r++;
+    // TODO: offset in res
+    if (isdigit(n)) {
+      printf("GEN: take $%c '%s'\n", n, res[n-'0']); // DEBUG
+      printf("  :  buf=%s\n", buf); /// DEBUG
+      if (res[n-'0']) strcat(buf, res[n-'0']);
+      printf("  => buf=%s\n", buf); // DEBUG
+    } else if (n=='$') strncat(buf, s, p-s); } else strncat(buf, r++, 1);
   DEBUG(if (debug>=1) printf("\t%s\n<<<<<<\n", buf))
   // TODO: offset in res
-  pgen= strdup(buf);
-  return p;
+  pgen= strdup(buf); return p;
 }
 
 // parse a term
@@ -102,7 +88,7 @@ char* parset_hlp(char target, char* s) {
     // space is always removed? TODO: don't
     while(isspace(*r)) r++; while(isspace(*s)) s++;
     // action == accept, gen out
-    if (*r=='[') return parset_gen(r+1, s, p);
+    if (*r=='[') return parsgen(r+1, s, p);
     //if (*r=='{') return eval(r, s, p); // TODO:
     // $, $; - delimited-list
     int min=1, max=1, delim= 0; char c= *r;
@@ -120,15 +106,11 @@ char* parset_hlp(char target, char* s) {
 
     char *m, *last= NULL;
     // TODO: concat captures?
-    while(max-- && (m=match(c, p))) {
-      if (*m && *m==delim) m++;
-      last= p= m;
-    }
+    while(max-- && (m=match(c, p))) { if (*m && *m==delim) m++; last= p= m; }
 
     if (min && !last) {
       // failed: look for alt
-      while(*r && *r++!='|');
-      ok= 0; p= s;
+      ok= 0; p= s; while(*r && *r++!='|');
       DEBUG(if (debug>1) printf("\n\tFAILED\n"))
     } else ok= 1, r++; //, p= m, 
     DEBUG(if (debug>=2) printf("\t'%s'\t%s", p, r))
@@ -141,8 +123,7 @@ char* parse(char target, char* s) {
   return parset(target, s);
 }
   
-void test(char target, char* s) {
-  char* p= parse(target, s);
+void test(char target, char* s) { char* p= parse(target, s);
 
   printf("\t%s rule -> '%s'\n", p?"UNPARSED":"FAILED", p); // DEBUG
   for(int i=0; i<nres; i++) printf("\tRESULT[%d]= '%s'\n", i, res[i]); // DEBUG
@@ -175,7 +156,7 @@ void readparser(FILE* f) {
     else if (*ln=='@') for(int i=0; i<127; i++) { free(NT[i]); NT[i]=NULL; }
     else if (*ln=='*') { rule=ln[1]; d=0; }
     else if (*ln=='$' && strchr("[{(<", ln[1])) {
-      parset_gen(ln+1, "", NULL);
+      parsgen(ln+1, "", NULL);
       printf("GEN: %s\n", pgen); // DEBUG
       free(pgen); pgen= NULL;
     } else test(rule, ln);
