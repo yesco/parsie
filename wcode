@@ -5,6 +5,7 @@
 # - no single '{' or '}'
 # - no include
 # - no DEBUG lines
+# - no FORWARD lines
 # - no 'TRACE(' lines
 # - no 'assert(' lines
 # - no 'else'-only lines
@@ -26,6 +27,7 @@ grep -iPv '^\s*{\s*$' | \
 grep -v '^\s*$' | \
 grep -vP '#include' | \
 grep -vP 'DEBUG' | \
+grep -vP 'FORWARD' | \
 grep -vP 'TRACE\(' | \
 grep -vP 'assert\(' | \
 grep -vinP '^\s*}?\s*else\s*{?\s*(//.*)?$' | \

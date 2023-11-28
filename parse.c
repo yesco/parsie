@@ -28,8 +28,8 @@ char* NT[128]= {0};
 
 int eor(char* r) { return !r || !*r || *r=='\n' || *r=='|'; }
  
-char* parset_hlp(char target, char* s); // DEBUG
-char* parset(char target, char* s); // DEBUG
+char* parset_hlp(char target, char* s); // FORWARD
+char* parset(char target, char* s); // FORWARD
 
 // match a char or a NT with S
 // $a=alpha $d=digit $w=word $e=end
