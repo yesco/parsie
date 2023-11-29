@@ -25,11 +25,11 @@ char* parse(char* r, char* s) { char*p= NULL;
   Z '(': Z '{': Z '[':
   Z '?': Z '*': Z '+':
   Z '%': switch(*++r){ // TODO: too long...
-    case 'a': if (isalpha(*s)||*s=='_') {s++; break;} else return NULL;
-    case 'd': if (isdigit(*s)) {s++; break;} else return NULL;
-    case 'w': if (isalnum(*s)||*s=='_') {s++; break;} else return NULL;
+    Z 'a': if (isalpha(*s)||*s=='_') s++; else return NULL;
+    Z 'd': if (isdigit(*s)) s++; else return NULL;
+    Z 'w': if (isalnum(*s)||*s=='_') s++; else return NULL;
   }
-  Z 'A'...'Z': printf("HERE\n"); if ((p=parse(R[*r++], s))) s= p; else return p;
+  Z 'A'...'Z': if ((p=parse(R[*r++], s))) s= p; else return p;
   Z '\\': r++;
   default: if (*s==*r++) s++; else while(*r && *r++!='|'); if(!*s) return s;
   }
