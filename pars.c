@@ -19,21 +19,22 @@ int eor(char* r) { return !r || !*r || *r=='\n' || *r=='|'; }
 #define Z ;goto again; case
 
 char* parse(char* r, char* s) {
- again: while(1) { DEBUG(printf("\tPARSE: '%s' of '%s'\n", r, s))
+ again: while(1) { DEBUG(printf("\tPARSE: '%s'\n\t    OF '%s'\n", r, s))
   switch(*r) {
   Z 0: Z '\n': Z '\r': Z '|': return s;
   Z '(': Z '{': Z '[':
   Z '?': Z '*': Z '+':
   Z '$':
+  Z 'A'...'Z': s= parse(R[*r++], s);
   Z '\\': r++;
-  default: if (*s==*r++) s++; else while(*r && *r++!='|');
+  default: if (*s==*r++) s++; else while(*r && *r++!='|'); if(!*s) return s;
   }
   } // DEBUG
 }
 
 char* test(char rule, char* s) {
   char *r= R[rule], *e= parse(r, s);
-  printf("%%%s %c-> '%s'\n", e?(*e?"UNPARSED":"MATCHED!"):"FAILED", rule, e); // DEBUG
+  printf("    %%%s %c-> '%s'\n", e?(*e?"UNPARSED":"MATCHED!"):"FAILED", rule, e); // DEBUG
   return e;
 }
 
