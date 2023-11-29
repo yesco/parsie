@@ -61,7 +61,7 @@ char* parsgen(char* r, char* s, char* p) { char buf[16*1024]= {0}; // unsafe
       printf("  => buf=%s\n", buf); // DEBUG
     } else if (n=='$') strncat(buf, s, p-s); } else strncat(buf, r++, 1);
   DEBUG(if (debug>=1) printf("\t%s\n<<<<<<\n", buf))
-  // TODO: offset in res
+  printf("GEN: %s\n", pgen); // DEBUG
   pgen= strdup(buf); return p;
 }
 
@@ -154,11 +154,8 @@ void readparser(FILE* f) { char rule, *ln= NULL; size_t z= 0, d='\n';
     else if (*ln=='#') ; else if (*ln=='?') rule=ln[1];
     else if (*ln=='@') for(int i=0; i<127; i++) { free(NT[i]); NT[i]=NULL; }
     else if (*ln=='*') { rule=ln[1]; d=0; }
-    else if (*ln=='$' && strchr("[{(<", ln[1])) {
-      parsgen(ln+1, "", NULL);
-      printf("GEN: %s\n", pgen); // DEBUG
-      free(pgen); pgen= NULL;
-    } else test(rule, ln);
+    else if (*ln=='$' && strchr("[{(<", ln[1])) { parsgen(ln+1, "", NULL); free(pgen); pgen= NULL; }
+    else test(rule, ln);
   }
   free(ln);
 }
