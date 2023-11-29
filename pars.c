@@ -18,14 +18,18 @@ int eor(char* r) { return !r || !*r || *r=='\n' || *r=='|'; }
 
 #define Z ;goto again; case
 
-char* parse(char* r, char* s) {
- again: while(1) { DEBUG(printf("\tPARSE: '%s'\n\t    OF '%s'\n", r, s))
+char* parse(char* r, char* s) { char*p= NULL;
+ again: while(1) { DEBUG(printf("\tPARSE: '%s' (%d)\n\t    OF '%s'\n", r, *r, s))
   switch(*r) {
-  Z 0: Z '\n': Z '\r': Z '|': return s;
+  case 0: case'\n': case'\r': case'|': return s;
   Z '(': Z '{': Z '[':
   Z '?': Z '*': Z '+':
-  Z '$':
-  Z 'A'...'Z': s= parse(R[*r++], s);
+  Z '%': switch(*++r){ // TODO: too long...
+    case 'a': if (isalpha(*s)||*s=='_') {s++; break;} else return NULL;
+    case 'd': if (isdigit(*s)) {s++; break;} else return NULL;
+    case 'w': if (isalnum(*s)||*s=='_') {s++; break;} else return NULL;
+  }
+  Z 'A'...'Z': printf("HERE\n"); if ((p=parse(R[*r++], s))) s= p; else return p;
   Z '\\': r++;
   default: if (*s==*r++) s++; else while(*r && *r++!='|'); if(!*s) return s;
   }
