@@ -32,7 +32,7 @@ char* parse(char* r, char* s) {
 }
 
 char* test(char rule, char* s) {
-dd  char *r= R[rule], *e= parse(r, s);
+  char *r= R[rule], *e= parse(r, s);
   printf("%%%s %c-> '%s'\n", e?(*e?"UNPARSED":"MATCHED!"):"FAILED", rule, e); // DEBUG
   return e;
 }
