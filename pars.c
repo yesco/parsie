@@ -47,24 +47,24 @@ int eor(char* r) { return !r || !*r || *r=='\n' || *r=='|'; }
 char* parse(char* r, char* s, int n) { char*p= NULL,*os=s; int on=n;
   DEBUG(if (debug>1) printf("    parse '%s' '%s' %d\n", r, s, n));
  next: while(n-- && r && s) { DEBUG(if (debug>2) printf("\tnext: '%s' (%d)\n\t   of '%s' left=%d\n", r, *r, s, n))
-  switch(*r) {
-  case 0: case'\n': case'\r': case'|': return s;
-    Z '(':; Z '{':; Z '[':;
+  switch(*r) { case 0: case'\n': case'\r': case'|': return s;
+    Z '(':; Z '{':; Z '[':; // TODO: implement
+    // TODO: code share?
     Z '?': p=s; s=parse(R[*++r],s,1); r++; s=s?s:p;
     Z '*': r++; do{ p=s; s=parse(R[*r],s,1); }while(s && *s); r++; s=p;
     Z '+': r++; s= parse(R[*r],s,1); while(s && *s){ p=s; s=parse(R[*r],s,1); }; r++; s=p;
-    Z '%': switch(*++r){ // TODO: too long...
+    Z '%': switch(*++r){ // TODO: parametrize?
       Z 'a': if (isalpha(*s)||*s=='_') r++,s++; else return NULL;
-      Z 'd': if (isdigit(*s)) r++,s++; else return NULL;
+      Z 'd': if (isdigit(*s))          r++,s++; else return NULL;
       Z 'w': if (isalnum(*s)||*s=='_') r++,s++; else return NULL;
     };
     Z 'A'...'Z': if ((p=parse(R[*r++], s, -1))) s= p; else return p;
-    Z '\\': r++; default: if (*s==*r++) s++; else {
+    Z '\\': r++; default: if (*s==*r++) s++; /* matched */ else {
       // fail - skip till next '|'
       while(*r && !eor(r++)){}; if (eor(r)) return NULL; s=os; n=on; }
-    if (!*s && eor(r)) return s;
+      if (!*s && eor(r)) return s;
   }
-  } // DEBUG
+  }
   return s;
 }
 
