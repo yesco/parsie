@@ -19,6 +19,26 @@ int eor(char* r) { return !r || !*r || *r=='\n' || *r=='|'; }
 //#define Z ;if(!s)return s; else goto next; case
 #define Z goto next; case
 
+// Rules:
+//   D=0|1|2|3|4|5|6|7|8|9
+//   A=a|b|c|d|e|f|g|h|i|j|k|l|m|n|o|p|q|r|s|t|u|v|w|x|y|z|_
+//   W=A|D
+//   N=A*W
+//   D=%d
+//   X=fib\(+D\)
+//
+// Undefined rule always matches...
+//
+// --- multiple matches PREFIX!
+// ?R = optionall match rule R
+// +R = match rule R once or more
+// *R = match rule R 0 or more times
+// (R must be NonTerminal, no %a %d %w)
+//
+// TODO: +R redundant == R*R
+// TODO: ?R redundant == S=R| and ?S
+// TODO: *R redundant == S=RS|R|
+//
 // n==-1 infinity
 // n==1 one time (for ? + *)
 // Returns:
@@ -26,17 +46,13 @@ int eor(char* r) { return !r || !*r || *r=='\n' || *r=='|'; }
 //   rest of string (unparsed) it's "" if done.
 char* parse(char* r, char* s, int n) { char*p= NULL;
   DEBUG(printf("    parse '%s' '%s' %d\n", r, s, n));
- next: while(n--) { DEBUG(printf("\tnext: '%s' (%d)\n\t   of '%s' left=%d\n", r, *r, s, n))
+ next: while(n-- && r && s) { DEBUG(printf("\tnext: '%s' (%d)\n\t   of '%s' left=%d\n", r, *r, s, n))
   switch(*r) {
   case 0: case'\n': case'\r': case'|': return s;
     Z '(':; Z '{':; Z '[':;
-    Z '?': p=s; s=parse(++r,s,1); r++;
-    DEBUG(printf("\t??? s='%s'\n", s));
-    s=s?s:p;
-    Z '*': r++; do{ p=s; s=parse(r,s,1);
-      DEBUG(printf("\t??? s='%s'\n", s));
-    }while(s && *s); r++; s=p;
-    Z '+':;
+    Z '?': p=s; s=parse(R[*++r],s,1); r++; s=s?s:p;
+    Z '*': r++; do{ p=s; s=parse(R[*r],s,1); }while(s && *s); r++; s=p;
+    Z '+': r++; s= parse(R[*r],s,1); while(s && *s){ p=s; s=parse(R[*r],s,1); }; r++; s=p;
     Z '%': switch(*++r){ // TODO: too long...
       Z 'a': if (isalpha(*s)||*s=='_') r++,s++; else return NULL;
       Z 'd': if (isdigit(*s)) r++,s++; else return NULL;
@@ -44,7 +60,8 @@ char* parse(char* r, char* s, int n) { char*p= NULL;
     };
     Z 'A'...'Z': if ((p=parse(R[*r++], s, -1))) s= p; else return p;
     Z '\\': r++;
-  default: if (*s==*r++) s++; else { while(*r && !eor(r++)); if (eor(r)) return NULL; } if (!*s && eor(r)) return s;
+  default: if (*s==*r++) s++; else { while(*r && !eor(r++)){} n++; // TODO: should restore N?
+      if (eor(r)) return NULL; } if (!*s && eor(r)) return s;
   }
   } // DEBUG
   return s;
@@ -89,5 +106,12 @@ void readparser(FILE* f) { char rule, *ln= NULL; size_t z= 0, d='\n';
 // ENDWCOUNT
 
 int main(void) {
+  // save 4 lines of source?
+  R['d']= "0|1|2|3|4|5|6|7|8|9"; // digit
+  R['a']= "a|b|c|d|e|f|g|h|i|j|k|l|m|n|o|p|q|r|s|t|u|v|w|x|y|z|_"; // letter
+  R['w']= "?a?d"; // "word" char
+  R['i']= "+a*w"; // identifier
+//   W=A|D
+//   N=A*W
   readparser(stdin);
 }
