@@ -59,8 +59,7 @@ char* parse(char* r, char* s, int n) { char*p= NULL,*os=s; int on=n;
       Z 'w': if (isalnum(*s)||*s=='_') r++,s++; else return NULL;
     };
     Z 'A'...'Z': if ((p=parse(R[*r++], s, -1))) s= p; else return p;
-    Z '\\': r++;
-  default: if (*s==*r++) s++; else {
+    Z '\\': r++; default: if (*s==*r++) s++; else {
       // fail - skip till next '|'
       while(*r && !eor(r++)){}; if (eor(r)) return NULL; s=os; n=on; }
     if (!*s && eor(r)) return s;
