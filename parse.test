@@ -1,0 +1,126 @@
+# "regression tests"
+
+# constant match/ignore spaces
+X=foo
+?X
+fo
+foo
+ foo
+fooo
+
+# or-test
+D=0|1|2|3|4|5|6|7|8|9
+?D
+1
+7
+3
+33
+44
+a
+
+# recursion
+N=DN|D
+?N
+42
+428
+4
+a428
+
+# sql & generate
+#Q=select N, N from int(N, N) i
+Q=select N, N from int(N, N) i [ QUERY($$)\n COLS($1,$2)\n IOTA($3,$4) ]
+?Q
+select 2222,123456 from int(1, 10) i
+
+# char classes and repeats
+O=a$+ba
+
+# not work to match single letter!
+?O
+aa
+aba
+abba
+
+# full match till EOF/EOS
+E=aaa$e
+?E
+aa
+aaa
+aaaa
+
+# identifier
+I=$+a
+?I
+foo
+
+# comma-list
+L=$,N
+?L
+1,22,333,4444
+
+# TODO: err matches space lol... as it's skipped, == fortran!
+W=$+a
+?W
+foo
+foo bar
+
+# identifier list
+S=$*W"
+foo bar fie fum
+
+?X
+foo
+
+@
+A=fie fum
+?A
+fie fum
+fie
+fum
+
+*A
+fie
+fum
+
+D=%d
+L=a|b|c|d|e|f|g|h|i|j|k|l|m|n|o|p|q|r|s|t|u|v|w|x|y|z|_
+A=D,A|D
+
+?D
+0
+3
+44
+
+?A
+1
+1,2
+1,2,3
+
+O=a7|a
+?O
+a7
+a
+
+O=a?2b
+?O
+x
+a
+a2b
+a2
+a22
+a22b
+ab
+
+R=a*D
+?R
+a
+a1
+a12
+a123
+a1234b
+
+# BUG: test
+A=%d|%a
+?A
+1
+b
