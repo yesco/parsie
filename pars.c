@@ -3,7 +3,7 @@
 #include <ctype.h>
 #include <assert.h>
 
-int debug= 1; // DEBUG
+int debug= 3; // DEBUG
 #define DEBUG(D) if (debug) do{D;}while(0);
 
 #define SL sizeof(long)
@@ -44,7 +44,7 @@ int eor(char* r) { return !r || !*r || *r=='\n' || *r=='|'; }
 // Returns:
 ///  NULL=fail
 //   rest of string (unparsed) it's "" if done.
-char* parse(char* r, char* s, int n) { char*p= NULL;
+char* parse(char* r, char* s, int n) { char*p= NULL,*os=s; int on=n;
   DEBUG(if (debug>1) printf("    parse '%s' '%s' %d\n", r, s, n));
  next: while(n-- && r && s) { DEBUG(if (debug>2) printf("\tnext: '%s' (%d)\n\t   of '%s' left=%d\n", r, *r, s, n))
   switch(*r) {
@@ -60,8 +60,10 @@ char* parse(char* r, char* s, int n) { char*p= NULL;
     };
     Z 'A'...'Z': if ((p=parse(R[*r++], s, -1))) s= p; else return p;
     Z '\\': r++;
-  default: if (*s==*r++) s++; else { while(*r && !eor(r++)){} n++; // TODO: should restore N?
-      if (eor(r)) return NULL; } if (!*s && eor(r)) return s;
+  default: if (*s==*r++) s++; else {
+      // fail - skip till next '|'
+      while(*r && !eor(r++)){}; if (eor(r)) return NULL; s=os; n=on; }
+    if (!*s && eor(r)) return s;
   }
   } // DEBUG
   return s;
