@@ -30,10 +30,10 @@ int eor(char* r) { return !r || !*r || *r=='\n' || *r=='|'; }
 // Undefined rule always matches...
 //
 // --- multiple matches PREFIX!
-// ?R = optionall match rule R
-// +R = match rule R once or more
-// *R = match rule R 0 or more times
-// (R must be NonTerminal, no %a %d %w)
+//   ?R = optionall match rule R
+//   +R = match rule R once or more
+//   *R = match rule R 0 or more times
+//   (R must be a NonTerminal)
 //
 // TODO: +R redundant == R*R
 // TODO: ?R redundant == S=R| and ?S
@@ -45,8 +45,8 @@ int eor(char* r) { return !r || !*r || *r=='\n' || *r=='|'; }
 ///  NULL=fail
 //   rest of string (unparsed) it's "" if done.
 char* parse(char* r, char* s, int n) { char*p= NULL;
-  DEBUG(printf("    parse '%s' '%s' %d\n", r, s, n));
- next: while(n-- && r && s) { DEBUG(printf("\tnext: '%s' (%d)\n\t   of '%s' left=%d\n", r, *r, s, n))
+  DEBUG(if (debug>1) printf("    parse '%s' '%s' %d\n", r, s, n));
+ next: while(n-- && r && s) { DEBUG(if (debug>2) printf("\tnext: '%s' (%d)\n\t   of '%s' left=%d\n", r, *r, s, n))
   switch(*r) {
   case 0: case'\n': case'\r': case'|': return s;
     Z '(':; Z '{':; Z '[':;
@@ -69,7 +69,7 @@ char* parse(char* r, char* s, int n) { char*p= NULL;
 
 char* test(char rule, char* s) {
   char *r= R[rule], *e= parse(r, s, -1);
-  printf("  %%%s %c-> '%s'\n\n", e?(*e?"UNPARSED":"MATCHED!"):"FAILED", rule, e); // DEBUG
+  DEBUG(if (debug) printf("  %%%s %c-> '%s'\n\n", e?(*e?"UNPARSED":"MATCHED!"):"FAILED", rule, e)); // DEBUG
   return e;
 }
 
