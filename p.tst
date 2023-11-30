@@ -17,12 +17,23 @@ O=a7|a
 a7
 a
 
-O=a?D
+O=a?2b
 ?O
-a7
+x
 a
-a5
-a23
+a2b
+a2
+a22
+a22b
+ab
+
+R=a*D
+?R
+a
+a1
+a12
+a123
+a1234b
 
 
 
