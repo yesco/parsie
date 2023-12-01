@@ -41,5 +41,32 @@ A=%d|%a
 1
 b
 
+# ???
+X=b
+B=a?Xc
+?B
+a
+abc
+ac
+abbc
+abbbc
 
+# +++
+X=b
+B=a+Xc
+?B
+a
+abc
+ac
+abbc
+abbbc
 
+# ***
+X=b
+B=a*Xc
+?B
+a
+abc
+ac
+abbc
+abbbc

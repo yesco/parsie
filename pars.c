@@ -64,10 +64,11 @@ char* parse(char* r, char* s, int n) { char*p= NULL,*os=s,*t; int on=n,x;
   switch(*r){ case 0: case'\n': case'\r': case'|': return s;
   // - actions
   Z '(':; Z '{':; Z '[':; // TODO: implement
+
   // - match repeats ?R +R *R
-  Z '?': p=s; s=parse(R[*++r],s,1); r++; s=s?s:p;
-  Z '*': r++; do{ p=s; s=parse(R[*r],s,1); }while(s && *s); r++; s=p;
-  Z '+': r++;s=parse(R[*r],s,1);while(s&&*s){p=s;s=parse(R[*r],s,1);};r++;s=p;
+case '?': case '+': p=s;s=parse(R[*(r+1)],s,1);if(*r=='?'){r+=2;s=s?s:p;break;}if(
+!s)return s;else s=s?s:p;case '*': r++;while(s&&*s)p=s,s=parse(R[*r],s,1);r++,s=p;
+    
   // - match %a %d %e %w %i %n
   #define X(x) ||strchr(x,*r)&&
 Z'%':if(*++r=='e'&&!*s){r++;break;}p=s;do if((x=(*r=='_'X("anw")isalpha(*s)X(p
@@ -88,6 +89,14 @@ char* test(char rule, char* s) {
   DEBUG(if (debug) printf("  %%%s %c-> '%s'\n\n", e?(*e?"UNPARSED":"MATCHED!"):"FAILED", rule, e));
   return e;
 }
+
+//case '?': case '+': p=s;s=parse(R[*(r+1)],s,1);if(*r=='?'){r+=2;s=s?s:p;break;}if(
+//!s)return s;else s=s?s:p;case '*': r++;while(s&&*s)p=s,s=parse(R[*r],s,1);r++,s=p;
+    
+//  Z '?': r++; p=s; s=parse(R[*r],s,1); r++; s=s?s:p;
+//  Z '*': r++; do{p=s; s=parse(R[*r],s,1);}while(s && *s);r++;s=p;
+//  Z '+': r++; s=parse(R[*r],s,1); while(s&&*s){p=s;s=parse(R[*r],s,1);};r++;s=p;
+
 
 // TODO: count loader/reader?
 
