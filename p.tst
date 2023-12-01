@@ -70,3 +70,12 @@ abc
 ac
 abbc
 abbbc
+
+# capture
+B=%n
+C=bar
+X=foo B C[A $1 B $2 C]
+?X
+foo bar
+foo fie bar
+foo fie 33 bar

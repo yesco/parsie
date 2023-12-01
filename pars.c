@@ -12,6 +12,12 @@ int nres= 0; char *res[MAXRES]= {0}, *pgen= NULL, *R[128]= {0};
 int eor(char* r) { return !r || !*r || *r=='\n' || *r=='|'; }
 
 char* parseR(char r, char* s, int n); // FORWARD
+char* pR(char* r, char* s, int n) { nres++; return parseR(*r, s, n); }
+  
+
+// return new string with S followed by A, free(s)
+char* add(char* s, char* a, int n) { char* r= malloc((s?strlen(s):0)+n+1);
+  strncat(strcpy(r, s?s:""), a?a:"", n); free(s); return r; }
 
 // --- rules
 // is a single Capital follows by =
@@ -57,26 +63,47 @@ char* parseR(char r, char* s, int n); // FORWARD
 ///  NULL=fail
 //   rest of string (unparsed) it's "" if done.
 #define Z goto next; case
-char* parse(char* r, char* s, int n) { char*p= NULL,*os=s,*t; int on=n,x;
+char* parse(char* r, char* s, int n, int nr) { char*p= NULL,*os=s,*t; int on=n,x;
   DEBUG(if (debug>1) printf("    parse '%s' '%s' %d\n", r, s, n));
  next: while(n-- && r && s) { DEBUG(if (debug>2)printf("    next: '%s' (%d)\n\t   of '%s' left=%d\n",r,*r,s,n))// TODO: join w prev line
 switch(*r){ case 0: case'\n': case'\r': case'|': return s;
-Z '(':; Z '{':; Z '[':; // TODO: implement
-case'?':case'+': p=s;s=parseR(*(r+1),s,1);if(*r=='?'){r+=2;s=s?s:p;break;}p=0;
-case'*': r++; while(s&&*s)p=s,s=parseR(*r,s,1); r++,s=p;
+Z '(':; Z '{':; // TODO: implement
+Z '[': {
+  DEBUG(if (debug>1) printf("BEFORE  RES='%s'\n", res[nres]));
+  while(*++r!=']') {
+    DEBUG(if (debug>1) printf("HERE='%c'\n", *r));
+    switch(*r){
+    case '$': x=*++r-'0'+nr+1; res[nr]= add(res[nr], res[x], 999999); break;
+    default: res[nr]= add(res[nr], r, 1);
+    }
+    DEBUG(if (debug) printf("  res[%d]='%s'\n", nr, res[nr]));
+  }
+  r++;
+  goto next;
+}
+case'?':case'+':p=s;s=pR(r+1,s,1);if(*r=='?'){r+=2;s=s?s:p;goto next;}p=0;
+case'*': r++; while(s&&*s)p=s,s=pR(r,s,1); r++,s=p;
 #define X(x) ||strchr(x,*r)&&
-Z'%':if(*++r=='e'&&!*s){r++;break;}p=s;do if((x=(*r=='_'X("anw")isalpha(*s)X(p
+Z'%':if(*++r=='e'&&!*s){r++;goto next;}p=s;do if((x=(*r=='_'X("anw")isalpha(*s)X(p
 ==s?"di":"dwin")isdigit(*s))))s++;else if(p==s)goto fail;while(0 X("in")x);r++;
-Z 'A'...'Z': if ((p=parseR(*r++, s, -1))) s= p; else return p;
+
+Z 'A'...'Z': if ((p=pR(r++, s, -1))) s= p; else return p;
 Z '\\': r++; default: if (*s==*r++) s++; /* matched */ else fail: {
   while(*r && !eor(r++)){}; if (eor(r)) return NULL; s=os; n=on; }
 }}return s;}
 
+#include <signal.h>
+
 /// capture
-char* parseR(char r, char* s, int n) { int nr= nres++; char* x= parse(R[r],s,n);
+char* parseR(char r, char* s, int n){
+  printf("    parseR '%c' (%d)\n", r, r);
+  if (!r) raise(SIGTRAP);
+  int nr=++nres; free(res[nr]); res[nr]=0;
+  char *x= parse(R[r],s,n,nr);
   // TODO: combine repeats? concat && nres-- after call parseR
   // TODO: matching with ? seems to "fail" ???
-  free(res[nr]); res[nr]= x?strndup(s, x-s):x; DEBUG(printf("  ->%c.res[%d]='%s'\n", r, nr, res[nr])); nres= nr; return x;
+  if (!res[nr]) res[nr]=x?strndup(s, x-s):x; DEBUG(printf("  ->%c.res[%d]='%s'\n", r, nr, res[nr]));
+  nres= nr-1; return x;
 }
 
 // ENDWCOUNT
@@ -84,7 +111,7 @@ char* parseR(char r, char* s, int n) { int nr= nres++; char* x= parse(R[r],s,n);
 char* test(char rule, char* s) {
   nres= 0;
   char* e= parseR(rule, s, -1);
-  DEBUG(if (debug) printf("  %%%s %c-> '%s'\n\n", e?(*e?"UNPARSED":"MATCHED!"):"FAILED", rule, e));
+  DEBUG(if (debug) printf("  %%%s %c-> '%s' RES=>'%s'\n\n", e?(*e?"UNPARSED":"MATCHED!"):"FAILED", rule, e, res[nres+1]));
   return e;
 }
 
