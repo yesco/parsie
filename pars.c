@@ -7,10 +7,7 @@ int debug= 3; // DEBUG
 #define DEBUG(D) if (debug) do{D;}while(0);
 
 #define MAXRES 256
-int nres= 0; char *res[MAXRES]= {0}, *pgen= NULL;
-
-// NonTerminal RuleName-> def
-char* R[128]= {0};
+int nres= 0; char *res[MAXRES]= {0}, *pgen= NULL, *R[128]= {0};
 
 int eor(char* r) { return !r || !*r || *r=='\n' || *r=='|'; }
 
@@ -121,12 +118,5 @@ void readparser(FILE* f) { char rule, *ln= NULL; size_t z= 0, d='\n';
 // ENDWCOUNT
 
 int main(void) {
-  // save 4 lines of source?
-  R['d']= "0|1|2|3|4|5|6|7|8|9"; // digit
-  R['a']= "a|b|c|d|e|f|g|h|i|j|k|l|m|n|o|p|q|r|s|t|u|v|w|x|y|z|_"; // letter
-  R['w']= "?a?d"; // "word" char
-  R['i']= "+a*w"; // identifier
-//   W=A|D
-//   N=A*W
-  readparser(stdin);
+R['d']="%d";R['a']="%a";R['w']="%w";R['i']="%i";R['n']="%d"; readparser(stdin);
 }
