@@ -61,26 +61,23 @@ int eor(char* r) { return !r || !*r || *r=='\n' || *r=='|'; }
 char* parse(char* r, char* s, int n) { char*p= NULL,*os=s,*t; int on=n,x;
   DEBUG(if (debug>1) printf("    parse '%s' '%s' %d\n", r, s, n));
  next: while(n-- && r && s) { DEBUG(if (debug>2) printf("\tnext: '%s' (%d)\n\t   of '%s' left=%d\n", r, *r, s, n)) // TODO: join w prev line
-  switch(*r){ case 0: case'\n': case'\r': case'|': return s;
-  // - actions
-  Z '(':; Z '{':; Z '[':; // TODO: implement
-
-  // - match repeats ?R +R *R
-case '?': case '+': p=s;s=parse(R[*(r+1)],s,1);if(*r=='?'){r+=2;s=s?s:p;break;}if(
-!s)return s;else s=s?s:p;case '*': r++;while(s&&*s)p=s,s=parse(R[*r],s,1);r++,s=p;
-    
-  // - match %a %d %e %w %i %n
-  #define X(x) ||strchr(x,*r)&&
+switch(*r){ case 0: case'\n': case'\r': case'|': return s;
+// - actions
+Z '(':; Z '{':; Z '[':; // TODO: implement
+// - match repeats ?R +R *R
+case'?':case'+': p=s;s=parse(R[*(r+1)],s,1);if(*r=='?'){r+=2;s=s?s:p;break;}p=0;
+case'*': r++; while(s&&*s)p=s,s=parse(R[*r],s,1); r++,s=p;
+// - match %a %d %e %w %i %n
+#define X(x) ||strchr(x,*r)&&
 Z'%':if(*++r=='e'&&!*s){r++;break;}p=s;do if((x=(*r=='_'X("anw")isalpha(*s)X(p
 ==s?"di":"dwin")isdigit(*s))))s++;else if(p==s)goto fail;while(0 X("in")x);r++;
-  // - subrules match recursion
-  Z 'A'...'Z': if ((p=parse(R[*r++], s, -1))) s= p; else return p;
-  // - quote and match current char
-  Z '\\': r++; default: if (*s==*r++) s++; /* matched */ else fail: {
-      while(*r && !eor(r++)){}; if (eor(r)) return NULL; s=os; n=on; }
-    if (!*s && eor(r)) return s;
-  } } return s;
-}
+// - subrules match recursion
+Z 'A'...'Z': if ((p=parse(R[*r++], s, -1))) s= p; else return p;
+// - quote and match current char
+Z '\\': r++; default: if (*s==*r++) s++; /* matched */ else fail: {
+  while(*r && !eor(r++)){}; if (eor(r)) return NULL; s=os; n=on; }
+  if (!*s && eor(r)) return s;
+} } return s; }
 
 // ENDWCOUNT
 
