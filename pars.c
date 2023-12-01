@@ -68,7 +68,8 @@ Z'%':if(*++r=='e'&&!*s){r++;break;}p=s;do if((x=(*r=='_'X("anw")isalpha(*s)X(p
 Z 'A'...'Z': if ((p=parse(R[*r++], s, -1))) s= p; else return p;
 Z '\\': r++; default: if (*s==*r++) s++; /* matched */ else fail: {
   while(*r && !eor(r++)){}; if (eor(r)) return NULL; s=os; n=on; }
-  if (!*s && eor(r)) return s;           }}return s;}
+  //  if (!*s && eor(r)) return s;
+}}return s;}
 
 // ENDWCOUNT
 
