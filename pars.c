@@ -11,6 +11,8 @@ int nres= 0; char *res[MAXRES]= {0}, *pgen= NULL, *R[128]= {0};
 
 int eor(char* r) { return !r || !*r || *r=='\n' || *r=='|'; }
 
+char* parseR(char r, char* s, int n); // FORWARD
+
 // --- rules
 // is a single Capital follows by =
 //
@@ -57,24 +59,31 @@ int eor(char* r) { return !r || !*r || *r=='\n' || *r=='|'; }
 #define Z goto next; case
 char* parse(char* r, char* s, int n) { char*p= NULL,*os=s,*t; int on=n,x;
   DEBUG(if (debug>1) printf("    parse '%s' '%s' %d\n", r, s, n));
- next: while(n-- && r && s) { DEBUG(if (debug>2)printf("\tnext: '%s' (%d)\n\t   of '%s' left=%d\n",r,*r,s,n))// TODO: join w prev line
+ next: while(n-- && r && s) { DEBUG(if (debug>2)printf("    next: '%s' (%d)\n\t   of '%s' left=%d\n",r,*r,s,n))// TODO: join w prev line
 switch(*r){ case 0: case'\n': case'\r': case'|': return s;
 Z '(':; Z '{':; Z '[':; // TODO: implement
-case'?':case'+': p=s;s=parse(R[*(r+1)],s,1);if(*r=='?'){r+=2;s=s?s:p;break;}p=0;
-case'*': r++; while(s&&*s)p=s,s=parse(R[*r],s,1); r++,s=p;
+case'?':case'+': p=s;s=parseR(*(r+1),s,1);if(*r=='?'){r+=2;s=s?s:p;break;}p=0;
+case'*': r++; while(s&&*s)p=s,s=parseR(*r,s,1); r++,s=p;
 #define X(x) ||strchr(x,*r)&&
 Z'%':if(*++r=='e'&&!*s){r++;break;}p=s;do if((x=(*r=='_'X("anw")isalpha(*s)X(p
 ==s?"di":"dwin")isdigit(*s))))s++;else if(p==s)goto fail;while(0 X("in")x);r++;
-Z 'A'...'Z': if ((p=parse(R[*r++], s, -1))) s= p; else return p;
+Z 'A'...'Z': if ((p=parseR(*r++, s, -1))) s= p; else return p;
 Z '\\': r++; default: if (*s==*r++) s++; /* matched */ else fail: {
   while(*r && !eor(r++)){}; if (eor(r)) return NULL; s=os; n=on; }
-  //  if (!*s && eor(r)) return s;
 }}return s;}
+
+/// capture
+char* parseR(char r, char* s, int n) { int nr= nres++; char* x= parse(R[r],s,n);
+  // TODO: combine repeats? concat && nres-- after call parseR
+  // TODO: matching with ? seems to "fail" ???
+  free(res[nr]); res[nr]= x?strndup(s, x-s):x; DEBUG(printf("  ->%c.res[%d]='%s'\n", r, nr, res[nr])); nres= nr; return x;
+}
 
 // ENDWCOUNT
 
 char* test(char rule, char* s) {
-  char *r= R[rule], *e= parse(r, s, -1);
+  nres= 0;
+  char* e= parseR(rule, s, -1);
   DEBUG(if (debug) printf("  %%%s %c-> '%s'\n\n", e?(*e?"UNPARSED":"MATCHED!"):"FAILED", rule, e));
   return e;
 }
