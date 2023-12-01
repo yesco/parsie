@@ -67,6 +67,7 @@ char* parse(char* r, char* s, int n, int nr) { char*p= NULL,*os=s,*t; int on=n,x
   DEBUG(if (debug>1) printf("    parse '%s' '%s' %d\n", r, s, n));
  next: while(n-- && r && s) { DEBUG(if (debug>2)printf("    next: '%s' (%d)\n\t   of '%s' left=%d\n",r,*r,s,n))// TODO: join w prev line
 switch(*r){ case 0: case'\n': case'\r': case'|': return s;
+case' ':case'\t':while(isspace(*s))s++; r++;
 Z '(':; Z '{':; // TODO: implement
 Z '[': {
   DEBUG(if (debug>1) printf("BEFORE  RES='%s'\n", res[nres]));
