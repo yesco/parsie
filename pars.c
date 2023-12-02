@@ -63,9 +63,9 @@ char* add(char* s, char* a, int n) { char* r= malloc((s?strlen(s):0)+n+1);
 ///  NULL=fail
 //   rest of string (unparsed) it's "" if done.
 #define Z goto next; case
-char* parse(char* r, char* s, int n, int nr) { char*p= NULL,*os=s,*t; int on=n,x;
+char* parse(char* r, char* s, int n, int nr) { char*p= NULL,*os=s,*t; int on=n,onr=nres,x;
   DEBUG(if (debug>1) printf("    parse '%s' '%s' %d\n", r, s, n));
- next: while(n-- && r && s) { DEBUG(if (debug>2)printf("    next: '%s' (%d)\n\t   of '%s' left=%d\n",r,*r,s,n))// TODO: join w prev line
+ next: while(n-- && r && s) { DEBUG(if (debug>2)printf("     next '%s' (%d)\n\t   of '%s' left=%d\n",r,*r,s,n))// TODO: join w prev line
 switch(*r){ case 0: case'\n': case'\r': case'|': return s;
 case' ':case'\t':while(isspace(*s))s++; r++;
 Z '(':; Z '{':; // TODO: implement
@@ -82,9 +82,9 @@ case'*': r++; while(s&&*s)p=s,s=pR(r,s,1); r++,s=p;
 Z'%':if(*++r=='e'&&!*s){r++;goto next;}p=s;do if((x=(*r=='_'X("anw")isalpha(*s)X(p
 ==s?"di":"dwin")isdigit(*s))))s++;else if(p==s)goto fail;while(0 X("in")x);r++;
 
-Z 'A'...'Z': if ((p=pR(r++, s, -1))) s= p; else return p;
+Z 'A'...'Z': if ((p=pR(r++, s, -1))) s= p; else goto fail;
 Z '\\': r++; default: if (*s==*r++) s++; /* matched */ else fail: {
-  while(*r && !eor(r++)){}; if (eor(r)) return NULL; s=os; n=on; }
+  while(*r && !eor(r++)){}; if (eor(r)) return NULL; s=os;n=on;nres=onr;}
 }}return s;}
 
 #include <signal.h>
@@ -150,6 +150,13 @@ void readparser(FILE* f) { char rule, *ln= NULL; size_t z= 0, d='\n';
 
 // ENDWCOUNT
 
-int main(void) {
-R['d']="%d";R['a']="%a";R['w']="%w";R['i']="%i";R['n']="%d"; readparser(stdin);
+int main(int argn, char** argv) {
+  do{ printf("ARG %s\n", *argv);
+    if (0==strcmp("-d", argv[0])) debug++;
+    argv++; } while(--argn);
+  printf("debug=%d\n", debug);
+
+  R['d']="%d";R['a']="%a";R['w']="%w";R['i']="%i";R['n']="%d";
+
+ readparser(stdin);
 }

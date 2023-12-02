@@ -1,28 +1,32 @@
-N=$a$*w
-D=$+d
+N=%n
+D=%i
 O=+|-|*|/
-E=D|N|E O E
-R==|<=|<|>=|>
-C=not C|C and C|C or C
+E=D | F | N [ '$1@] | E O E
+R= = | <= | < | >= | >
+C=not C | C and C | C or C
 
-L=let N:=E
+L=let N:=E [$2 '$1!]
 I=if C then S else S
 R=repeat G until C
 W=while E do S
-A=E,A|E|
-F=N(A)
+A=E,A[$1 $2]|E|
+F=N\(A\)
 S=L|I|R|W|B|F
 
 G=S;|;
-B=begin $*G end
-P=program N; B.$e
+B=begin *G end
+P=program N; B.%e
 
 ?A
 1
 1,2,3
 a
+1,a,b,4
 #a,b,c
 #a,1,b,cc,222,333
+
+?L
+let q:=7
 
 ?F
 #fine
@@ -30,7 +34,7 @@ foo(1)
 foo(1,2)
 
 #fail
-#foo() 
+#foo()
 #foo(a)
 #foo(a,3)
 
