@@ -9,7 +9,7 @@ int debug= 0; // DEBUG
 #define MAXRES 256
 int nres= 0; char *res[MAXRES]= {0}, *pgen= NULL, *R[128]= {0};
 
-int eor(char* r) { return !r || !*r || *r=='\n' || *r=='|'; }
+int eor(char* r) { return !r || !*r || *r=='\n' || *r=='|' && r[-1]!='\\'; }
 
 char* parseR(char r, char* s, int n); // FORWARD
 char* pR(char* r, char* s, int n) { nres++; return parseR(*r, s, n); }
@@ -92,7 +92,7 @@ Z '\\': r++; default: if (*s==*r++) s++; /* matched */ else fail: {
 /// capture
 char* parseR(char r, char* s, int n){
   DEBUG(if (debug>2) printf("    parseR '%c' (%d)\n", r, r));
-  if (!r) raise(SIGTRAP);
+  if (!r) raise(SIGTRAP); // TODO: ?
   int nr=++nres; free(res[nr]); res[nr]=0;
   char *x= parse(R[r],s,n,nr);
   // TODO: combine repeats? concat && nres-- after call parseR

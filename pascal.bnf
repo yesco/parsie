@@ -1,9 +1,13 @@
+# PASCAL bnf -> ALF
+#
+# (used HJKMQVXYZ)
+
 N=%n
 D=%i
-O=+|-|*|/
-E=D | F | N [ '$1@] | E O E
+O= \+ | \- | \* | \/
+E= D | F | N [ '$1@] | E O E
 R= = | <= | < | >= | >
-C=not C | C and C | C or C
+C= not C [$1~] | C and C [$1 $2 &] | C or C [$1 $2 \|]
 
 L=let N:=E [$2 '$1!]
 I=if C then S else S
@@ -27,6 +31,9 @@ a
 
 ?L
 let q:=7
+
+?E
+3+4*3
 
 ?F
 #fine
