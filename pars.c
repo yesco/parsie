@@ -3,7 +3,7 @@
 #include <ctype.h>
 #include <assert.h>
 
-int debug= 3; // DEBUG
+int debug= 0; // DEBUG
 #define DEBUG(D) if (debug) do{D;}while(0);
 
 #define MAXRES 256
@@ -69,18 +69,12 @@ char* parse(char* r, char* s, int n, int nr) { char*p= NULL,*os=s,*t; int on=n,x
 switch(*r){ case 0: case'\n': case'\r': case'|': return s;
 case' ':case'\t':while(isspace(*s))s++; r++;
 Z '(':; Z '{':; // TODO: implement
-Z '[': {
-  DEBUG(if (debug>1) printf("BEFORE  RES='%s'\n", res[nres]));
-  while(*++r!=']') {
-    DEBUG(if (debug>1) printf("HERE='%c'\n", *r));
-    switch(*r){
+Z '[': { DEBUG(if (debug>1) printf("BEFORE  RES='%s'\n", res[nres]));
+  while(*++r!=']') { switch(*r){
     case '$': x=*++r-'0'+nr+1; res[nr]= add(res[nr], res[x], 999999); break;
     default: res[nr]= add(res[nr], r, 1);
-    }
-    DEBUG(if (debug) printf("  res[%d]='%s'\n", nr, res[nr]));
-  }
-  r++;
-  goto next;
+    } DEBUG(if (debug>1) printf("  res[%d]='%s'\n", nr, res[nr]));
+  } r++; goto next;
 }
 case'?':case'+':p=s;s=pR(r+1,s,1);if(*r=='?'){r+=2;s=s?s:p;goto next;}p=0;
 case'*': r++; while(s&&*s)p=s,s=pR(r,s,1); r++,s=p;
@@ -97,13 +91,13 @@ Z '\\': r++; default: if (*s==*r++) s++; /* matched */ else fail: {
 
 /// capture
 char* parseR(char r, char* s, int n){
-  printf("    parseR '%c' (%d)\n", r, r);
+  DEBUG(if (debug>2) printf("    parseR '%c' (%d)\n", r, r));
   if (!r) raise(SIGTRAP);
   int nr=++nres; free(res[nr]); res[nr]=0;
   char *x= parse(R[r],s,n,nr);
   // TODO: combine repeats? concat && nres-- after call parseR
   // TODO: matching with ? seems to "fail" ???
-  if (!res[nr]) res[nr]=x?strndup(s, x-s):x; DEBUG(printf("  ->%c.res[%d]='%s'\n", r, nr, res[nr]));
+  if (!res[nr]) res[nr]=x?strndup(s, x-s):x; DEBUG(if (debug>1) printf("  ->%c.res[%d]='%s'\n", r, nr, res[nr]));
   nres= nr-1; return x;
 }
 
@@ -112,7 +106,8 @@ char* parseR(char r, char* s, int n){
 char* test(char rule, char* s) {
   nres= 0;
   char* e= parseR(rule, s, -1);
-  DEBUG(if (debug) printf("  %%%s %c-> '%s' RES=>'%s'\n\n", e?(*e?"UNPARSED":"MATCHED!"):"FAILED", rule, e, res[nres+1]));
+  DEBUG(printf("  %%%s %c-> '%s' RES=>'%s'\n\n", e?(*e?"UNPARSED":"MATCHED!"):"FAILED", rule, e, res[nres+1]));
+  if (e && !debug) printf("%s\n", res[nres+1]);
   return e;
 }
 
