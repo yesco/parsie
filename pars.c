@@ -64,16 +64,17 @@ char* add(char* s, char* a, int n) { char* r= malloc((s?strlen(s):0)+n+1);
 //   rest of string (unparsed) it's "" if done.
 #define Z goto next; case
 char* parse(char* r, char* s, int n, int nr) { char*p= NULL,*os=s,*t; int on=n,onr=nres,x;
-  DEBUG(if (debug>1) printf("    parse '%s' '%s' %d\n", r, s, n));
- next: while(n-- && r && s) { DEBUG(if (debug>2)printf("     next '%s' (%d)\n\t   of '%s' left=%d\n",r,*r,s,n))// TODO: join w prev line
+  DEBUG(if (debug>2) printf("    parse '%s' '%s' %d\n", r, s, n));
+ next: while(n-- && r && s) { DEBUG(if (debug>3)printf("     next '%s' (%d)\n\t   of '%s' left=%d\n",r,*r,s,n))// TODO: join w prev line
+  while(isspace(*s))s++; // TODO: more place?
 switch(*r){ case 0: case'\n': case'\r': case'|': return s;
-case' ':case'\t':while(isspace(*s))s++; r++;
+case' ':case'\t':while(isspace(*s))s++; r++; // TODO: hmm, only allow if... in rule?
 Z '(':; Z '{':; // TODO: implement
-Z '[': { DEBUG(if (debug>1) printf("BEFORE  RES='%s'\n", res[nres]));
+Z '[': { DEBUG(if (debug>2) printf("BEFORE  RES='%s'\n", res[nres]));
   while(*++r!=']') { switch(*r){
     case '$': x=*++r-'0'+nr+1; res[nr]= add(res[nr], res[x], 999999); break;
     default: res[nr]= add(res[nr], r, 1);
-    } DEBUG(if (debug>1) printf("  res[%d]='%s'\n", nr, res[nr]));
+    } DEBUG(if (debug>2) printf("  res[%d]='%s'\n", nr, res[nr]));
   } r++; goto next;
 }
 case'?':case'+':p=s;s=pR(r+1,s,1);if(*r=='?'){r+=2;s=s?s:p;goto next;}p=0;
@@ -84,19 +85,27 @@ Z'%':if(*++r=='e'&&!*s){r++;goto next;}p=s;do if((x=(*r=='_'X("anw")isalpha(*s)X
 
 Z 'A'...'Z': if ((p=pR(r++, s, -1))) s= p; else goto fail;
 Z '\\': r++; default: if (*s==*r++) s++; /* matched */ else fail: {
-  while(*r && !eor(r++)){}; if (eor(r)) return NULL; s=os;n=on;nres=onr;}
+  DEBUG(if (debug>2) printf("     FAIL '%s' '%s'\n", r-1, s));
+  while(*r && !eor(r++)){};
+  // TODO: enable this line and arglist works fine
+  // TODO: remove then foo() not work...? wtf?
+  //if (eor(r)) return NULL;
+  if (eor(r) && r[-1]!='|') return NULL; // allow empty match?
+  s=os;n=on;nres=onr;
+DEBUG(if (debug>2) printf("     |OR  '%s' '%s'\n", r-1, s));
+}
 }}return s;}
 
 #include <signal.h>
 
 /// capture
 char* parseR(char r, char* s, int n){
-  DEBUG(if (debug>2) printf("    parseR '%c' (%d)\n", r, r));
-  if (!r) raise(SIGTRAP); // TODO: ?
+  DEBUG(if (debug>1) printf("  parseR '%c' (%d)\n", r, r));
   int nr=++nres; free(res[nr]); res[nr]=0;
   char *x= parse(R[r],s,n,nr);
   // TODO: combine repeats? concat && nres-- after call parseR
   // TODO: matching with ? seems to "fail" ???
+  // TODO: for matching only subrule "| X" default should be [$1] ???
   if (!res[nr]) res[nr]=x?strndup(s, x-s):x; DEBUG(if (debug>1) printf("  ->%c.res[%d]='%s'\n", r, nr, res[nr]));
   nres= nr-1; return x;
 }
@@ -106,8 +115,9 @@ char* parseR(char r, char* s, int n){
 char* test(char rule, char* s) {
   nres= 0;
   char* e= parseR(rule, s, -1);
-  DEBUG(printf("  %%%s %c-> '%s' RES=>'%s'\n\n", e?(*e?"UNPARSED":"MATCHED!"):"FAILED", rule, e, res[nres+1]));
-  if (e && !debug) printf("%s\n", res[nres+1]);
+  if (!e || *e) printf("%%%s %c-> '%s' RES=>'%s'\n\n", e?(*e?"UNPARSED":"MATCHED!"):"FAILED", rule, e, res[nres+1]);
+  //if (e && !debug)
+  printf("%s\n", res[nres+1]);
   return e;
 }
 
@@ -136,7 +146,7 @@ char* test(char rule, char* s) {
 void readparser(FILE* f) { char rule, *ln= NULL; size_t z= 0, d='\n';
   while(getdelim(&ln, &z, d, f)>0) {
     if (ln && ln[strlen(ln)-1]=='\n') ln[strlen(ln)-1]= 0;
-    DEBUG(printf("%s\n", ln))
+    DEBUG(printf("> %s\n", ln))
     if (!ln) break; if (!*ln) continue;
     if (ln[1]=='=' && isalpha(*ln) && isupper(*ln)) R[ln[0]]= strdup(ln+2);
     else if (*ln=='#') ; else if (*ln=='?') rule=ln[1];
@@ -151,12 +161,8 @@ void readparser(FILE* f) { char rule, *ln= NULL; size_t z= 0, d='\n';
 // ENDWCOUNT
 
 int main(int argn, char** argv) {
-  do{ printf("ARG %s\n", *argv);
-    if (0==strcmp("-d", argv[0])) debug++;
-    argv++; } while(--argn);
-  printf("debug=%d\n", debug);
-
-  R['d']="%d";R['a']="%a";R['w']="%w";R['i']="%i";R['n']="%d";
+  do{ if (0==strcmp("-d", argv++[0])) debug++; } while(--argn);
+  R['d']="%d";R['a']="%a";R['w']="%w";R['i']="%i";R['n']="%n";
 
  readparser(stdin);
 }

@@ -4,36 +4,39 @@
 
 N=%n
 D=%i
-O= \+ | \- | \* | \/
-E= D | F | N [ '$1@] | E O E
+
+# math priority ( ) >>> * / >>> + -
+U= D | F [$1] | N ['$1@] | \( E \) [$1]
+T= U \* T [$1 $2 *] | U \/ T [$1 $2 /] | U [$1]
+E= T \+ E [$1 $2 +] | T \- E [$1 $2 -] | T [$1]
+
 R= = | <= | < | >= | >
 C= not C [$1~] | C and C [$1 $2 &] | C or C [$1 $2 \|]
 
-L=let N:=E [$2 '$1!]
+L=N:=E [$2 '$1!]
 I=if C then S else S
 R=repeat G until C
 W=while E do S
-A=E,A[$1 $2]|E|
-F=N\(A\)
-S=L|I|R|W|B|F
 
-G=S;|;
-B=begin *G end
-P=program N; B.%e
+?N
+42
+a
+
+A=E,A [$1 $2] | E [$1] |
+F=N\(A\) [($2)_$1]
+S=L [$1] | I [$1] | R [$1] | W[$1] | B [$1] | F [$1]
+
+G=S;G[$1 $2]|S[$1];|
+B=begin G end [$1]
+P=program N; B.%e ["$1:\n" $2]
 
 ?A
 1
 1,2,3
 a
 1,a,b,4
-#a,b,c
-#a,1,b,cc,222,333
-
-?L
-let q:=7
-
-?E
-3+4*3
+a,b,c
+a,1,b,cc,222,333
 
 ?F
 #fine
@@ -41,13 +44,34 @@ foo(1)
 foo(1,2)
 
 #fail
-#foo()
-#foo(a)
-#foo(a,3)
+foo()
+foo(a)
+foo(a,3)
+
+
+?L
+q:=7
+
+?E
+3+4*2
+
+?U
+42
+a
+ab
+?N
+42
+a
+ab
+?n
+42
+a
+ab
 
 *P
 program foo;
 begin
-  let a:=3;
+  x:=42;
+  a:=3;
   foo(a);
 end.
