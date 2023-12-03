@@ -46,6 +46,14 @@ char* add(char* s, char* a, int n) { char* r= malloc((s?strlen(s):0)+n+1);
 //   %w = match word char (alphanum _)
 //   %i = integer
 //   %n = identifier (%a%w...)
+//
+//   %" = "foo\"bar"
+//   %' = 'c' or 'foo\'bar'
+//     (not handling nesting:)
+//   %( = ( fo( oooo ( \) foo bar)
+//   %[ = [ fo[ oooo [ \] foo bar]
+//   %{ = { fo{ oooo { \} foo bar}
+//   %< = < fo< oooo < \> foo bar>
 
 // --- multiple matches PREFIX!
 //   ?R = optionall match rule R
@@ -80,9 +88,10 @@ Z '[': { DEBUG(if (debug>2) printf("BEFORE  RES='%s'\n", res[nres]));
 case'?':case'+':p=s;s=pR(r+1,s,1);if(*r=='?'){r+=2;s=s?s:p;goto next;}p=0;
 case'*': r++; while(s&&*s)p=s,s=pR(r,s,1); r++,s=p;
 #define X(x) ||strchr(x,*r)&&
-Z'%':if(*++r=='e'&&!*s){r++;goto next;}p=s;do if((x=(*r=='_'X("anw")isalpha(*s)X(p
-==s?"di":"dwin")isdigit(*s))))s++;else if(p==s)goto fail;while(0 X("in")x);r++;
-
+Z'%':if((p=strchr("\"\"''(){}[]<>",*++r))){while(*++s&&*s!=p[1])*s=='\\'&&s++;
+r++;s++;goto next;} if(*r=='e'&&!*s){r++;goto next;}
+p=s;do if((x=(*r=='_'X("anw")isalpha(*s)X(p==s?"di":"dwin")isdigit(*s))))s++;
+else if(p==s)goto fail;while(0 X("in")x);r++;
 Z 'A'...'Z': if ((p=pR(r++, s, -1))) s= p; else goto fail;
 Z '\\': r++; default: if (*s==*r++) s++; /* matched */ else fail: {
   DEBUG(if (debug>2) printf("     FAIL '%s' '%s'\n", r-1, s));
@@ -95,8 +104,6 @@ Z '\\': r++; default: if (*s==*r++) s++; /* matched */ else fail: {
 DEBUG(if (debug>2) printf("     |OR  '%s' '%s'\n", r-1, s));
 }
 }}return s;}
-
-#include <signal.h>
 
 /// capture
 char* parseR(char r, char* s, int n){
@@ -162,7 +169,8 @@ void readparser(FILE* f) { char rule, *ln= NULL; size_t z= 0, d='\n';
 
 int main(int argn, char** argv) {
   do{ if (0==strcmp("-d", argv++[0])) debug++; } while(--argn);
-  R['d']="%d";R['a']="%a";R['w']="%w";R['i']="%i";R['n']="%n";
-
+  for(char*s="dawin\"'({[<";*s;s++){char x[]={'%',*s,0};R[*s]=strdup(x);
+    printf("%c %s\n", *s, R[*s]);
+  }
  readparser(stdin);
 }

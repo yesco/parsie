@@ -67,6 +67,26 @@ OP(+,);OP(-,);OP(*,);OP(/,);OP(<,);OP(>,);OP(=,=);OP(|,|);OP(&,&);
   case'p': S[sp++]= S[args+*p-'0']; p++;NXT
   case'v': S[args+*p-'0']= S[--sp]; p++;NXT
     
+  // hacky name variables
+  // these should be "scoped" on [ ]
+  // What if all variables belonged to a stack frame (no dynamic?)
+  // this implies, static, no closure???
+  // new functions during parsing
+  //  $:NAME define/allocate NAME
+  //  $[ enter
+  //  $] exit
+  // STORE: name= (frameNr,offset,bytes)
+  //   frmaenum=0 global?
+  //   framenum=1 current
+  //           =2 one up
+  //   offset=bytes from startOfFrm
+  // ALF:
+  //  `0#8L8 frame 0 offset 8 size 8
+			  
+  case'`': // get address of next long name
+  case'c': // create variable
+  case'_': // long function name call
+
   // control/IF/FOR/WHILE - ? { }
   case'}': return iff?p:NULL;
   case'{': { char* r; while(!((r=alf(p, args, n, 0)))){}; p= r; NXT }
