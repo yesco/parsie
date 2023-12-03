@@ -115,15 +115,12 @@ char* parse(char* r, char* s, int n, int nr) {
       goto next;
     }
 
+    // TODO: too clever to reuse instead of clear...
     case '?': case '+':
       p=s;
       s=pR(r+1,s,1);
-      if(*r=='?') {
-	r+=2;
-	s=s?s:p;
-	goto next;
-      }
-      p=0;
+      if (*r=='?') { r+=2; s=s?s:p;goto next; }
+      if (!s) goto next;
       // fallthrough
     case'*':
       r++;
@@ -131,17 +128,19 @@ char* parse(char* r, char* s, int n, int nr) {
 	p=s;
 	s=pR(r,s,1);
       }
-      r++;
-      s=p;
-      goto next;
+      r++; s=p; goto next;
 
+    // TODO: also too clever encoding?
     case '%':
       if ((p=strchr("\"\"''(){}[]<>",*++r))) {
+	// quoted string
 	// move till unquoted endchar
 	while(*++s&&*s!=p[1])
 	  if (*s=='\\') s++;
+
 	r++; s++; goto next;
       }
+
       if (*r=='e'&&!*s) { r++; goto next; }
       p=s;
       do {
@@ -152,6 +151,7 @@ char* parse(char* r, char* s, int n, int nr) {
 	else if (p==s) goto fail;
       } while(strchr("in", *r) && x);
       r++; goto next;
+
     case 'A'...'Z': if ((p=pR(r++, s, -1))) {
 	s= p; goto next;
       } else goto fail;
