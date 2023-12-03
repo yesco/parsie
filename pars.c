@@ -65,8 +65,11 @@ char* add(char* s, char* a, int n) { char* r= malloc((s?strlen(s):0)+n+1);
 // TODO: ?R redundant == S=R| and ?S
 // TODO: *R redundant == S=RS|R|
 //
-// n==-1 infinity
-// n==1 one time (for ? + *)
+//
+
+// Parse a Rule for String using max N matches starting at results at NR
+//   n==-1 infinity
+//   n==1 one time (for ? + *)
 // Returns:
 ///  NULL=fail
 //   rest of string (unparsed) it's "" if done.
@@ -81,12 +84,14 @@ Z '(':; Z '{':; // TODO: implement
 Z '[': { DEBUG(if (debug>2) printf("BEFORE  RES='%s'\n", res[nres]));
   while(*++r!=']') { switch(*r){
     case '$': x=*++r-'0'+nr+1; res[nr]= add(res[nr], res[x], 999999); break;
-    default: res[nr]= add(res[nr], r, 1);
+    case '\\': r++; default: res[nr]= add(res[nr], r, 1);
     } DEBUG(if (debug>2) printf("  res[%d]='%s'\n", nr, res[nr]));
   } r++; goto next;
 }
+
 case'?':case'+':p=s;s=pR(r+1,s,1);if(*r=='?'){r+=2;s=s?s:p;goto next;}p=0;
 case'*': r++; while(s&&*s)p=s,s=pR(r,s,1); r++,s=p;
+
 #define X(x) ||strchr(x,*r)&&
 Z'%':if((p=strchr("\"\"''(){}[]<>",*++r))){while(*++s&&*s!=p[1])*s=='\\'&&s++;
 r++;s++;goto next;} if(*r=='e'&&!*s){r++;goto next;}
@@ -95,11 +100,7 @@ else if(p==s)goto fail;while(0 X("in")x);r++;
 Z 'A'...'Z': if ((p=pR(r++, s, -1))) s= p; else goto fail;
 Z '\\': r++; default: if (*s==*r++) s++; /* matched */ else fail: {
   DEBUG(if (debug>2) printf("     FAIL '%s' '%s'\n", r-1, s));
-  while(*r && !eor(r++)){};
-  // TODO: enable this line and arglist works fine
-  // TODO: remove then foo() not work...? wtf?
-  //if (eor(r)) return NULL;
-  if (eor(r) && r[-1]!='|') return NULL; // allow empty match?
+  while(*r && !eor(r++)){}; if (eor(r) && r[-1]!='|') return NULL;
   s=os;n=on;nres=onr;
 DEBUG(if (debug>2) printf("     |OR  '%s' '%s'\n", r-1, s));
 }
@@ -108,8 +109,7 @@ DEBUG(if (debug>2) printf("     |OR  '%s' '%s'\n", r-1, s));
 /// capture
 char* parseR(char r, char* s, int n){
   DEBUG(if (debug>1) printf("  parseR '%c' (%d)\n", r, r));
-  int nr=++nres; free(res[nr]); res[nr]=0;
-  char *x= parse(R[r],s,n,nr);
+  int nr=++nres; free(res[nr]); res[nr]=0; char *x= parse(R[r],s,n,nr);
   // TODO: combine repeats? concat && nres-- after call parseR
   // TODO: matching with ? seems to "fail" ???
   // TODO: for matching only subrule "| X" default should be [$1] ???
@@ -120,12 +120,9 @@ char* parseR(char r, char* s, int n){
 // ENDWCOUNT
 
 char* test(char rule, char* s) {
-  nres= 0;
-  char* e= parseR(rule, s, -1);
+  nres= 0; char* e= parseR(rule, s, -1);
   if (!e || *e) printf("%%%s %c-> '%s' RES=>'%s'\n\n", e?(*e?"UNPARSED":"MATCHED!"):"FAILED", rule, e, res[nres+1]);
-  //if (e && !debug)
-  printf("%s\n", res[nres+1]);
-  return e;
+  printf("%s\n", res[nres+1]); return e;
 }
 
 //case '?': case '+': p=s;s=parse(R[*(r+1)],s,1);if(*r=='?'){r+=2;s=s?s:p;break;}if(
