@@ -1,3 +1,6 @@
+TOO MINIFIED:
+-- use: pars-nice.bnf
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <ctype.h>
