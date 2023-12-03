@@ -83,23 +83,31 @@ char* add(char* s, char* a, int n) {
 ///  NULL=fail
 //   rest of string (unparsed) it's "" if done.
 char* parse(char* r, char* s, int n, int nr) {
-  char*p= NULL,*os=s,*t;
-  int on=n,onr=nres,x;
+  char*p= NULL, *os= s, *t;
+  int on= n, onr= nres, x;
   DEBUG(if (debug>2) printf("    parse '%s' '%s' %d\n", r, s, n));
  next:
   while(n-- && r && s) {
+    while(isspace(*s)) s++;
+
     DEBUG(if (debug>3)printf("     next '%s' (%d)\n\t   of '%s' left=%d\n",r,*r,s,n));
-    while(isspace(*s))s++;
+
     switch(*r){
+
     case 0: case '\n': case '\r': case '|': return s; // end
     case ' ':case '\t': while(isspace(*s))s++; r++; goto next; // skip
+
     case '(': case '{': goto next; // TODO: implement
     case '[': { // result
       DEBUG(if (debug>2) printf("BEFORE  RES='%s'\n", res[nres]));
       while(*++r!=']') {
 	switch(*r){
-	case '$': x=*++r-'0'+nr+1; res[nr]= add(res[nr], res[x], 999999); break;
-	case '\\': r++; default: res[nr]= add(res[nr], r, 1);
+	case '$':
+	  x=*++r-'0'+nr+1;
+	  res[nr]= add(res[nr], res[x], 999999);
+	  break;
+	case '\\': r++; // fallthrough
+	default: res[nr]= add(res[nr], r, 1);
 	}
 	DEBUG(if (debug>2) printf("  res[%d]='%s'\n", nr, res[nr]));
       }
@@ -129,31 +137,25 @@ char* parse(char* r, char* s, int n, int nr) {
 
     case '%':
       if ((p=strchr("\"\"''(){}[]<>",*++r))) {
+	// move till unquoted endchar
 	while(*++s&&*s!=p[1])
 	  if (*s=='\\') s++;
-	r++;
-	s++;
-	goto next;
+	r++; s++; goto next;
       }
-      if (*r=='e'&&!*s) {
-	r++;
-	goto next;
-      }
+      if (*r=='e'&&!*s) { r++; goto next; }
       p=s;
       do {
-	if ((x=(*r=='_'||strchr("anw",*r) && isalpha(*s)||strchr(p==s?"di":"dwin", *r) && isdigit(*s))))
+	if ((x=(*r=='_'
+          || strchr("anw",*r) && isalpha(*s)
+	  || strchr(p==s?"di":"dwin", *r) && isdigit(*s))))
 	  s++;
-	else
-	  if (p==s) goto fail;
+	else if (p==s) goto fail;
       } while(strchr("in", *r) && x);
-      r++;
-      goto next;
-    case 'A'...'Z': if ((p=pR(r++, s, -1))) s= p;
-      else goto fail;
-      goto next;
-    case '\\':
-      r++;
-      // fallthrough
+      r++; goto next;
+    case 'A'...'Z': if ((p=pR(r++, s, -1))) {
+	s= p; goto next;
+      } else goto fail;
+    case '\\': r++; // fallthrough
     default:
       if (*s==*r++) s++; // matched
       else fail: {
@@ -162,9 +164,7 @@ char* parse(char* r, char* s, int n, int nr) {
 	  while(*r && !eor(r++)){};
 	  if (eor(r) && r[-1]!='|') return NULL;
 	  // restore start state
-	  s=os;
-	  n=on;
-	  nres=onr;
+	  s=os; n=on; nres=onr;
 
 	  DEBUG(if (debug>2) printf("     |OR  '%s' '%s'\n", r-1, s));
 	} // fail
@@ -178,15 +178,18 @@ char* parseR(char r, char* s, int n){
   DEBUG(if (debug>1) printf("  parseR '%c' (%d)\n", r, r));
   int nr=++nres;
 
-  free(res[nr]);
-  res[nr]=0;
+  free(res[nr]); res[nr]=0;
 
   char *x= parse(R[r],s,n,nr);
+
   // TODO: combine repeats? concat && nres-- after call parseR
   // TODO: matching with ? seems to "fail" ???
   // TODO: for matching only subrule "| X" default should be [$1] ???
+
   if (!res[nr]) res[nr]=x?strndup(s, x-s):x;
+
   DEBUG(if (debug>1) printf("  ->%c.res[%d]='%s'\n", r, nr, res[nr]));
+
   nres= nr-1;
   return x;
 }
