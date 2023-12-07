@@ -17,6 +17,13 @@ char* F['Z'-'A'+1]= {0};
 
 void initalf(size_t sz) { H=M=calloc(memsize= sz, 1); } // TODO: ?zero S F
 
+// TODO;
+int bindadd(int a) { return 0; }
+int bindaddn(char* s) { return 0; }
+int bindframe(int f) { return 0; }
+int findvar(char* s) { return 0; }
+void bindpop() {}
+
 // skips a { block } returns after
 //   TODO: must skip STRINGs!!! lol
 char* skip(char* p){ int n=1;while(n&&*p)if(*p=='?')p+=2;else n+=(*p=='{')-(*p=='}'),p++;return p;}
@@ -49,7 +56,9 @@ OP(+,);OP(-,);OP(*,);OP(/,);OP(<,);OP(>,);OP(=,=);OP(|,|);OP(&,&);
   case'h':S[sp++]=H-M;NXT case'm':x=T;T=H-M;H+=x;NXT case'a':H+=L S[--sp];NXT
   case',': H=(char*)((((L H)+SL-1)/SL)*SL);memcpy(H,&S[--sp],SL);H+=SL;NXT
   // TODO: use raw offset, alignment error?
-  case'@': T=*(double*)&M[8*L T];NXT case '!': *(double*)&M[8*L T]= S[sp-2]; sp-=2;NXT
+  case'@': if (T<0) T=S[(L-T)-1];
+    else T=*(double*)&M[8*L T]; NXT
+  case'!': if (T<0) S[L-T-1]=S[sp-2]; else *(double*)&M[8*L T]= S[sp-2]; sp-=2;NXT
 
   // -- printers
   case'.': printf("%.20lg ", S[--sp]);NXT case 'e': putchar(S[--sp]);NXT
@@ -65,8 +74,25 @@ OP(+,);OP(-,);OP(*,);OP(/,);OP(<,);OP(>,);OP(=,=);OP(|,|);OP(&,&);
   // 99]        -> .. 99 (and exit)
     // TODO: by call alf, ret on ')'
   case'(': { int fp= sp; p= alf(p, args, n, 1); S[sp++]= fp;NXT }
-  case'[': args= T; n= S[sp]= sp-args-1; sp++;NXT
-  case']': S[args]= T; sp= args+1; return p;
+  case'[': args= T; n= S[sp]= sp-args-1; sp++; bindframe(args); NXT
+  case']': bindpop(); S[args]= T; sp= args+1; return p;
+  case'_': {
+    // TODO: share w '_ and '`'
+    char s[64]= {0}, i=0;
+    while(isalnum(*p++) && i<sizeof(s)-1) s[i++]=*p;
+
+    // TODO: don't need extra storage???
+    bindaddn(s);
+    goto next;
+  }
+  case'`': {
+    // TODO: share w '_ and '`'
+    char s[64]= {0}, i=0;
+    while(isalnum(*p++) && i<sizeof(s)-1) s[i++]=*p;
+
+    int o= findvar(s);
+    S[sp++]= -o-1; goto next;
+  }
 
   // stack value access
   // TODO: _ and ~ and give actual address???
@@ -89,10 +115,6 @@ OP(+,);OP(-,);OP(*,);OP(/,);OP(<,);OP(>,);OP(=,=);OP(|,|);OP(&,&);
   // ALF:
   //  `0#8L8 frame 0 offset 8 size 8
 			  
-  case'`': // get address of next long name
-  //case'v': // create variable
-  case'_': // long function name call
-
   // control/IF/FOR/WHILE - ? { }
   case'}': return iff?p:NULL;
   case'{': { char* r; while(!((r=alf(p, args, n, 0)))){}; p= r; NXT }
