@@ -6,12 +6,28 @@
 int debug= 0; // DEBUG
 #define DEBUG(D) if (debug) do{D;}while(0);
 
+// Results and Attributes
 #define MAXRES 256
 int nres= 0;
-char *res[MAXRES]= {0}, *pgen= NULL, *R[128]= {0};
+char *res[MAXRES]= {0}, *R[128]= {0}, *attr[MAXRES]= {0};
 
 int eor(char* r) {
   return !r || !*r || *r=='\n' || *r=='|' && r[-1]!='\\';
+}
+
+// find start of attr val string
+char* attrval(int nr, char a) {
+  // TODO: not MAXRES...
+  for(int i= nr+1; i<MAXRES; i++) {
+    char* s= attr[i];
+    DEBUG(if (debug) if (s) printf("find.ATTR[%d] = '%s'\n", i, s));
+    while(s && (s= strchr(s, ' '))) {
+      if (s[1]==a && s[2]=='=') {
+	return s+3;
+      }
+    }
+  }
+  return NULL;
 }
 
 // Using named Rule, parse String do only N matches
@@ -27,6 +43,31 @@ char* add(char* s, char* a, int n) {
   strncat(strcpy(r, s?s:""), a?a:"", n);
   free(s);
   return r;
+}
+
+int gen(char** r, char* s, char end, int nr) {
+  DEBUG(if (debug>3) printf("GEN: '%s'\n", s));
+  int n, l; char *os=s, *v, *e;
+  while(*s && *++s!=end && *s) {
+    switch(*s){
+    case '$':
+      if (isdigit(*++s)) {
+	v= res[*s-'0'+nr+1]; l=99999;
+      } else {
+	DEBUG(if (debug) printf("ATTRVAL= '%s'\n", s))
+	e= v= attrval(nr, *s);
+	if (!e) break;
+	while(*e && *++e && *e!=' '){};
+	l= e-v;
+      }
+      *r= add(*r, v, l);
+      break;
+    case '\\': s++; // fallthrough
+    default: *r= add(*r, s, 1);
+    }
+    DEBUG(if (debug>2) printf("  res[%d]='%s'\n", nr, *r));
+  }
+  return s-os;
 }
 
 // --- rules
@@ -101,18 +142,12 @@ char* parse(char* r, char* s, int n, int nr) {
     case '(': case '{': goto next; // TODO: implement
     case '[': { // result
       DEBUG(if (debug>2) printf("BEFORE  RES='%s'\n", res[nres]));
-      while(*++r!=']') {
-	switch(*r){
-	case '$':
-	  x=*++r-'0'+nr+1;
-	  res[nr]= add(res[nr], res[x], 999999);
-	  break;
-	case '\\': r++; // fallthrough
-	default: res[nr]= add(res[nr], r, 1);
-	}
-	DEBUG(if (debug>2) printf("  res[%d]='%s'\n", nr, res[nr]));
-      }
-      r++;
+      r+= 1+gen(res+nr, r, ']', nr);
+      goto next;
+    }
+    case ':': { // attribute
+      attr[nr]= add(attr[nr], " ", 1);
+      r+= 1+gen(attr+nr, r, ' ', nr);
       goto next;
     }
 
@@ -178,6 +213,7 @@ char* parseR(char r, char* s, int n){
   int nr=++nres;
 
   free(res[nr]); res[nr]=0;
+  free(attr[nr]); attr[nr]= 0;
 
   char *x= parse(R[r],s,n,nr);
 

@@ -18,8 +18,8 @@ R= = | <= | < | >= | >
 C= not C [$1~] | C and C [$1 $2 &] | C or C [$1 $2 \|]
 
 Q= integer [i8] | char [c1] | string [s]
-V= var N: Q [$:$1=$2]
-L= N:=E [$2 '$1!]
+V= var N\: Q [$1=$2]
+L= N\:=E [$2 '$1!]
 I= if C then S else S
 R= repeat G until C
 W= while E do S
