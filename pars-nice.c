@@ -14,6 +14,7 @@ int eor(char* r) {
   return !r || !*r || *r=='\n' || *r=='|' && r[-1]!='\\';
 }
 
+// Using named Rule, parse String do only N matches
 char* parseR(char r, char* s, int n); // FORWARD
 char* pR(char* r, char* s, int n) {
   nres++;
@@ -81,7 +82,7 @@ char* add(char* s, char* a, int n) {
 //   n==1 one time (for ? + *)
 // Returns:
 ///  NULL=fail
-//   rest of string (unparsed) it's "" if done.
+//   rest of string (unparsed)
 char* parse(char* r, char* s, int n, int nr) {
   char*p= NULL, *os= s, *t;
   int on= n, onr= nres, x;
@@ -117,16 +118,14 @@ char* parse(char* r, char* s, int n, int nr) {
 
     // TODO: too clever to reuse instead of clear...
     case '?': case '+':
-      p=s;
-      s=pR(r+1,s,1);
+      p=s; s=pR(r+1,s,1);
       if (*r=='?') { r+=2; s=s?s:p;goto next; }
       if (!s) goto next;
       // fallthrough
     case'*':
       r++;
       while(s&&*s) {
-	p=s;
-	s=pR(r,s,1);
+	p=s; s=pR(r,s,1);
       }
       r++; s=p; goto next;
 
@@ -221,7 +220,7 @@ char* test(char rule, char* s) {
 // foo
 // fie
 // *A
-// fie
+//  fie                space ignored
 // fum
 void readparser(FILE* f) {
   char rule, *ln= NULL;
