@@ -45,6 +45,7 @@ OP(+,);OP(-,);OP(*,);OP(/,);OP(<,);OP(>,);OP(=,=);OP(|,|);OP(&,&);
   case'z': T= !T;NXT case 'n': T= -L T;NXT
   
   // -- memory stuff (, aligns)
+  // TODO: malloc/free not use arena
   case'h':S[sp++]=H-M;NXT case'm':x=T;T=H-M;H+=x;NXT case'a':H+=L S[--sp];NXT
   case',': H=(char*)((((L H)+SL-1)/SL)*SL);memcpy(H,&S[--sp],SL);H+=SL;NXT
   // TODO: use raw offset, alignment error?
@@ -139,19 +140,46 @@ LOP(&,);LOP(|,);LOP(^,);case'~': T= ~L T;NXT
 
 // ENDWCOUNT
 
-// -- 41 ops:
-// dup \=drop s=swap o=over
-// 0=ret ' ' num Call_udf
-// + - / * % n=negate
-// logical: < > = & |
+// ALFabetical (F)orth!
+// ====================
+// as VM for 'parsie"
+
+// DOUBLE stack!
+// Ops default on doubles (64bit).
+// Cast to long for bit ops.
+// int32 is safe and correct!
+// memory is addressed using offset
+//   (might use NAN-type)
 // 
-// : ; (param) [frame]
-// p0-p9=param  v0-v9=set_var
-// '=char e=emit "=prstr .=printnum
-// x=execute
-// ?]=break ?}=continue ?{=if-then-else
-// !=store @=read h=here a=allot m="malloc"
+// TODO: strings (using pointers?)
+//   but want them tagged as strings
 //
+// StackFrames are maintained using
+//   ( ... ) mark stack parameters
+//   [ ... ] enter stack frame
+//   This enables varargs etc.
+
+// -- 67 ops:
+// stack:	dup \=drop s=swap o=over
+// delim:       ' '
+// numbers
+// math:	+ - / * % n=negate
+// logical:	< > = & |
+// read/write:	!=store @=read
+// memory:	a=allot h=here m="malloc" (no free!)
+// user funcs:	A-Z
+// define:	: X ... ;
+// printing     . 'c e "..."==print
+// x=execute
+// conditional:	?{=if-then-else
+// loops:	{ ...?]=break ?}=cont }
+
+// Stack frame param access:
+// 	p0-p9=param  v0-v9=set_var
+// 
+// b& b| b^ b~
+// c@ c! ci cd c+ c- c* c/ c< c> c& c| c^
+// w@ w! wi wd w+ w- w* w/ w< w> w& w| w^
 //
 // FREE: _ $ ` g ijkl qr u y ~
 //       p u v
@@ -232,7 +260,7 @@ LOP(&,);LOP(|,);LOP(^,);case'~': T= ~L T;NXT
 ( ^ - break  b~ for xor)
 ( _ - name define? ) ???
 ( ` - address of name? ) ???
-  a - allot (inc here)
+  a - allot (inc here, from arena)
 
   b - bit ops:
   b& - bit & (64 bit)
@@ -253,7 +281,9 @@ LOP(&,);LOP(|,);LOP(^,);case'~': T= ~L T;NXT
     c> - c>>=T -- TODO: c} update skip
   d - drop
   e - emit
-( f - float (i.e. double ops)
+( f - float (i.e. double ops))
+  TODO TODO TODO TODO TODO TODO
+  TODO TODO TODO TODO....
     fi - f++
     fd - f--
 
@@ -263,12 +293,12 @@ LOP(&,);LOP(|,);LOP(^,);case'~': T= ~L T;NXT
     f/
     f< - f<<=T
     f> - f>>=T
-  g
+( g - free? lol )
   h - here (offset into M)
   ij
 ( k - key key?)
   l
-  m - here swap malloc
+  m - here swap malloc (TODO:use heap)
   n - negate value
   o - over
   p - parameter N ???
