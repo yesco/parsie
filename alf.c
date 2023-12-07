@@ -18,7 +18,8 @@ char* F['Z'-'A'+1]= {0};
 void initalf(size_t sz) { H=M=calloc(memsize= sz, 1); } // TODO: ?zero S F
 
 // skips a { block } returns after
-char* skip(char* p){ int n=1;while(n&&*p)n+=(*p=='{')-(*p=='}'),p++;return p;}
+//   TODO: must skip STRINGs!!! lol
+char* skip(char* p){ int n=1;while(n&&*p)if(*p=='?')p+=2;else n+=(*p=='{')-(*p=='}'),p++;return p;}
 
 char*alf(char*p,int args,int n,int iff){long x;char*e=NULL;if(!p)return NULL;
   DEBUG(printf("\n===ALF >>>%s<<<\n", p))
@@ -38,15 +39,17 @@ char*alf(char*p,int args,int n,int iff){long x;char*e=NULL;if(!p)return NULL;
   // -- math stuff
 #define L (long)
 #define SL (sizeof(long))
-#define OP(op,e) case #op[0]: S[sp-2]=T op##e S[sp-2]; sp--;NXT
+#define OP(op,e) case #op[0]: S[sp-2]=S[sp-2] op##e T; sp--;NXT
 OP(+,);OP(-,);OP(*,);OP(/,);OP(<,);OP(>,);OP(=,=);OP(|,|);OP(&,&);
   case'%': S[sp-2]=L T % L S[sp-2]; sp--;NXT
-  case'z': T= !T;NXT case '~': T= ~L T;NXT case 'n': T= -L T;NXT
+  case'z': T= !T;NXT case 'n': T= -L T;NXT
   
-  // -- memory stuff
+  // -- memory stuff (, aligns)
   case'h':S[sp++]=H-M;NXT case'm':x=T;T=H-M;H+=x;NXT case'a':H+=L S[--sp];NXT
   case',': H=(char*)((((L H)+SL-1)/SL)*SL);memcpy(H,&S[--sp],SL);H+=SL;NXT
-  case'@': T=M[8*L T];NXT case '!': M[8*L T]= S[sp-2]; sp-=2;NXT
+  // TODO: use raw offset, alignment error?
+  case'@': T=*(double*)&M[8*L T];NXT case '!': *(double*)&M[8*L T]= S[sp-2]; sp-=2;NXT
+
   // -- printers
   case'.': printf("%.20lg ", S[--sp]);NXT case 'e': putchar(S[--sp]);NXT
   case'\'': S[sp++]= *p++;NXT case'"':while(*p&&*p!='"')putchar(*p++);p++;NXT
@@ -64,8 +67,10 @@ OP(+,);OP(-,);OP(*,);OP(/,);OP(<,);OP(>,);OP(=,=);OP(|,|);OP(&,&);
   case'[': args= T; n= S[sp]= sp-args-1; sp++;NXT
   case']': S[args]= T; sp= args+1; return p;
 
-  case'p': S[sp++]= S[args+*p-'0']; p++;NXT
-  case'v': S[args+*p-'0']= S[--sp]; p++;NXT
+  // stack value access
+  // TODO: _ and ~ and give actual address???
+    //  case'p': S[sp++]= S[args+*p-'0']; p++;NXT
+    //case'v': S[args+*p-'0']= S[--sp]; p++;NXT
     
   // hacky name variables
   // these should be "scoped" on [ ]
@@ -84,7 +89,7 @@ OP(+,);OP(-,);OP(*,);OP(/,);OP(<,);OP(>,);OP(=,=);OP(|,|);OP(&,&);
   //  `0#8L8 frame 0 offset 8 size 8
 			  
   case'`': // get address of next long name
-  case'c': // create variable
+  //case'v': // create variable
   case'_': // long function name call
 
   // control/IF/FOR/WHILE - ? { }
@@ -95,13 +100,37 @@ OP(+,);OP(-,);OP(*,);OP(/,);OP(<,);OP(>,);OP(=,=);OP(|,|);OP(&,&);
   // ?} = again
   // ?{ = if{then}{else}
   case'?': if (S[--sp]) { switch(*p++){
-    case'}': return NULL; case']': return p;
+  case'}': return p; case']': return NULL;
     case'{': p= alf(p, args, n, 1);if (*p=='{') p=skip(p+1);NXT
     default: p=alf(p, args, n, 1);
     }
- } else { // false
+ } else { // IF
     if (*p=='{') { p=skip(p+1); if (!iff) NXT }
-    if (p) p= alf(p+1, args, n, 1); else return NULL; }
+    if (p) p= alf(p+1, args, n, 1); else return NULL; } NXT;
+
+  // -- char ops
+  case 'c': switch(*p++){
+    case'@': T=M[L T];NXT;case'!': M[L T]= S[sp-2]; sp-=2;NXT;
+    case'i': M[L T]++;sp--;NXT case'd': M[L T]--;sp--;NXT;
+    #define SM(a,op) case a: x=T; M[L T] op x; sp-=2;NXT
+    SM('+',+=);SM('-',-=);SM('*',*=);SM('/',/=);SM('<',<<=);SM('>',>>=);
+    SM('&',&=);SM('|',|=);SM('^',^=);
+    // TODO: c,
+  }
+
+  // -- word ops
+  case 'w': switch(*p++){
+    case'@': T=*(long*)&M[8*L T];NXT case '!': *(long*)&M[8*L T]= S[sp-2]; sp-=2;NXT
+    // TODO: w,
+    case'i': (*(long*)&M[8*L T])++;sp--;NXT case'd': (*(long*)&M[8*L T])--;sp--;NXT;
+#define SW(a,op) case a: x=S[sp-2]; (*(long*)&M[8*L T]) op x; sp-=2;NXT
+SW('+',+=);SW('-',-=);SW('*',*=);SW('/',/=);SW('<',<<=);SW('>',>>=);
+  }
+  // -- bit ops
+  case 'b': switch(*p++){
+#define LOP(op,e) case #op[0]: S[sp-2]=(L T) op##e L S[sp-2]; sp--;NXT
+LOP(&,);LOP(|,);LOP(^,);case'~': T= ~L T;NXT
+  }
 
   default: printf("\n[%% Undefined op '%c']\n", p[-1]);
   }
@@ -113,8 +142,9 @@ OP(+,);OP(-,);OP(*,);OP(/,);OP(<,);OP(>,);OP(=,=);OP(|,|);OP(&,&);
 // -- 41 ops:
 // dup \=drop s=swap o=over
 // 0=ret ' ' num Call_udf
-// + - / * %   < > = & |
-// ~ n
+// + - / * % n=negate
+// logical: < > = & |
+// 
 // : ; (param) [frame]
 // p0-p9=param  v0-v9=set_var
 // '=char e=emit "=prstr .=printnum
@@ -123,16 +153,17 @@ OP(+,);OP(-,);OP(*,);OP(/,);OP(<,);OP(>,);OP(=,=);OP(|,|);OP(&,&);
 // !=store @=read h=here a=allot m="malloc"
 //
 //
-// FREE: , _ ` bc fg ijkl qr u w y
+// FREE: _ $ ` g ijkl qr u y ~
+//       p u v
+//       b... c... w... ?...
 //             128-255
+//    planned: f...
 //
 //   Missing:
-//     bit& bit| bit==?
-//     char!@
-//     pick key
+//     pick key key?
 //     math? lib: use ext w dlopen
 //
-//     quit type
+//     exit break quit type
 
 /*
   == ctrl-a -- ctrl-z reserve for edit?
@@ -172,7 +203,7 @@ OP(+,);OP(-,);OP(*,);OP(/,);OP(<,);OP(>,);OP(=,=);OP(|,|);OP(&,&);
   ! - store
   " - print string
   #
-( $ - reserved for parser vars )
+( $ - reserved for parser vars ) ???
   % - mod
   & - and
   ' - char
@@ -180,7 +211,7 @@ OP(+,);OP(-,);OP(*,);OP(/,);OP(<,);OP(>,);OP(=,=);OP(|,|);OP(&,&);
   ) - param end
   * - mul
   + - add
-( , - write word, here )
+  , - ret aligned here, write word
   . - print number
   / - div
   0123456789 - number
@@ -198,39 +229,74 @@ OP(+,);OP(-,);OP(*,);OP(/,);OP(<,);OP(>,);OP(=,=);OP(|,|);OP(&,&);
   [ - enter parameter frame
   \ - drop
   ] - exit param frame
-( ^ - xor )
-( _ - name define? )
-( ` - address of name? )
+( ^ - break  b~ for xor)
+( _ - name define? ) ???
+( ` - address of name? ) ???
   a - allot (inc here)
-( b - bit )
-( b& )
-( b| )
-( b^ )
-( c - char ops prefix !@ )
+
+  b - bit ops:
+  b& - bit & (64 bit)
+  b| - bit | (64 bit)
+  b^ - bit ^ (64 bit)
+  b~ - bit ~ (64 bit)
+  c - char ops prefix !@
+    c!
+    c@
+    c, - TODO
+    ci - c++
+    cd - c--
+    c+ - c+=T 
+    c-
+    c*
+    c/
+    c< - c<<=T -- TODO: c{ update skip
+    c> - c>>=T -- TODO: c} update skip
   d - drop
   e - emit
-  fg
-  h - here 
+( f - float (i.e. double ops)
+    fi - f++
+    fd - f--
+
+    f+ - f+=T
+    f-
+    f*
+    f/
+    f< - f<<=T
+    f> - f>>=T
+  g
+  h - here (offset into M)
   ij
 ( k - key key?)
   l
   m - here swap malloc
-  n - negate
+  n - negate value
   o - over
-  p - parameter N
+  p - parameter N ???
   qr
   s - swap
 ( t - type )
   u
-  v - variable (set parameter) N
-( w - *8== word+align)?
+  v - variable (set parameter) N ???
+  w - word/long ops prefix !@
+    w! - long!
+    w@ - long@
+    w, - TODO
+    wi - w++
+    wd - w--
+
+    w+ - w+=T
+    w-
+    w*
+    w/
+    w< - w<<=T -- TODO: w{ update skip
+    w> - w>>=T -- TODO: w} update skip
   x - execute (call char f stack)
   y
-  z - =0? zero?, invert?
+  z - !T or =0? zero?
   { - loop begin
   | - or
   } - loop end
-  ~ - bit invert
+  ~ - invert (64 bits)
 ( <del> )
 ( 128-255 - longname slots? )
   
@@ -281,6 +347,15 @@ if(0){
   //alf("1.{2.}3.", 0, 0, 0);
 //alf("1d.?{2d.}{3d.}.4.", 0, 0, 0);
 //  alf("0d.?{2d.}{3d.}.4.", 0, 0, 0);
+  if (0) {
+    printf("%s\n", skip("foo}OK"));
+    printf("%s\n", skip("f?]oo}OK"));
+    printf("%s\n", skip("f?}oo}OK"));
+    printf("%s\n", skip("f?{oo}OK"));
+    printf("%s\n", skip("f{o}o}OK"));
+    exit(3);
+  }
+
 
   // read-eval
   char* ln= NULL; size_t sz= 0;
