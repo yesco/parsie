@@ -95,6 +95,7 @@ int findvar(char* s) {
   return f+o;
 }
 
+// ENDWCOUNT
 void F(char* s) {
   int a= atom(s, 0);
   int i= bindfind(a);
