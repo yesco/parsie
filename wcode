@@ -17,11 +17,12 @@
 # TODO: not working - /* */
 #sed ":a; s:/\\*[\\n.]*?\\*/::g" | \
 
+# grep -iPv '^\s*#' | \
+
 ls -1 $* | xargs -I% sh -c "
 cat % | \
 sed '/ENDWCOUNT/q' | \
 grep -iPv '^\s*//' | \
-grep -iPv '^\s*#' | \
 grep -iPv '^\s*}\s*$' | \
 grep -iPv '^\s*{\s*$' | \
 grep -v '^\s*$' | \
