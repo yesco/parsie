@@ -1,0 +1,1 @@
+./wcode nantypes.c ; clang -DnantypesTEST nantypes.c && ./a.out
