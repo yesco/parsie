@@ -18,16 +18,16 @@ int dix= DICTSIZE, frame=0, local=0;
 
 // register name
 typedef struct Var {
-  int frame, local;
-  char name[1];
+  int f, l;
+  char s[1];
 } Var;
 
-
+#define OFS offsetof(Var, s)
 int varad(int f, int l, char* s) { 
   Var v= {f, l, 0};
-  dix-= strlen(s)+offsetof(Var, name)+1;
-  memcpy(dict+dix, &v, offsetof(Var, name));
-  strcpy(dict+dix+offsetof(Var, name), s);
+  dix-= strlen(s)+OFS+1;
+  memcpy(dict+dix, &v, OFS);
+  strcpy(dict+dix+OFS, s);
   return dix;
 }  
 
@@ -39,40 +39,28 @@ int globaladd(char* s) {
   assert(!"globaladd: not yet implemented");
 }
 
-int enterframe(int pos) {
-  int r= varad(pos, frame, "--frame--");
-  frame= pos;
-  local= 0;
-  return r;
+int enterframe(int o) { int r= varad(o, frame, "--frame--"); frame= o; local= 0; return r;
 }  
 
-Var* var(int ix) {
-  // TODO: does it need to be aligned?
-  return (Var*)(dict+ix);
-}
+// TODO: does it need to be aligned?
+Var* var(int ix) { return (Var*)(dict+ix); }
 
-Var* varfind(char* s) {
-  int ix= dix;
-  while(ix<DICTSIZE) {
-    Var* v= var(ix);
-    if (0==strcmp(v->name, s)) return(Var*)(dict+ix);
-    ix+= offsetof(Var, name)+strlen(v->name)+1;
+Var* varfind(char* s) { int ix= dix;
+  while(ix<DICTSIZE) { Var* v= var(ix);
+    if (0==strcmp(v->s, s)) return(Var*)(dict+ix); ix+= OFS+strlen(v->s)+1;
   }
   return NULL;
 }
 
-void exitframe() {
-  Var* v= varfind("--frame--");
-  frame= v->local;
-  dix+= offsetof(Var, name)+strlen(v->name)+1;
-  local= var(dix)->local;
+void exitframe() { Var* v= varfind("--frame--");
+  frame= v->l; dix+= OFS+strlen(v->s)+1; local= var(dix)->l;
 }
 	     
 // ENDWCOUNT
 void F(char* s) {
   Var* v= varfind(s);
   if (v)
-    printf("'%s'\t%3d %2d\n", v->name, v->frame, v->local);
+    printf("'%s'\t%3d %2d\n", v->s, v->f, v->l);
   else
     printf("'%s' - not found!\n", s);
 }
@@ -83,25 +71,25 @@ int main(int argc, char**argv) {
     frame=42; local=99;
 
     varadd("foo");
-    { Var* v= varfind("foo"); if (v) printf("frame=%d local=%d '%s'\n", v->frame, v->local, v->name); }
+    { Var* v= varfind("foo"); if (v) printf("frame=%d local=%d '%s'\n", v->f, v->l, v->s); }
 
     varadd("abba");
-    { Var* v= varfind("foo"); if (v) printf("frame=%d local=%d '%s'\n", v->frame, v->local, v->name); }
+    { Var* v= varfind("foo"); if (v) printf("frame=%d local=%d '%s'\n", v->f, v->l, v->s); }
 
     enterframe(200);
     
     varadd("gurka");
-    { Var* v= varfind("foo"); if (v) printf("frame=%d local=%d '%s'\n", v->frame, v->local, v->name); }
+    { Var* v= varfind("foo"); if (v) printf("frame=%d local=%d '%s'\n", v->f, v->l, v->s); }
 
     varadd("foo");
-    { Var* v= varfind("foo"); if (v) printf("frame=%d local=%d '%s'\n", v->frame, v->local, v->name); }
+    { Var* v= varfind("foo"); if (v) printf("frame=%d local=%d '%s'\n", v->f, v->l, v->s); }
 
-    { Var* v= varfind("abba"); if (v) printf("frame=%d local=%d '%s'\n", v->frame, v->local, v->name); }
+    { Var* v= varfind("abba"); if (v) printf("frame=%d local=%d '%s'\n", v->f, v->l, v->s); }
 
-    { Var* v= varfind("gurka"); if (v) printf("frame=%d local=%d '%s'\n", v->frame, v->local, v->name); }
+    { Var* v= varfind("gurka"); if (v) printf("frame=%d local=%d '%s'\n", v->f, v->l, v->s); }
 
     exitframe();
-    { Var* v= varfind("foo"); if (v) printf("frame=%d local=%d '%s'\n", v->frame, v->local, v->name); }
+    { Var* v= varfind("foo"); if (v) printf("frame=%d local=%d '%s'\n", v->f, v->l, v->s); }
 
     exit(1);
   }

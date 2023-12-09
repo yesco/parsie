@@ -41,7 +41,6 @@ char* nanstr(data d, char* hp) { return TYP(d)==2? DAT(d)+hp+1 : 0; }
 
 //return TYP(d)==1? nanchar6(d) : TYP(d)==2? DAT(d)+hp : 0; }
 
-
 //long* APTR(data d, char* hp) {
 //  int ix= DAT(d), l= hp[ix];
 //  return (long*)&hp[ix+l+1];

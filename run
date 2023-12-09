@@ -1,2 +1,1 @@
-wc parse.c
-clang parse.c && time ./a.out 
+./wcode $1.c ; clang -o $1 -D$1TEST $1.c && (cat $1*.tst | ./$1 )

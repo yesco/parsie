@@ -115,7 +115,7 @@ char* parset_hlp(char target, char* s) {
     } else ok= 1, r++; //, p= m, 
     DEBUG(if (debug>=2) printf("\t'%s'\t%s", p, r))
   }
-e  return (ok && eor(r)) ? p : 0;
+  return (ok && eor(r)) ? p : 0;
 }
 
 char* parse(char target, char* s) {
