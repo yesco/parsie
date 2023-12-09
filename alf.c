@@ -33,6 +33,9 @@ char* parsename(char** p) { static char s[64], i; i=0; while((isalnum(**p)
 //   TODO: must skip STRINGs!!! lol
 char* skip(char* p){ int n=1;while(n&&*p)if(*p=='?')p+=2;else n+=(*p=='{')-(*p=='}'),p++;return p;}
 
+void prstack() { printf("\t>>> ");for(int i=0; i<sp; i++){
+  nanprint((data){.d=S[i]});putchar(' ');}}
+
 // run ALF code Program with ARGS
 // starting that stack position with
 // N items, IFF=1 if running ?{}{}
@@ -43,12 +46,11 @@ char*alf(char*p,int args,int n,int iff){long x;char*e=NULL;if(!p)return NULL;
   DEBUG(printf("\n===ALF >>>%s<<<\n", p))
 
 #define NXT goto next;
-// TODO: 
-next: DEBUG(printf("\t>>> "); for(int i=0; i<sp; i++){nanprint((data){.d=S[i]});putchar(' ');}printf("\t  '%c'\n", *p))
+next: DEBUG(prstack();putchar('\n');printf("\t  '%c'\n",*p))
   switch(*p++){
-  case 0:case';':case')':return p; case' ':case'\n':case'\t':case'\r':NXT
+  case 0:case';':case')':return p; case' ':case'\n':case'\t':case'\r':NXT;
   // -- stack stuff
-  case'd': S[sp]= T; sp++;NXT case '\\': sp--;NXT
+  case'd': S[sp]= T; sp++;NXT case'\\': sp--;NXT;
   case'o': S[sp]= S[sp-2]; sp++;NXT case 's': x=T; T= S[sp-2]; S[sp-2]= x;NXT
 
   case'0'...'9': U= atoi(p-1); while(isdigit(*p))p++;NXT
@@ -70,13 +72,14 @@ OP(+,);OP(-,);OP(*,);OP(/,);OP(<,);OP(>,);OP(=,=);OP(|,|);OP(&,&);
   // TODO: use raw offset, alignment error?
   case'@': if (T<0) T=S[(L-T)-1];
     else T=*(double*)&M[8*L T]; NXT
-  case'!': if (T<0) S[L-T-1]=S[sp-2]; else *(double*)&M[8*L T]= S[sp-2]; sp-=2;NXT
+  case'!': if (T<0) S[L-T-1]=S[sp-2]; else *(double*)&M[8*L T]= S[sp-2]; sp-=2;NXT;
 
-  // -- printers
-  case'.': nanprint((data){.d=POP});NXT case 'e': putchar(POP);NXT
-  case't': printf("%.*s",(int)T,M+L S[sp-2]);sp-=2;NXT // counted
-  case'\'': U= *p++;NXT case'"':while(*p&&*p!='"')putchar(*p++);p++;NXT
+  // -- printers (see also $...)
+  case'.': nanprint((data){.d=POP});NXT case 'e': putchar(POP);NXT;
+  case't': printf("%.*s",(int)T,M+L S[sp-2]);sp-=2;NXT; // counted
+  case'\'': U= *p++;NXT case'"':while(*p&&*p!='"')putchar(*p++);p++;NXT;
 
+  // -- define function ;
   case ':':{char*e=strchr(p,';');if(e) F[*p-'A']=strndup(p+1,e-p),p=e+1;break;}
 
   // Function call parameters handling
@@ -159,9 +162,9 @@ LOP(&,);LOP(|,);LOP(^,);case'~': T= ~L T;NXT
     case'0'...'9': U= S[args+p[-1]-'0'-1];NXT // parameter access
   //T=S[args+p[-1]-'0']; sp++;NXT;
     case's': x=POP; case' ': while(x-->=0)putchar(' ');NXT
-    case'n': printf("\n");NXT
-    case'.': printf("%lx\n", L POP);NXT
-    case'"': e=H;while(*p&&*p!='"')*H++=*p++; *H++=0; if(*p)p++;U=e-M;U=H-e-1;NXT
+    case'n': printf("\n");NXT case'.': printf("%lx\n", L POP);NXT
+    case'"': e=H;while(*p&&*p!='"')*H++=*p++;*H++=0;if(*p)p++;U=e-M;U=H-e-1;NXT
+    case'#': prstack();putchar('\n');NXT
     default: p--; // error fallthrough
   }
   default: printf("\n[%% Undefined op: '%s']\n", p-1); p++; exit(3); printf("FOO\n");
@@ -266,8 +269,9 @@ LOP(&,);LOP(|,);LOP(^,);case'~': T= ~L T;NXT
     $0-$9 - get frame parameter N
    '$ '- print blank
     $s - print N blanks
-    $. - print hex
+    $. - print hex ($h instead? see $#)
     $n - print newline
+    $# - print stack ($. instead?)
   ( $t - print string )
   ( $" - quoted string" - counted? )
   ( $\ - interpret \n etc - counted? )

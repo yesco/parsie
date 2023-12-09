@@ -11,13 +11,38 @@
 int fr=0,loc=0,vix= 0; struct var { int a,f,l; } V[MAXVAR]={0};
 
 int _varadd(int f, int l, int a) { V[vix]= (struct var){a,f,l}; return vix++; }
-void varadd(int a) { _varadd(fr, ++loc, a); }
-int globaladd(char* s) { return nameadd(s); }
+void glbladd(char* s) { int a=nameadd(s);
+  while((H-M)%8 || H>M==0)H++; // align
+  data* p=AVPTR(atom(s));
+  p->u= H-M;
+  //printf("== glbladd: %s @ %ld\n", s, H-M);
+  printf(" >>> u= %ld\n", p->u);
+
+  // BUG:
+  // TODO: if defined sevea times it allocates more! lol
+  *(data*)H= (data){.d=4711.42};
+  H+= 8;
+  prnames();
+}
 
 void bindenter(int o) { int r= _varadd(o, fr, 0); fr= o; loc= 0; }
-int bindfindid(int a) {int i=vix; while(i--)if(V[i].a==a)return i; return -1;}
-int bindfind(char* s) { return bindfindid(nameadd(s)); }
-void bindadd(char* s) { return varadd(nameadd(s)); }
+int bindfindid(int a) {int i=vix; while(i--)if(V[i].a==a)return i;return -1;}
+int bindfind(char* s) { int i=bindfindid(nameadd(s));
+  //printf("== bindfind: %s @ %d\n", s, i);
+  if (i>0) return i;
+  else {
+    data* p= AVPTR(atom(s));
+    //printf(" >>> u= %ld\n", p->u);
+    int i= p->u;
+    //printf("  == GLOBFIND: %s @ u=%ld => %d\n", s, p->u, i);
+
+    // TODO: it's 0 if not found!
+    
+    // TODO: why is it negative???
+    return -i-1;
+  }
+}
+void bindadd(char* s) { if(!fr)glbladd(s);else _varadd(fr, ++loc, nameadd(s));}
 void bindexit() { int i= bindfindid(nilo); fr= V[i].f; vix= i; loc= V[i].l; }
 
 // ENDWCOUNT

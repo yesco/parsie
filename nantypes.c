@@ -34,11 +34,19 @@ char hp[HPSIZE]= {0}; int nilo; data nil, undef;
 //   len=0 means end of list
 //   note: assumes zeroed HeaP
 int nameadd(char* s) { char* p= hp; int l= strlen(s);
-  while(*p){if(!strcmp(s,p+1))return p-hp;p+=strlen(p)+1+1+sizeof(data);}
+  while(*p){if(!strcmp(s,p+1))return p-hp;p+=1+strlen(p+1)+1+sizeof(data);}
   assert(p+l+2-hp < HPSIZE);
   return *p=l, strcpy(p+1, s)-hp-1;
 }
 
+void prnames() { char* p= hp;
+  printf("\n");
+  while(*p) {
+    data* d= (data*)(p+1+strlen(p+1)+1);
+    printf("%5ld: %d v=> %10.7g %5ld\t%s\n", p-hp, *p, d->d, d->u, p+1);
+    p+=strlen(p+1)+1+1+sizeof(data);
+  }
+}
 // Return a data atom
 data atom(char* s){return BOX(0,2,nameadd(s));}
 
@@ -52,7 +60,7 @@ char* nanstr(data d) { return TYP(d)==2? DAT(d)+hp+1 : 0; }
 //   -1: EOF on error
 //   -2..-9 if not handled: =TYP(d)-2
 int nanprint(data d) {int t=TYP(d);
-return isnan(d.d)?(t==2?printf("%s",nanstr(d)):-t-2):printf("%.7g ",d.d);}
+  return isnan(d.d)?(t==2?printf("%s",nanstr(d)):-t-2):printf("%.7g ",d.d);}
 
 //long* APTR(data d, char* hp) {
 //  int ix= DAT(d), l= hp[ix];
@@ -61,7 +69,7 @@ return isnan(d.d)?(t==2?printf("%s",nanstr(d)):-t-2):printf("%.7g ",d.d);}
 
 // TODO: it's not aligned
 // AtomValPTR can be used as global
-#define AVPTR(d) (TYP(d)!=2?NULL:(data*)&hp[DAT(d)+hp[DAT(d)]+1])
+#define AVPTR(d) (TYP(d)!=2?NULL:(data*)&hp[DAT(d)+hp[DAT(d)]+2])
 
 //data* atomval(data d, char* hp) { if (TYP(d)!=2) return NULL;
 //  int i=DAT(d),l=hp[i]; return (data*)&hp[i+l+1];}
