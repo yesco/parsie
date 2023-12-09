@@ -11,5 +11,5 @@
 # 4. count lines of LOC
 
 echo "LOC: `./wcode $1.c`"
-clang -o $1-test -D$1TEST $1.c && (cat $1*.tst 2>/dev/null | ./$1-test )
+clang -D$1TEST $1.c && (cat $1*.tst 2>/dev/null | ./a.out )
 echo "LOC: `./wcode $1.c`"

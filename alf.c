@@ -19,7 +19,7 @@ char* F['Z'-'A'+1]= {0};
 
 void initalf(size_t sz) { H=M=calloc(memsize= sz, 1); } // TODO: ?zero S F
 
-// TODO;
+// Variable Name Bindings on Stack
 #include "varz.c"
 
 // Parse from P a name
@@ -29,32 +29,14 @@ void initalf(size_t sz) { H=M=calloc(memsize= sz, 1); } // TODO: ?zero S F
 char* parsename(char** p) { static char s[64], i; i=0;
   while(isalnum(**p) && i<sizeof(s)-1) s[i++]=*(*p)++; s[i]= 0; return s;}
 
-void bindadd(int a) {
-  printf("\nB: bindadd(%d) ", a);
-  varadd(a);
-}
-void bindaddn(char* s) {
-  printf("\nB: bindaddn('%s') ", s);
-  varadds(s);
-}
-void bindaddp(char** p) {
-  return bindaddn(parsename(p));
-}
-void bindframe(int f) {
-  printf("\nB: bindframe(%d) ", f);
-  enterframe(f);
-}
-int findvar(char* s) {
-  printf("\nB: findvar('%s') ", s);
-  return varfinds(s);
-}
-int findvarp(char** p) { // parse
-  return findvar(parsename(p));
-}
-void bindpop() {
-  printf("\nB: bindpop() ");
-  exitframe();
-}
+// TODO: merge with varz.c !!!
+void bindadd(int a) { varadd(a); }
+void bindaddn(char* s) { varadds(s); }
+void bindaddp(char** p) { return bindaddn(parsename(p)); }
+void bindframe(int f) { enterframe(f); }
+int findvar(char* s) { return varfinds(s); }
+int findvarp(char** p) { return findvar(parsename(p)); }
+void bindpop() { exitframe(); }
 
 // skips a { block } returns after
 //   TODO: must skip STRINGs!!! lol
