@@ -1,1 +1,15 @@
-./wcode $1.c ; clang -o $1 -D$1TEST $1.c && (cat $1*.tst | ./$1 )
+# Run NAMED c program:
+#
+# This will compile it for running test
+# using option -D<named>TEST
+#
+# When run input== "cat <named>*.tst"
+
+# 1. count lines of LOC
+# 2. compile it (abort on fail)
+# 3. run it with all name*.tst files
+# 4. count lines of LOC
+
+echo "LOC: `./wcode $1.c`"
+clang -o $1 -D$1TEST $1.c && (cat $1*.tst 2>/dev/null | ./$1 )
+echo "LOC: `./wcode $1.c`"

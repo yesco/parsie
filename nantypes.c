@@ -7,10 +7,11 @@
 typedef union { uint64_t u; double d; } data;
 
 // 1 sign, 7 types, 48 bits of data
-#define MTYP 0x0007000000000000L
-#define MNAN 0x7ff8000000000000L
-#define MDAT 0x0000ffffffffffffL
-#define MNEG 0x8000000000000000L
+//#define MTYP 0x0007000000000000L
+//#define MNAN 0x7ff8000000000000L
+//#define MDAT 0x0000ffffffffffffL
+//#define MNEG 0x8000000000000000L
+const uint64_t MTYP=0x0007L<<48,MNAN=0x7ff8L<<48,MDAT=(1L<<49)-1,MNEG=1L<<63;
 
 #define TYP(x) ((int)((x).u>>48) & 7)
 #define NEG(x) (x.u & MNEG)
@@ -19,7 +20,8 @@ typedef union { uint64_t u; double d; } data;
 
 // Add a String to HP limited by SIZE
 //
-// Searches string heap, returns offset
+// Searches String in HeaP of SIZE
+// (size==-1 doesn't check overflow)
 // Adding string if needed.
 //
 // Returns offset to LEN of string
@@ -29,7 +31,7 @@ typedef union { uint64_t u; double d; } data;
 //   len=0 means end of list
 //   note: assumes zeroed HeaP
 int nameadd(char* s, char* hp, size_t size) { char* p= hp; int l= strlen(s);
-  while(*p){if(!strcmp(s,p))return p-hp;p+=strlen(p)+1+1+sizeof(data);}
+  while(*p){if(!strcmp(s,p+1))return p-hp;p+=strlen(p)+1+1+sizeof(data);}
   assert(size==-1 || p+l+2-hp < size);
   return *p=l, strcpy(p+1, s)-hp-1;
 }
@@ -107,6 +109,8 @@ void P(char* desc, data d, char* hp) {
 }
 
 int main() {
+  //assert(mtyp==MTYP);assert(mnan==MNAN);assert(mdat==MDAT);assert(mneg==MNEG);
+
   data NIL, UNDEF;
 
   const int HSIZE= 16*1024;
