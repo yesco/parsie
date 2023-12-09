@@ -18,52 +18,34 @@ int eor(char* r) {
 // find start of attr val string
 char* attrval(int nr, char a) {
   // TODO: not MAXRES...
-  for(int i= nr+1; i<MAXRES; i++) {
-    char* s= attr[i];
+  for(int i= nr+1; i<MAXRES; i++) { char* s= attr[i];
     DEBUG(if (debug) if (s) printf("find.ATTR[%d] = '%s'\n", i, s));
-    while(s && (s= strchr(s, ' '))) {
-      if (s[1]==a && s[2]=='=') {
-	return s+3;
-      }
-    }
-  }
-  return NULL;
+    while(s && (s= strchr(s, ' '))) if (s[1]==a && s[2]=='=') return s+3;
+  } return NULL;
 }
 
 // Using named Rule, parse String do only N matches
 char* parseR(char r, char* s, int n); // FORWARD
-char* pR(char* r, char* s, int n) {
-  nres++;
-  return parseR(*r, s, n);
-}
+char* pR(char* r, char* s, int n) { nres++; return parseR(*r, s, n); }
 
 // return new string with S followed by A, free(s)
-char* add(char* s, char* a, int n) {
-  char* r= malloc((s?strlen(s):0)+n+1);
-  strncat(strcpy(r, s?s:""), a?a:"", n);
-  free(s);
-  return r;
-}
+char* add(char* s, char* a, int n) { char* r= malloc((s?strlen(s):0)+n+1);
+  strncat(strcpy(r, s?s:""), a?a:"", n); free(s); return r; }
 
-int gen(char** r, char* s, char end, int nr) {
+int gen(char** r, char* s, char end, int nr) { int n, l; char *os=s, *v, *e;
   DEBUG(if (debug>3) printf("GEN: '%s'\n", s));
-  int n, l; char *os=s, *v, *e;
   while(*s && *++s!=end && *s) {
     switch(*s){
     case '$':
-      if (isdigit(*++s)) {
-	v= res[*s-'0'+nr+1]; l=99999;
-      } else {
+      if (isdigit(*++s)) { v= res[*s-'0'+nr+1]; l=99999; }
+      else {
 	DEBUG(if (debug) printf("ATTRVAL= '%s'\n", s))
-	e= v= attrval(nr, *s);
-	if (!e) break;
+	e= v= attrval(nr, *s); if (!e) break;
 	while(*e && *++e && *e!=' '){};
 	l= e-v;
       }
-      *r= add(*r, v, l);
-      break;
-    case '\\': s++; // fallthrough
-    default: *r= add(*r, s, 1);
+      *r= add(*r, v, l); break;
+    case '\\': s++; default: *r= add(*r, s, 1);
     }
     DEBUG(if (debug>2) printf("  res[%d]='%s'\n", nr, *r));
   }
@@ -118,18 +100,17 @@ int gen(char** r, char* s, char end, int nr) {
 //
 //
 
+#define NXT goto next
+
 // Parse a Rule for String using max N matches starting at results at NR
 //   n==-1 infinity
 //   n==1 one time (for ? + *)
 // Returns:
 ///  NULL=fail
 //   rest of string (unparsed)
-char* parse(char* r, char* s, int n, int nr) {
-  char*p= NULL, *os= s, *t;
-  int on= n, onr= nres, x;
+char* parse(char* r,char* s,int n,int nr){char*p=0,*os=s,*t;int on=n,onr=nres,x;
   DEBUG(if (debug>2) printf("    parse '%s' '%s' %d\n", r, s, n));
- next:
-  while(n-- && r && s) {
+ next: while(n-- && r && s) {
     while(isspace(*s)) s++;
 
     DEBUG(if (debug>3)printf("     next '%s' (%d)\n\t   of '%s' left=%d\n",r,*r,s,n));
@@ -137,32 +118,23 @@ char* parse(char* r, char* s, int n, int nr) {
     switch(*r){
 
     case 0: case '\n': case '\r': case '|': return s; // end
-    case ' ':case '\t': while(isspace(*s))s++; r++; goto next; // skip
+    case ' ':case '\t': while(isspace(*s))s++; r++; NXT; // skip
 
-    case '(': case '{': goto next; // TODO: implement
+    case '(': case '{': NXT; // TODO: implement
     case '[': { // result
       DEBUG(if (debug>2) printf("BEFORE  RES='%s'\n", res[nres]));
-      r+= 1+gen(res+nr, r, ']', nr);
-      goto next;
+      r+= 1+gen(res+nr, r, ']', nr); NXT;
     }
-    case ':': { // attribute
-      attr[nr]= add(attr[nr], " ", 1);
-      r+= 1+gen(attr+nr, r, ' ', nr);
-      goto next;
-    }
+    case ':': attr[nr]= add(attr[nr], " ", 1); r+= 1+gen(attr+nr, r, ' ', nr); NXT;
 
     // TODO: too clever to reuse instead of clear...
-    case '?': case '+':
-      p=s; s=pR(r+1,s,1);
-      if (*r=='?') { r+=2; s=s?s:p;goto next; }
-      if (!s) goto next;
+    case '?': case '+': p=s; s=pR(r+1,s,1);
+      if (*r=='?') { r+=2; s=s?s:p;NXT; }
+      if (!s) NXT;
       // fallthrough
     case'*':
-      r++;
-      while(s&&*s) {
-	p=s; s=pR(r,s,1);
-      }
-      r++; s=p; goto next;
+      r++; while(s&&*s) { p=s; s=pR(r,s,1); }
+      r++; s=p; NXT;
 
     // TODO: also too clever encoding?
     case '%':
@@ -172,48 +144,40 @@ char* parse(char* r, char* s, int n, int nr) {
 	while(*++s&&*s!=p[1])
 	  if (*s=='\\') s++;
 
-	r++; s++; goto next;
+	r++; s++; NXT;
       }
 
-      if (*r=='e'&&!*s) { r++; goto next; }
+      if (*r=='e'&&!*s) { r++; NXT; }
       p=s;
-      do {
-	if ((x=(*r=='_'
+      do if ((x=(*r=='_'
           || strchr("anw",*r) && isalpha(*s)
 	  || strchr(p==s?"di":"dwin", *r) && isdigit(*s))))
 	  s++;
 	else if (p==s) goto fail;
-      } while(strchr("in", *r) && x);
-      r++; goto next;
+      while(strchr("in", *r) && x);
+      r++; NXT;
 
-    case 'A'...'Z': if ((p=pR(r++, s, -1))) {
-	s= p; goto next;
-      } else goto fail;
-    case '\\': r++; // fallthrough
-    default:
-      if (*s==*r++) s++; // matched
-      else fail: {
-
-	  DEBUG(if (debug>2) printf("     FAIL '%s' '%s'\n", r-1, s));
-	  while(*r && !eor(r++)){};
-	  if (eor(r) && r[-1]!='|') return NULL;
+    case 'A'...'Z': if ((p=pR(r++, s, -1))) { s= p; NXT; } else goto fail;
+    case '\\': r++; default:
+      if (*s==*r++) s++; /* matched */ else fail: {
+        DEBUG(if (debug>2) printf("     FAIL '%s' '%s'\n", r-1, s));
+        while(*r && !eor(r++)){};
+        if (eor(r) && r[-1]!='|') return NULL;
 	  // restore start state
-	  s=os; n=on; nres=onr;
+        s=os; n=on; nres=onr;
 
-	  DEBUG(if (debug>2) printf("     |OR  '%s' '%s'\n", r-1, s));
-	} // fail
+        DEBUG(if (debug>2) printf("     |OR  '%s' '%s'\n", r-1, s));
+      } // fail
     }
   }
   return s;
 }
 
 /// capture
-char* parseR(char r, char* s, int n){
+char* parseR(char r, char* s, int n) { int nr=++nres;
   DEBUG(if (debug>1) printf("  parseR '%c' (%d)\n", r, r));
-  int nr=++nres;
 
-  free(res[nr]); res[nr]=0;
-  free(attr[nr]); attr[nr]= 0;
+  free(res[nr]); res[nr]=0; free(attr[nr]); attr[nr]= 0;
 
   char *x= parse(R[r],s,n,nr);
 
@@ -225,18 +189,15 @@ char* parseR(char r, char* s, int n){
 
   DEBUG(if (debug>1) printf("  ->%c.res[%d]='%s'\n", r, nr, res[nr]));
 
-  nres= nr-1;
-  return x;
+  nres= nr-1; return x;
 }
 
 // ENDWCOUNT
 
-char* test(char rule, char* s) {
-  nres= 0;
+char* test(char rule, char* s) { nres= 0;
   char* e= parseR(rule, s, -1);
   if (!e || *e) printf("%%%s %c-> '%s' RES=>'%s'\n\n", e?(*e?"UNPARSED":"MATCHED!"):"FAILED", rule, e, res[nres+1]);
-  printf("%s\n", res[nres+1]);
-  return e;
+  printf("%s\n", res[nres+1]); return e;
 }
 
 //  Z '?': r++; p=s; s=parse(R[*r],s,1); r++; s=s?s:p;
@@ -258,9 +219,7 @@ char* test(char rule, char* s) {
 // *A
 //  fie                space ignored
 // fum
-void readparser(FILE* f) {
-  char rule, *ln= NULL;
-  size_t z= 0, d='\n';
+void readparser(FILE* f) { char rule, *ln= NULL; size_t z= 0, d='\n';
   while(getdelim(&ln, &z, d, f)>0) {
     if (ln && ln[strlen(ln)-1]=='\n') ln[strlen(ln)-1]= 0;
     DEBUG(printf("> %s\n", ln))
