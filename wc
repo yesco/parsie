@@ -1,0 +1,10 @@
+p=$(./wcode pars-nice.c)
+t=$(./wcode nantypes.c)
+v=$(./wcode varz.c)
+a=$(./wcode alf.c)
+
+tot=$(echo "$p+$t+$v+$a"|bc -l)
+
+printf "PARSE:\t$p\nTYPE:\t$t\nVAR:\t$v\nALF:\t$a\n=============\nTOTAL:\t$tot\n"
+
+#echo "`./wcode pars-nice.c`+`./wcode nantypes.c`+`./wcode varz.c`+`./wcode alf.c`" | bc -l
