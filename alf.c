@@ -28,6 +28,12 @@ void bindpop() {}
 //   TODO: must skip STRINGs!!! lol
 char* skip(char* p){ int n=1;while(n&&*p)if(*p=='?')p+=2;else n+=(*p=='{')-(*p=='}'),p++;return p;}
 
+// run ALF code Program with ARGS
+// starting that stack position with
+// N items, IFF=1 if running ?{}{}
+//
+// Returns next position to parse from
+//   NULL if done/fail (loop/if)
 char*alf(char*p,int args,int n,int iff){long x;char*e=NULL;if(!p)return NULL;
   DEBUG(printf("\n===ALF >>>%s<<<\n", p))
 
@@ -80,8 +86,6 @@ OP(+,);OP(-,);OP(*,);OP(/,);OP(<,);OP(>,);OP(=,=);OP(|,|);OP(&,&);
     // TODO: share w '_ and '`'
     char s[64]= {0}, i=0;
     while(isalnum(*p++) && i<sizeof(s)-1) s[i++]=*p;
-
-    // TODO: don't need extra storage???
     bindaddn(s);
     goto next;
   }
@@ -123,7 +127,7 @@ OP(+,);OP(-,);OP(*,);OP(/,);OP(<,);OP(>,);OP(=,=);OP(|,|);OP(&,&);
   // ?} = again
   // ?{ = if{then}{else}
   case'?': if (S[--sp]) { switch(*p++){
-  case'}': return p; case']': return NULL;
+    case'}': return p; case']': return NULL;
     case'{': p= alf(p, args, n, 1);if (*p=='{') p=skip(p+1);NXT
     default: p=alf(p, args, n, 1);
     }
