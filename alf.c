@@ -4,7 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-int debug= 1; // DEBUG
+int debug= 0; // DEBUG
 #define DEBUG(D) if (debug) do{D;}while(0);
 
 #define SMAX 1024
@@ -12,17 +12,49 @@ double S[SMAX]={0};
 int sp= 0, memsize= 0;
 char *M= NULL, *H= NULL;
 #define T S[sp-1]
+#define POP S[--sp]
+#define U S[sp++]
 
 char* F['Z'-'A'+1]= {0};
 
 void initalf(size_t sz) { H=M=calloc(memsize= sz, 1); } // TODO: ?zero S F
 
 // TODO;
-int bindadd(int a) { return 0; }
-int bindaddn(char* s) { return 0; }
-int bindframe(int f) { return 0; }
-int findvar(char* s) { return 0; }
-void bindpop() {}
+#include "varz.c"
+
+// Parse from P a name
+// (P is pointer to char* and updated)
+//
+// Returns a static string (use fast!)
+char* parsename(char** p) { static char s[64], i; i=0;
+  while(isalnum(**p) && i<sizeof(s)-1) s[i++]=*(*p)++; s[i]= 0; return s;}
+
+void bindadd(int a) {
+  printf("\nB: bindadd(%d) ", a);
+  varadd(a);
+}
+void bindaddn(char* s) {
+  printf("\nB: bindaddn('%s') ", s);
+  varadds(s);
+}
+void bindaddp(char** p) {
+  return bindaddn(parsename(p));
+}
+void bindframe(int f) {
+  printf("\nB: bindframe(%d) ", f);
+  enterframe(f);
+}
+int findvar(char* s) {
+  printf("\nB: findvar('%s') ", s);
+  return varfinds(s);
+}
+int findvarp(char** p) { // parse
+  return findvar(parsename(p));
+}
+void bindpop() {
+  printf("\nB: bindpop() ");
+  exitframe();
+}
 
 // skips a { block } returns after
 //   TODO: must skip STRINGs!!! lol
@@ -38,16 +70,17 @@ char*alf(char*p,int args,int n,int iff){long x;char*e=NULL;if(!p)return NULL;
   DEBUG(printf("\n===ALF >>>%s<<<\n", p))
 
 #define NXT goto next;
- next: DEBUG(printf("\t>>> "); for(int i=0; i<sp; i++) printf("%.20lg ", S[i]); printf("\t  '%c'\n", *p))
+// TODO: 
+next: DEBUG(printf("\t>>> "); for(int i=0; i<sp; i++){nanprint((data){.d=S[i]},hp);putchar(' ');}printf("\t  '%c'\n", *p))
   switch(*p++){
-  case 0:case';':case')':return p;case' ':case'\n':case'\t':case'\r':NXT
+  case 0:case';':case')':return p; case' ':case'\n':case'\t':case'\r':NXT
   // -- stack stuff
   case'd': S[sp]= T; sp++;NXT case '\\': sp--;NXT
   case'o': S[sp]= S[sp-2]; sp++;NXT case 's': x=T; T= S[sp-2]; S[sp-2]= x;NXT
 
-  case'0'...'9': S[sp++]= atoi(p-1); while(isdigit(*p))p++;NXT
+  case'0'...'9': U= atoi(p-1); while(isdigit(*p))p++;NXT
   case'A'...'Z': alf(F[p[-1]-'A'], 0, 0, 0);NXT
-  case'x': { char x[]={S[--sp],0}; alf(x, 0, 0, 0);NXT }
+  case'x': { char x[]={POP,0}; alf(x, 0, 0, 0);NXT }
 
   // -- math stuff
 #define L (long)
@@ -59,16 +92,17 @@ OP(+,);OP(-,);OP(*,);OP(/,);OP(<,);OP(>,);OP(=,=);OP(|,|);OP(&,&);
   
   // -- memory stuff (, aligns)
   // TODO: malloc/free not use arena
-  case'h':S[sp++]=H-M;NXT case'm':x=T;T=H-M;H+=x;NXT case'a':H+=L S[--sp];NXT
-  case',': H=(char*)((((L H)+SL-1)/SL)*SL);memcpy(H,&S[--sp],SL);H+=SL;NXT
+  case'h':U=H-M;NXT case'm':x=T;T=H-M;H+=x;NXT case'a':H+=L POP;NXT
+  case',': H=(char*)((((L H)+SL-1)/SL)*SL);memcpy(H,&POP,SL);H+=SL;NXT
   // TODO: use raw offset, alignment error?
   case'@': if (T<0) T=S[(L-T)-1];
     else T=*(double*)&M[8*L T]; NXT
   case'!': if (T<0) S[L-T-1]=S[sp-2]; else *(double*)&M[8*L T]= S[sp-2]; sp-=2;NXT
 
   // -- printers
-  case'.': printf("%.20lg ", S[--sp]);NXT case 'e': putchar(S[--sp]);NXT
-  case'\'': S[sp++]= *p++;NXT case'"':while(*p&&*p!='"')putchar(*p++);p++;NXT
+  case'.': nanprint((data){.d=POP}, hp);NXT case 'e': putchar(POP);NXT
+  case't': printf("%.*s",(int)T,M+L S[sp-2]);sp-=2;NXT // counted
+  case'\'': U= *p++;NXT case'"':while(*p&&*p!='"')putchar(*p++);p++;NXT
 
   case ':':{char*e=strchr(p,';');if(e) F[*p-'A']=strndup(p+1,e-p),p=e+1;break;}
 
@@ -79,29 +113,17 @@ OP(+,);OP(-,);OP(*,);OP(/,);OP(<,);OP(>,);OP(=,=);OP(|,|);OP(&,&);
   // p1 p3      -> 11 33
   // 99]        -> .. 99 (and exit)
     // TODO: by call alf, ret on ')'
-  case'(': { int fp= sp; p= alf(p, args, n, 1); S[sp++]= fp;NXT }
-  case'[': args= T; n= S[sp]= sp-args-1; sp++; bindframe(args); NXT
-  case']': bindpop(); S[args]= T; sp= args+1; return p;
-  case'_': {
-    // TODO: share w '_ and '`'
-    char s[64]= {0}, i=0;
-    while(isalnum(*p++) && i<sizeof(s)-1) s[i++]=*p;
-    bindaddn(s);
-    goto next;
-  }
-  case'`': {
-    // TODO: share w '_ and '`'
-    char s[64]= {0}, i=0;
-    while(isalnum(*p++) && i<sizeof(s)-1) s[i++]=*p;
-
-    int o= findvar(s);
-    S[sp++]= -o-1; goto next;
-  }
+  case'(': { int fp= sp; p= alf(p, args, n, 1); U= fp;NXT }
+  case'[': args= T; n= S[sp]= sp-args-1; sp++; bindframe(args);NXT
+  case']': bindpop(); S[args]= T; sp= args+1; NXT; // TODO: return p;
+  case'_': bindaddp(&p);NXT
+  case'`': U= -findvarp(&p)-1;NXT
+  case'#': U= atom(parsename(&p), hp, MAXHP).d;NXT
 
   // stack value access
   // TODO: _ and ~ and give actual address???
-    //  case'p': S[sp++]= S[args+*p-'0']; p++;NXT
-    //case'v': S[args+*p-'0']= S[--sp]; p++;NXT
+    //  case'p': U= S[args+*p-'0']; p++;NXT
+    //case'v': S[args+*p-'0']= POP; p++;NXT
     
   // hacky name variables
   // these should be "scoped" on [ ]
@@ -126,7 +148,7 @@ OP(+,);OP(-,);OP(*,);OP(/,);OP(<,);OP(>,);OP(=,=);OP(|,|);OP(&,&);
   // ?] = break
   // ?} = again
   // ?{ = if{then}{else}
-  case'?': if (S[--sp]) { switch(*p++){
+  case'?': if (POP) { switch(*p++){
     case'}': return p; case']': return NULL;
     case'{': p= alf(p, args, n, 1);if (*p=='{') p=skip(p+1);NXT
     default: p=alf(p, args, n, 1);
@@ -136,7 +158,7 @@ OP(+,);OP(-,);OP(*,);OP(/,);OP(<,);OP(>,);OP(=,=);OP(|,|);OP(&,&);
     if (p) p= alf(p+1, args, n, 1); else return NULL; } NXT;
 
   // -- char ops
-  case 'c': switch(*p++){
+  case'c': switch(*p++){
     case'@': T=M[L T];NXT;case'!': M[L T]= S[sp-2]; sp-=2;NXT;
     case'i': M[L T]++;sp--;NXT case'd': M[L T]--;sp--;NXT;
     #define SM(a,op) case a: x=T; M[L T] op x; sp-=2;NXT
@@ -146,7 +168,7 @@ OP(+,);OP(-,);OP(*,);OP(/,);OP(<,);OP(>,);OP(=,=);OP(|,|);OP(&,&);
   }
 
   // -- word ops
-  case 'w': switch(*p++){
+  case'w': switch(*p++){
     case'@': T=*(long*)&M[8*L T];NXT case '!': *(long*)&M[8*L T]= S[sp-2]; sp-=2;NXT
     // TODO: w,
     case'i': (*(long*)&M[8*L T])++;sp--;NXT case'd': (*(long*)&M[8*L T])--;sp--;NXT;
@@ -154,12 +176,23 @@ OP(+,);OP(-,);OP(*,);OP(/,);OP(<,);OP(>,);OP(=,=);OP(|,|);OP(&,&);
 SW('+',+=);SW('-',-=);SW('*',*=);SW('/',/=);SW('<',<<=);SW('>',>>=);
   }
   // -- bit ops
-  case 'b': switch(*p++){
-#define LOP(op,e) case #op[0]: S[sp-2]=(L T) op##e L S[sp-2]; sp--;NXT
+  case'b': switch(*p++){
+#define LOP(op,e) case#op[0]: S[sp-2]=(L T) op##e L S[sp-2]; sp--;NXT
 LOP(&,);LOP(|,);LOP(^,);case'~': T= ~L T;NXT
   }
 
-  default: printf("\n[%% Undefined op '%c']\n", p[-1]);
+  // -- string ops
+  case'$': x=1;switch(*p++) {
+    // TODO: address and not value?
+    case'0'...'9': U= S[args+p[-1]-'0'-1];NXT // parameter access
+  //T=S[args+p[-1]-'0']; sp++;NXT;
+    case's': x=POP; case' ': while(x-->=0)putchar(' ');NXT
+    case'n': printf("\n");NXT
+    case'.': printf("%lx\n", L POP);NXT
+    case'"': e=H;while(*p&&*p!='"')*H++=*p++; *H++=0; if(*p)p++;U=e-M;U=H-e-1;NXT
+    default: p--; // error fallthrough
+  }
+  default: printf("\n[%% Undefined op: '%s']\n", p-1); p++; exit(3); printf("FOO\n");
   }
  NXT
 }
@@ -207,7 +240,7 @@ LOP(&,);LOP(|,);LOP(^,);case'~': T= ~L T;NXT
 // c@ c! ci cd c+ c- c* c/ c< c> c& c| c^
 // w@ w! wi wd w+ w- w* w/ w< w> w& w| w^
 //
-// FREE: _ $ ` g ijkl qr u y ~
+// FREE: _ $ ` g ijkl p qr uv y ~
 //       p u v
 //       b... c... w... ?...
 //             128-255
@@ -256,8 +289,18 @@ LOP(&,);LOP(|,);LOP(^,);case'~': T= ~L T;NXT
   <spc> - delimiter
   ! - store
   " - print string
-  #
+( # - formatting? or printf? )
 ( $ - reserved for parser vars ) ???
+    $0-$9 - get frame parameter N
+   '$ '- print blank
+    $s - print N blanks
+    $. - print hex
+    $n - print newline
+  ( $t - print string )
+  ( $" - quoted string" - counted? )
+  ( $\ - interpret \n etc - counted? )
+  ( $( - counted string) )
+  ( $[ = another?] )
   % - mod
   & - and
   ' - char
@@ -283,17 +326,18 @@ LOP(&,);LOP(|,);LOP(^,);case'~': T= ~L T;NXT
   [ - enter parameter frame
   \ - drop
   ] - exit param frame
-( ^ - break  b~ for xor)
-( _ - name define? ) ???
-( ` - address of name? ) ???
+( ^ - break  b~ for xor )
+  _ - stack name define
+  ` - address of stack name
   a - allot (inc here, from arena)
-
   b - bit ops:
-  b& - bit & (64 bit)
-  b| - bit | (64 bit)
-  b^ - bit ^ (64 bit)
-  b~ - bit ~ (64 bit)
+    b& - bit & (64 bit)
+    b| - bit | (64 bit)
+    b^ - bit ^ (64 bit)
+    b~ - bit ~ (64 bit)
   c - char ops prefix !@
+(   c" - c-string? )
+(   cr - carriage return $n already )
     c!
     c@
     c, - TODO
@@ -327,12 +371,12 @@ LOP(&,);LOP(|,);LOP(^,);case'~': T= ~L T;NXT
   m - here swap malloc (TODO:use heap)
   n - negate value
   o - over
-  p - parameter N ???
+( p - parameter N ??? )
   qr
   s - swap
-( t - type )
+  t - type counted string from M
   u
-  v - variable (set parameter) N ???
+( v - variable (set parameter) N ??? )
   w - word/long ops prefix !@
     w! - long!
     w@ - long@
@@ -388,7 +432,12 @@ LOP(&,);LOP(|,);LOP(^,);case'~': T= ~L T;NXT
 
 
 int main(int argc, char** argv) {
-  initalf(16*1024);
+  // parse arguments
+  do{
+    if (0==strcmp("-d", argv++[0])) debug++;
+  } while(--argc);
+
+  initvarz(); initalf(16*1024);
 
 if(0){
   alf("3d.4d.+. 44444d. 1111111d. + . 3 3=. 4 3=. 1 0|. 7 3|. 1 0&. 1 3&.", 0, 0, 0);

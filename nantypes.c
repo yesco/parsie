@@ -41,8 +41,13 @@ data atom(char* s,char* hp,size_t size){return BOX(0,2,nameadd(s,hp,size));}
 
 char* nanstr(data d, char* hp) { return TYP(d)==2? DAT(d)+hp+1 : 0; }
 
-//return TYP(d)==1? nanchar6(d) : TYP(d)==2? DAT(d)+hp : 0; }
-
+// Prints a nanData valuie using HeaP
+//
+// Returns 0-n chars printed
+//   -1: EOF on error
+//   -2..-9 if not handled: =TYP(d)-2
+int nanprint(data d, char* hp) {int t=TYP(d);
+return isnan(d.d)?(t==2?printf("%s",nanstr(d,hp)):-t-2):printf("%.7g ",d.d);}
 
 //long* APTR(data d, char* hp) {
 //  int ix= DAT(d), l= hp[ix];

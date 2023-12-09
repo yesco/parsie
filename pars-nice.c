@@ -279,11 +279,11 @@ void readparser(FILE* f) {
 
 // ENDWCOUNT
 
-int main(int argn, char** argv) {
+int main(int argc, char** argv) {
   // parse arguments
   do{
     if (0==strcmp("-d", argv++[0])) debug++;
-  } while(--argn);
+  } while(--argc);
 
   // init shortnames
   for(char*s="dawin\"'({[<"; *s; s++) {
