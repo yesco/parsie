@@ -26,17 +26,8 @@ void initalf(size_t sz) { H=M=calloc(memsize= sz, 1); } // TODO: ?zero S F
 // (P is pointer to char* and updated)
 //
 // Returns a static string (use fast!)
-char* parsename(char** p) { static char s[64], i; i=0;
-  while(isalnum(**p) && i<sizeof(s)-1) s[i++]=*(*p)++; s[i]= 0; return s;}
-
-// TODO: merge with varz.c !!!
-void bindadd(int a) { varadd(a); }
-void bindaddn(char* s) { varadds(s); }
-void bindaddp(char** p) { return bindaddn(parsename(p)); }
-void bindframe(int f) { enterframe(f); }
-int findvar(char* s) { return varfinds(s); }
-int findvarp(char** p) { return findvar(parsename(p)); }
-void bindpop() { exitframe(); }
+char* parsename(char** p) { static char s[64], i; i=0; while((isalnum(**p)
+   ||**p=='_') && i<sizeof(s)-1) s[i++]=*(*p)++; s[i]= 0; return s;}
 
 // skips a { block } returns after
 //   TODO: must skip STRINGs!!! lol
@@ -94,13 +85,12 @@ OP(+,);OP(-,);OP(*,);OP(/,);OP(<,);OP(>,);OP(=,=);OP(|,|);OP(&,&);
   // [          -> .. 11 22 33 args 3
   // p1 p3      -> 11 33
   // 99]        -> .. 99 (and exit)
-    // TODO: by call alf, ret on ')'
   case'(': { int fp= sp; p= alf(p, args, n, 1); U= fp;NXT }
-  case'[': args= T; n= S[sp]= sp-args-1; sp++; bindframe(args);NXT
-  case']': bindpop(); S[args]= T; sp= args+1; NXT; // TODO: return p;
-  case'_': bindaddp(&p);NXT
-  case'`': U= -findvarp(&p)-1;NXT
-  case'#': U= atom(parsename(&p), hp, MAXHP).d;NXT
+  case'[': args= T; n= S[sp]= sp-args-1; sp++; bindenter(args);NXT
+  case']': bindexit(); S[args]= T; sp= args+1; NXT; // TODO: return p;???
+  case'_': bindadd(parsename(&p));NXT
+  case'`': U= -bindfind(parsename(&p))-1;NXT
+  case'#': U= atom(parsename(&p), hp, HPSIZE).d;NXT
 
   // stack value access
   // TODO: _ and ~ and give actual address???

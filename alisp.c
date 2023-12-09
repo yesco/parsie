@@ -5,6 +5,10 @@
 
 // Can we make it eval strings?
 
+// TODO:
+// cons would need to realloc string?
+// unless it cold grow "backwards..."!!!
+
 // compare-tinylisp.c 19 funcs (+3)
 //   eval quote cons car cdr + - * /
 //   int < eq? or and not cond if
@@ -13,21 +17,29 @@
 //
 
 typedef double L;
-L nul= 0; // TODO: erh
-typedef struct C { L a, L d; } C;
-C cells[MAXC]= {0}, N= 0;
+L const nil= 0; // TODO: erh
+L cells[MAXC]= {0}; int N= 0; cello= 1024;
 
-L apply(L a, L b, L e);
+char T(L a) {
+  if (a>cello) return 'c';
+  if (a==nil) return nil
+  return 'n';
+}
 
 L cons(L a, L d) {
   assert(N < MAXC);
-  cells[a].a= a; cells[a].d= d;
-  return N++ + 1024;
+  cells[N]= a; cells[N+1].d= d;
+  return N+=2 + cello;
 }
+L consp(L c) { return c>cello; } // TODO: lol
+L car(L c) { return cells[0-cello+(long)c]; }
+L cdr(L c) { return cells[1-cello+(long)c]; }
+
+L apply(L a, L b, L e);
 
 L eval(L v, L e) {
   switch(T(v)) {
-  case 0: case 'n': case 's': return v;
+  case nil: case 'n': case 's': return v;
   case 'a': return find(v, e);
   case 'c': return apply(car(v), cdr(v), e);
   }

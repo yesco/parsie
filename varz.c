@@ -18,25 +18,21 @@ int globaladd(char* s) {
   assert(!"globaladd: not yet implemented");
 }
 
-// 0 is assumed to be "nil"
-int enterframe(int o) { int r= _varadd(o, fr, 0); fr= o; loc= 0; return r; }
+#define HPSIZE 16*1024
+char hp[HPSIZE]= {0};
 
-int varfind(int a) { int i= vix;
-  while(i--) if (V[i].a==a) return i; return -1; }
+int bindenter(int o) { int r= _varadd(o, fr, 0); fr= o; loc= 0; return r; }
 
-void exitframe() { int i= varfind(0); fr= V[i].f; vix= i; loc= V[i].l; }
+int nilo; data nil;
 
-#define MAXHP 16*1024
-char hp[MAXHP]= {0};
+void initvarz() { nil= atom("nil",hp,HPSIZE); assert(DAT(nil)==nilo);}
 
-void initvarz() { nameadd("nil", hp, -1); }
+int bindfindid(int a) {int i=vix; while(i--)if(V[i].a==a)return i; return -1;}
+int bindfind(char* s) { return bindfindid(nameadd(s,hp,-1)); }
+int bindadd(char* s) { return varadd(nameadd(s,hp,HPSIZE)); }
+void bindexit() { int i= bindfindid(nilo); fr= V[i].f; vix= i; loc= V[i].l; }
 
 // ENDWCOUNT
-
-// inefficient...
-int varfinds(char* s) {return varfind(nameadd(s,hp,-1)); }
-
-int varadds(char* s) { return varadd(nameadd(s,hp,-1)); }
 
 #ifdef varzTEST
 
