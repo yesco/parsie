@@ -18,6 +18,9 @@ const uint64_t MTYP=0x0007L<<48,MNAN=0x7ff8L<<48,MDAT=(1L<<49)-1,MNEG=1L<<63;
 #define BOX(n,t,dat) ((data){.u=MNAN|((n)?MNEG:0)|(((t)&7L)<<48)|(dat)&MDAT})
 #define DAT(x) (x.u & MDAT)
 
+#define HPSIZE 16*1024
+char hp[HPSIZE]= {0}; int nilo; data nil, undef;
+
 // Add a String to HP limited by SIZE
 //
 // Searches String in HeaP of SIZE
@@ -30,24 +33,26 @@ const uint64_t MTYP=0x0007L<<48,MNAN=0x7ff8L<<48,MDAT=(1L<<49)-1,MNEG=1L<<63;
 //   HP=[len=3, "foo", 8b data]...
 //   len=0 means end of list
 //   note: assumes zeroed HeaP
-int nameadd(char* s, char* hp, size_t size) { char* p= hp; int l= strlen(s);
+int nameadd(char* s) { char* p= hp; int l= strlen(s);
   while(*p){if(!strcmp(s,p+1))return p-hp;p+=strlen(p)+1+1+sizeof(data);}
-  assert(size==-1 || p+l+2-hp < size);
+  assert(p+l+2-hp < HPSIZE);
   return *p=l, strcpy(p+1, s)-hp-1;
 }
 
 // Return a data atom
-data atom(char* s,char* hp,size_t size){return BOX(0,2,nameadd(s,hp,size));}
+data atom(char* s){return BOX(0,2,nameadd(s));}
 
-char* nanstr(data d, char* hp) { return TYP(d)==2? DAT(d)+hp+1 : 0; }
+void inittypes() {nil=atom("nil");assert(DAT(nil)==nilo);undef=atom("undef");}
+
+char* nanstr(data d) { return TYP(d)==2? DAT(d)+hp+1 : 0; }
 
 // Prints a nanData valuie using HeaP
 //
 // Returns 0-n chars printed
 //   -1: EOF on error
 //   -2..-9 if not handled: =TYP(d)-2
-int nanprint(data d, char* hp) {int t=TYP(d);
-return isnan(d.d)?(t==2?printf("%s",nanstr(d,hp)):-t-2):printf("%.7g ",d.d);}
+int nanprint(data d) {int t=TYP(d);
+return isnan(d.d)?(t==2?printf("%s",nanstr(d)):-t-2):printf("%.7g ",d.d);}
 
 //long* APTR(data d, char* hp) {
 //  int ix= DAT(d), l= hp[ix];
@@ -56,7 +61,7 @@ return isnan(d.d)?(t==2?printf("%s",nanstr(d,hp)):-t-2):printf("%.7g ",d.d);}
 
 // TODO: it's not aligned
 // AtomValPTR can be used as global
-#define AVPTR(d, hp) (TYP(d)!=2?NULL:(data*)&hp[DAT(d)+hp[DAT(d)]+1])
+#define AVPTR(d) (TYP(d)!=2?NULL:(data*)&hp[DAT(d)+hp[DAT(d)]+1])
 
 //data* atomval(data d, char* hp) { if (TYP(d)!=2) return NULL;
 //  int i=DAT(d),l=hp[i]; return (data*)&hp[i+l+1];}
@@ -104,43 +109,35 @@ char* nanchar6(data d) { static char s[7]= {0}; if (TYP(d)!=1) return NULL;
 
 
 #ifdef nantypesTEST
-void P(char* desc, data d, char* hp) {
+void P(char* desc, data d) {
   //printf("TYPE=%d\n", d.str.t);
-  data *v= AVPTR(d, hp);
+  data *v= AVPTR(d);
   if (v) v->d++;
   //printf("DATA=%s\n", nanstr(v, hp));
   //memcpy(&l, aptr(d, hp), sizeof(l));
-  printf("T=%d %5f 0x%lx '%s' %s data=%f\n", TYP(d), d.d, d.u, nanstr(d, hp), desc, v?v->d:0); //*aptr(d, hp));
+  printf("T=%d %5f 0x%lx '%s' %s data=%f\n", TYP(d), d.d, d.u, nanstr(d), desc, v?v->d:0); //*aptr(d, hp));
 }
 
 int main() {
+  inittypes();
+
   //assert(mtyp==MTYP);assert(mnan==MNAN);assert(mdat==MDAT);assert(mneg==MNEG);
-
-  data NIL, UNDEF;
-
-  const int HSIZE= 16*1024;
-  char hp[HSIZE]= {0};
-  NIL= atom("nil", hp, HSIZE);
-  UNDEF= atom("undef", hp, HSIZE);
 
   data n= {.u=MNAN};
   data f= BOX(1, 7, MDAT);
   //data c= char6nan("gurkafoobar");
   data s= BOX(1, 7, 4711);
 
-  P("nil", NIL, hp);
-  P("nil", NIL, hp);
-  P("undef", UNDEF, hp);
-  P("n  ", n, hp);
-  P("f  ", f, hp);
+  P("nil", nil);
+  P("nil", nil);
+  P("undef", undef);
+  P("n  ", n);
+  P("f  ", f);
   //P("c  ", c, NULL);
-  P("s  ", s, hp);
-  //P("nil", char6nan("nil"), NULL);
-  //P("null", char6nan("null"), NULL);
-  //P("undef", char6nan("undef"), NULL);
-  data shortatom= atom("foobar", hp, HSIZE);
-  P("shortatom", shortatom, hp);
-  data longatom= atom("foobarfiefum", hp, HSIZE);
-  P("longatom", longatom, hp);
+  P("s  ", s);
+  data shortatom= atom("foobar");
+  P("shortatom", shortatom);
+  data longatom= atom("foobarfiefum");
+  P("longatom", longatom);
 }
 #endif

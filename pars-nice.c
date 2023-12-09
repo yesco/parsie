@@ -192,8 +192,6 @@ char* parseR(char r, char* s, int n) { int nr=++nres;
   nres= nr-1; return x;
 }
 
-// ENDWCOUNT
-
 char* test(char rule, char* s) { nres= 0;
   char* e= parseR(rule, s, -1);
   if (!e || *e) printf("%%%s %c-> '%s' RES=>'%s'\n\n", e?(*e?"UNPARSED":"MATCHED!"):"FAILED", rule, e, res[nres+1]);

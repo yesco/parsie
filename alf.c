@@ -44,7 +44,7 @@ char*alf(char*p,int args,int n,int iff){long x;char*e=NULL;if(!p)return NULL;
 
 #define NXT goto next;
 // TODO: 
-next: DEBUG(printf("\t>>> "); for(int i=0; i<sp; i++){nanprint((data){.d=S[i]},hp);putchar(' ');}printf("\t  '%c'\n", *p))
+next: DEBUG(printf("\t>>> "); for(int i=0; i<sp; i++){nanprint((data){.d=S[i]});putchar(' ');}printf("\t  '%c'\n", *p))
   switch(*p++){
   case 0:case';':case')':return p; case' ':case'\n':case'\t':case'\r':NXT
   // -- stack stuff
@@ -73,7 +73,7 @@ OP(+,);OP(-,);OP(*,);OP(/,);OP(<,);OP(>,);OP(=,=);OP(|,|);OP(&,&);
   case'!': if (T<0) S[L-T-1]=S[sp-2]; else *(double*)&M[8*L T]= S[sp-2]; sp-=2;NXT
 
   // -- printers
-  case'.': nanprint((data){.d=POP}, hp);NXT case 'e': putchar(POP);NXT
+  case'.': nanprint((data){.d=POP});NXT case 'e': putchar(POP);NXT
   case't': printf("%.*s",(int)T,M+L S[sp-2]);sp-=2;NXT // counted
   case'\'': U= *p++;NXT case'"':while(*p&&*p!='"')putchar(*p++);p++;NXT
 
@@ -90,7 +90,7 @@ OP(+,);OP(-,);OP(*,);OP(/,);OP(<,);OP(>,);OP(=,=);OP(|,|);OP(&,&);
   case']': bindexit(); S[args]= T; sp= args+1; NXT; // TODO: return p;???
   case'_': bindadd(parsename(&p));NXT
   case'`': U= -bindfind(parsename(&p))-1;NXT
-  case'#': U= atom(parsename(&p), hp, HPSIZE).d;NXT
+  case'#': U= atom(parsename(&p)).d;NXT
 
   // stack value access
   // TODO: _ and ~ and give actual address???
@@ -409,7 +409,7 @@ int main(int argc, char** argv) {
     if (0==strcmp("-d", argv++[0])) debug++;
   } while(--argc);
 
-  initvarz(); initalf(16*1024);
+  inittypes(); initalf(16*1024);
 
 if(0){
   alf("3d.4d.+. 44444d. 1111111d. + . 3 3=. 4 3=. 1 0|. 7 3|. 1 0&. 1 3&.", 0, 0, 0);

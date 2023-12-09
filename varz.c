@@ -11,25 +11,13 @@
 int fr=0,loc=0,vix= 0; struct var { int a,f,l; } V[MAXVAR]={0};
 
 int _varadd(int f, int l, int a) { V[vix]= (struct var){a,f,l}; return vix++; }
+void varadd(int a) { _varadd(fr, ++loc, a); }
+int globaladd(char* s) { return nameadd(s); }
 
-int varadd(int a) { return _varadd(fr, ++loc, a); }
-
-int globaladd(char* s) {
-  assert(!"globaladd: not yet implemented");
-}
-
-#define HPSIZE 16*1024
-char hp[HPSIZE]= {0};
-
-int bindenter(int o) { int r= _varadd(o, fr, 0); fr= o; loc= 0; return r; }
-
-int nilo; data nil;
-
-void initvarz() { nil= atom("nil",hp,HPSIZE); assert(DAT(nil)==nilo);}
-
+void bindenter(int o) { int r= _varadd(o, fr, 0); fr= o; loc= 0; }
 int bindfindid(int a) {int i=vix; while(i--)if(V[i].a==a)return i; return -1;}
-int bindfind(char* s) { return bindfindid(nameadd(s,hp,-1)); }
-int bindadd(char* s) { return varadd(nameadd(s,hp,HPSIZE)); }
+int bindfind(char* s) { return bindfindid(nameadd(s)); }
+void bindadd(char* s) { return varadd(nameadd(s)); }
 void bindexit() { int i= bindfindid(nilo); fr= V[i].f; vix= i; loc= V[i].l; }
 
 // ENDWCOUNT
@@ -37,43 +25,44 @@ void bindexit() { int i= bindfindid(nilo); fr= V[i].f; vix= i; loc= V[i].l; }
 #ifdef varzTEST
 
 void F(char* s) {
-  int i= varfinds(s);
+  int i= bindfind(s);
   if (i<0)
-    printf("'%s' - not found!\n", s);
+    printf("'%s' - not found! %d\n", s, i);
   else
     printf("'%s'\t%3d %2d\n", hp+V[i].a+1, V[i].f, V[i].l);
 }
 
 int main() {
   if (1) {
-    initvarz();
+    THIS GIVES GARBAG now???
+    inittypes();
     
     // binds
     printf("\n--binds\n");
 
-    enterframe(7);
-    varadds("abba");
-    varadds("bubba");
+    bindenter(7);
+    bindfind("abba");
+    bindfind("bubba");
     F("abba"); F("bubba"); F("circ"); printf("\n");
 
-    enterframe(11);
-    varadds("burka");
-    varadds("circ");
+    bindenter(11);
+    bindfind("burka");
+    bindfind("circ");
     F("abba"); F("bubba"); F("circ"); printf("\n");
 
-    enterframe(17);
-    varadds("abba");
-    varadds("circ");
+    bindenter(17);
+    bindfind("abba");
+    bindfind("circ");
     F("abba"); F("bubba"); F("circ"); printf("\n");
     
     printf("<<<<<\n");
-    exitframe();
+    bindexit();
     F("abba"); F("bubba"); F("circ"); printf("\n");
 
-    exitframe();
+    bindexit();
     F("abba"); F("bubba"); F("circ"); printf("\n");
 
-    exitframe();
+    bindexit();
     F("abba"); F("bubba"); F("circ"); printf("\n");
 
     exit(3);
