@@ -1,1 +1,1 @@
-clang pars-nice.c && ./a.out <pascal.bnf 
+clang pars-nice.c && ./a.out -d <pascal.bnf 

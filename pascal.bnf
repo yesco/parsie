@@ -1,6 +1,6 @@
 # PASCAL bnf -> ALF
 #
-# (free HJKYZ)
+# (free)
 
 # TODO: preprocess comments?
 
@@ -9,20 +9,21 @@ D=%i
 K=%s
 
 # math priority ( ) >>> * / >>> + -
-U= D | F [$1] | N ['$1@] | \( E \) [$1]
+U= D | F [$1] | N [`$1@] | \( E \) [$1]
 T= U \* T [$1 $2 *] | U \/ T [$1 $2 /] | U [$1]
 E= K [\$$1.] | T \+ E [$1 $2 +] | T \- E [$1 $2 -] | T [$1]
 
-R= = | <= | < | >= | >
+Z= = | <= [>z] | < | >= [<z] | >
 # TODO: and >>> or
-C= not C [$1~] | C and C [$1 $2 &] | C or C [$1 $2 \|]
+# TODO: E Z E may not work
+C= E Z E [$1 $3 $2] | not C [$1~] | C and C [$1 $2 &]
 
 
 Q= integer :t=i8 | char :t=c1 | string :t=s
 # TODO: repeated w ,
 V= var N\:Q=E; [_$1 $3 `$1 !] | var N\:Q; [_$1]
 L= N\:=E [$2 `$1!]
-I= if C then S else S
+I= if C then S; else S [$1?{$2}{$3} | if C then S [$1?{$2} ]
 R= repeat G until C
 W= while E do S
 
@@ -30,12 +31,13 @@ X= E,X [$1:print $1 $2] | E [$1:print $1] |
 M= writeln\( X \)
 
 A= E,A [$1 $2] | E [$1] |
+H= N,H [_$1 $2] | N [_$1] |
 F= N\(A\) [($2) `$1@x]
-S= M [$1] | L [$1] | I [$1] | R [$1] | W[$1] | B [$1] | F [$1]
+S= \Exit E [$1^] | \Exit [$1^] | \Result\:\=E [$1] | M [$1] | L [$1] | I [$1] | R [$1] | W[$1] | B [$1] | F [$1] 
 
 G= S;G[$1 $2]|S[$1];|
 B= begin G end [$1]
-# not working withg *V
+# not working with *V
 P= program N; *V B.%e ["$1:\n" $2 $3]
 P= program N; B.%e ["$1:\n" $2]
 
@@ -92,10 +94,34 @@ var r: integer = "foobar";
 #?S
 #writeln(fib(a));
 
+?H
+a,b,c
+
+?Z
+>=
+
+?C
+1=1
+1+1=2
+F(3)=3*2*1
+
+?I
+if 1=1 then a:=3
+if 1=1 then a:=3; else a:=7
+
+
+Y= procedure N\(H\) B [: $1 \[ $2 $3 \]; ]
+?Y
+procedure P(n) begin P(n-1); end
+
+J= function N\(H\):Q B [: $1 \[ $2 $3 \]; ]
+?J
+function F(n):integer begin Result:=fib(n-1); Result:=fib(n-2); end
+
 *P
 program foo;
 begin
   x:=42;
   a:=3;
-  r:=fib(a);
+  r:=F(a);
 end.
