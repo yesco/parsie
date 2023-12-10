@@ -163,7 +163,9 @@ LOP(&,);LOP(|,);LOP(^,);case'~': T= ~L T;NXT
   //T=S[args+p[-1]-'0']; sp++;NXT;
     case's': x=POP; case' ': while(x-->=0)putchar(' ');NXT
     case'n': printf("\n");NXT case'.': printf("%lx\n", L POP);NXT
+    // TODO: backslash quotiong \n: $\\ 
     case'"': e=H;while(*p&&*p!='"')*H++=*p++;*H++=0;if(*p)p++;U=e-M;U=H-e-1;NXT
+    // TODO: "malloc" allocated string?
     case'#': prstack();putchar('\n');NXT
     default: p--; // error fallthrough
   }

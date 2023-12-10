@@ -32,24 +32,25 @@ char* pR(char* r, char* s, int n) { nres++; return parseR(*r, s, n); }
 char* add(char* s, char* a, int n) { char* r= malloc((s?strlen(s):0)+n+1);
   strncat(strcpy(r, s?s:""), a?a:"", n); free(s); return r; }
 
-int gen(char** r, char* s, char end, int nr) { int n, l; char *os=s, *v, *e;
-  DEBUG(if (debug>3) printf("GEN: '%s'\n", s));
-  while(*s && *++s!=end && *s) {
-    switch(*s){
-    case '$':
-      if (isdigit(*++s)) { v= res[*s-'0'+nr+1]; l=99999; }
-      else {
-	DEBUG(if (debug) printf("ATTRVAL= '%s'\n", s))
-	e= v= attrval(nr, *s); if (!e) break;
-	while(*e && *++e && *e!=' '){};
-	l= e-v;
+// Generate (add to *G) from [Rule] stop at ENDchar nr being $0 res[NR]
+int gen(char** g, char* r, char end, int nr) { int n, l; char *or=r, *v, *e;
+  DEBUG(if (debug>3) printf("GEN: '%s'\n", r));
+  while(*r && *++r!=end && *r) { switch(*r){
+    case '$': r++; if (isdigit(*r)) { v= res[*r-'0'+nr+1]; l=99999; } else if (isalpha(*r)) {
+	DEBUG(if (debug) printf("ATTRVAL= '%s'\n", r))
+	e= v= attrval(nr, *r); if (!e) break; while(*e && *++e && *e!=' '){}; l= e-v;
+      } else if ((e=strchr("\"\"''(){}[]<>", *r)) && isdigit(*++r)) {
+	v= res[*r-'0'+nr+1]; *g= add(*g, e+0, 1);
+	printf("GEN e=%s r=%s v=%s \n", e, r, v);
+	while(*v) { if (*v==e[1]) *g=add(*g, "\\", 1); *g= add(*g, v++, 1); }
+	*g= add(*g, e+1, 1); break;
       }
-      *r= add(*r, v, l); break;
-    case '\\': s++; default: *r= add(*r, s, 1);
+      *g= add(*g, v, l); break;
+    case '\\': r++; default: *g= add(*g, r, 1);
     }
-    DEBUG(if (debug>2) printf("  res[%d]='%s'\n", nr, *r));
+    DEBUG(if (debug>2) printf("  res[%d]='%s'\n", nr, *g));
   }
-  return s-os;
+  return r-or;
 }
 
 // --- rules
@@ -68,9 +69,14 @@ int gen(char** r, char* s, char end, int nr) { int n, l; char *os=s, *v, *e;
 // (no newlines)
 
 // --- catching & generating output
+// (default result is verbatim input)
+//
 //   L=D,L [$1 $2 +] | D
 //
 //   "1,2,3"   =>   "1 2 3 + +"
+//   A= int %n = %i; [_$1 $2 `$1] :t=int
+//
+//      $"1 $'2 $<3 $(4 $[5 $<6 - quote N
 
 // --- char classes
 //   %a = match alphabet and _
@@ -80,13 +86,20 @@ int gen(char** r, char* s, char end, int nr) { int n, l; char *os=s, *v, *e;
 //   %i = integer
 //   %n = identifier (%a%w...)
 //
+// -- string matcher
+//     ($1 always gives unquoted)
+//     (default is verbatim)
+//
 //   %" = "foo\"bar"
 //   %' = 'c' or 'foo\'bar'
-//     (not handling nesting:)
+//     (not handling nesting:???)
 //   %( = ( fo( oooo ( \) foo bar)
 //   %[ = [ fo[ oooo [ \] foo bar]
 //   %{ = { fo{ oooo { \} foo bar}
 //   %< = < fo< oooo < \> foo bar>
+//   %s = START fo? START \END foo bar END
+//     handle any style string
+
 
 // --- multiple matches PREFIX!
 //   ?R = optionall match rule R
@@ -128,22 +141,35 @@ char* parse(char* r,char* s,int n,int nr){char*p=0,*os=s,*t;int on=n,onr=nres,x;
     case ':': attr[nr]= add(attr[nr], " ", 1); r+= 1+gen(attr+nr, r, ' ', nr); NXT;
 
     // TODO: too clever to reuse instead of clear...
-    case '?': case '+': p=s; s=pR(r+1,s,1);
+    case '?': case '+': case '*':
+      printf("== res %d\n", nr);
+      // TODO: is nres right? "passthrough doesn't seem to work for $s %" etc..."
+      // TODO: several places?
+      nres++;free(res[nr]); res[nr]=0; free(attr[nr]); attr[nr]= 0;
+    switch(*r){
+    case '?': case '+': p=s; s=parse(R[r[1]],s,-1,nr);
       if (*r=='?') { r+=2; s=s?s:p;NXT; }
       if (!s) NXT;
       // fallthrough
     case'*':
-      r++; while(s&&*s) { p=s; s=pR(r,s,1); }
-      r++; s=p; NXT;
-
+      r++;
+      while(s&&*s) { p=s; s=parse(R[*r],s,-1,nr); }
+      r++; s=s?s:p; NXT;
+}
     // TODO: also too clever encoding?
     case '%':
-      if ((p=strchr("\"\"''(){}[]<>",*++r))) {
+      ++r;
+      if ((p=strchr("\"\"''(){}[]<>", *r=='s'?*s:*r))) {
 	// quoted string
+        if (*s!=*p) return NULL;
+	// TODO: several places?
+	nres++;free(res[nres+nr]);res[nres+nr]=0;free(attr[nres+nr]);attr[nres+nr]= 0;
 	// move till unquoted endchar
-	while(*++s&&*s!=p[1])
+	while(*++s&&*s!=p[1]) {
 	  if (*s=='\\') s++;
-
+	  res[nres+nr]=add(res[nres+nr], s, 1);
+	}
+	// TODO: result without quotes?
 	r++; s++; NXT;
       }
 
@@ -177,6 +203,7 @@ char* parse(char* r,char* s,int n,int nr){char*p=0,*os=s,*t;int on=n,onr=nres,x;
 char* parseR(char r, char* s, int n) { int nr=++nres;
   DEBUG(if (debug>1) printf("  parseR '%c' (%d)\n", r, r));
 
+  // TODO: several places?
   free(res[nr]); res[nr]=0; free(attr[nr]); attr[nr]= 0;
 
   char *x= parse(R[r],s,n,nr);
