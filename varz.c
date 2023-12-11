@@ -22,7 +22,7 @@ void glbladd(char* s) { int a=nameadd(s);
   // TODO: if defined sevea times it allocates more! lol
   *(data*)H= (data){.d=4711.42};
   H+= 8;
-  prnames();
+  //prnames();
 }
 
 void bindenter(int o) { int r= _varadd(o, fr, 0); fr= o; loc= 0; }

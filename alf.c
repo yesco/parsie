@@ -31,7 +31,7 @@ char* parsename(char** p) { static char s[64], i; i=0; while((isalnum(**p)
 
 // skips a { block } returns after
 //   TODO: must skip STRINGs!!! lol
-char* skip(char* p){ int n=1;while(n&&*p)if(*p=='?')p+=2;else n+=(*p=='{')-(*p=='}'),p++;return p;}
+char* skip(char* p){ int n=1;while(n&&*p)if(*p=='?'&&p[1]!='{')p+=2;else n+=(*p=='{')-(*p=='}'),p++;return p;}
 
 void prstack() { printf("\t>>> ");for(int i=0; i<sp; i++){
   nanprint((data){.d=S[i]});putchar(' ');}}
@@ -90,6 +90,7 @@ OP(+,);OP(-,);OP(*,);OP(/,);OP(<,);OP(>,);OP(=,=);OP(|,|);OP(&,&);
   // 99]        -> .. 99 (and exit)
   case'(': { int fp= sp; p= alf(p, args, n, 1); U= fp;NXT }
   case'[': args= T; n= S[sp]= sp-args-1; sp++; bindenter(args);NXT
+  case'^': assert(!"implement");NXT; // TODO: "exit" / break?
   case']': bindexit(); S[args]= T; sp= args+1; NXT; // TODO: return p;???
   case'_': bindadd(parsename(&p));NXT
   case'`': U= -bindfind(parsename(&p))-1;NXT
@@ -125,12 +126,21 @@ OP(+,);OP(-,);OP(*,);OP(/,);OP(<,);OP(>,);OP(=,=);OP(|,|);OP(&,&);
   // ?{ = if{then}{else}
   case'?': if (POP) { switch(*p++){
     case'}': return p; case']': return NULL;
-    case'{': p= alf(p, args, n, 1);if (*p=='{') p=skip(p+1);NXT
-    default: p=alf(p, args, n, 1);
+    case'{': p= alf(p, args, n, 1);
+      //printf("AFTER THEN: '%s'\n", p);
+      if (*p=='{') p=skip(p+1);//NXT
+      //printf("AFTER THEN SKIP: '%s'\n", p);
+      NXT
+    default: p=alf(p, args, n, 1);NXT //??
     }
- } else { // IF
-    if (*p=='{') { p=skip(p+1); if (!iff) NXT }
-    if (p) p= alf(p+1, args, n, 1); else return NULL; } NXT;
+ } else { // IF==false
+  if (*p=='{') { p=skip(p+1); } // if (!iff) NXT }
+  //printf("ELSE: '%s'\n", p);
+  if (p) {
+    p= alf(p+1, args, n, 1);
+    //printf("AFTER ELSE: '%s'\n", p);
+  }
+    else return NULL; } NXT;
 
   // -- char ops
   case'c': switch(*p++){
@@ -163,7 +173,7 @@ LOP(&,);LOP(|,);LOP(^,);case'~': T= ~L T;NXT
   //T=S[args+p[-1]-'0']; sp++;NXT;
     case's': x=POP; case' ': while(x-->=0)putchar(' ');NXT
     case'n': printf("\n");NXT case'.': printf("%lx\n", L POP);NXT
-    // TODO: backslash quotiong \n: $\\ 
+    // TODO: backslash quotiong \n: $\\ .
     case'"': e=H;while(*p&&*p!='"')*H++=*p++;*H++=0;if(*p)p++;U=e-M;U=H-e-1;NXT
     // TODO: "malloc" allocated string?
     case'#': prstack();putchar('\n');NXT
@@ -430,15 +440,16 @@ if(0){
   //alf("1.{2.}3.", 0, 0, 0);
 //alf("1d.?{2d.}{3d.}.4.", 0, 0, 0);
 //  alf("0d.?{2d.}{3d.}.4.", 0, 0, 0);
+
   if (0) {
-    printf("%s\n", skip("foo}OK"));
-    printf("%s\n", skip("f?]oo}OK"));
-    printf("%s\n", skip("f?}oo}OK"));
-    printf("%s\n", skip("f?{oo}OK"));
-    printf("%s\n", skip("f{o}o}OK"));
+    printf("1 %s\n", skip("foo}OK"));
+    printf("2 %s\n", skip("f?]oo}OK"));
+    printf("3 %s\n", skip("f?}oo}OK"));
+    printf("4 %s\n", skip("f?{oo}OK"));
+    printf("5 %s\n", skip("f{o}o}OK"));
+    printf("6 %s\n", skip("1}{OK}"));
     exit(3);
   }
-
 
   // read-eval
   char* ln= NULL; size_t sz= 0;

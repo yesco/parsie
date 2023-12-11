@@ -1,0 +1,17 @@
+echo | ./alf
+
+echo "===ALF"
+#clang -Ofast alf.c # same
+clang -O3 alf.c
+
+echo "\"fib \"$1.\"=> \":F dz?{\0}{d1=?{\1}{d 1-F s 2-F +}} ; $1F.\$n" | time -p ./a.out
+
+# erh, fewer spaces => slower??? WTF
+#echo "\"fib \"$1.\"=> \":Fdz?{\0}{d1=?{\1}{d1-Fs2-F+}}; $1F.\$n" | time -p ./a.out
+
+echo "===C -O3"
+clang -O3 fib.c && (time -p ./a.out $1)
+clang -Ofast fib.c && (time -p ./a.out $1)
+
+
+

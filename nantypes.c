@@ -39,14 +39,8 @@ int nameadd(char* s) { char* p= hp; int l= strlen(s);
   return *p=l, strcpy(p+1, s)-hp-1;
 }
 
-void prnames() { char* p= hp;
-  printf("\n");
-  while(*p) {
-    data* d= (data*)(p+1+strlen(p+1)+1);
-    printf("%5ld: %d v=> %10.7g %5ld\t%s\n", p-hp, *p, d->d, d->u, p+1);
-    p+=strlen(p+1)+1+1+sizeof(data);
-  }
-}
+void prnames() { char* p= hp; printf("\n"); while(*p) { data* d= (data*)(p+1+strlen(p+1)+1); printf("%5ld: %d v=> %10.7g %5ld\t%s\n", p-hp, *p, d->d, d->u, p+1); p+=strlen(p+1)+1+1+sizeof(data); } } // DEBUG
+
 // Return a data atom
 data atom(char* s){return BOX(0,2,nameadd(s));}
 

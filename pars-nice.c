@@ -20,7 +20,7 @@ char* attrval(int nr, char a) {
   // TODO: not MAXRES...
   for(int i= nr+1; i<MAXRES; i++) { char* s= attr[i];
     DEBUG(if (debug) if (s) printf("find.ATTR[%d] = '%s'\n", i, s));
-    while(s && (s= strchr(s, ' '))) if (s[1]==a && s[2]=='=') return s+3;
+    while(s && *s && (s= strchr(s, ' '))) if (s[1]==a && s[2]=='=') return s+3; else s++;
   } return NULL;
 }
 
