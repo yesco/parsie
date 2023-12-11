@@ -113,8 +113,6 @@ int gen(char** g, char* r, char end, int nr) { int n, l; char *or=r, *v, *e;
 //
 //
 
-#define NXT goto next
-
 // Parse a Rule for String using max N matches starting at results at NR
 //   n==-1 infinity
 //   n==1 one time (for ? + *)
@@ -123,42 +121,40 @@ int gen(char** g, char* r, char end, int nr) { int n, l; char *or=r, *v, *e;
 //   rest of string (unparsed)
 char* parse(char* r,char* s,int n,int nr){char*p=0,*os=s,*t;int on=n,onr=nres,x;
   DEBUG(if (debug>2) printf("    parse '%s' '%s' %d\n", r, s, n));
+  // TODO: move while below next?
  next: while(n-- && r && s) {
     while(isspace(*s)) s++;
 
     DEBUG(if (debug>3)printf("     next '%s' (%d)\n\t   of '%s' left=%d\n",r,*r,s,n));
-
+#define Z goto next; case 
     switch(*r){
-
     case 0: case '\n': case '\r': case '|': return s; // end
-    case ' ':case '\t': while(isspace(*s))s++; r++; NXT; // skip
+    Z' ': case '\t': while(isspace(*s))s++; r++;
 
-    case '(': case '{': NXT; // TODO: implement
-    case '[': { // result
+    Z'(': Z'{': assert(!"implement"); // TODO: implement
+    Z'[': { // result
       DEBUG(if (debug>2) printf("BEFORE  RES='%s'\n", res[nres]));
-      r+= 1+gen(res+nr, r, ']', nr); NXT;
+      r+= 1+gen(res+nr, r, ']', nr);
     }
-    case ':': attr[nr]= add(attr[nr], " ", 1); r+= 1+gen(attr+nr, r, ' ', nr); NXT;
+    Z':': attr[nr]= add(attr[nr], " ", 1); r+= 1+gen(attr+nr, r, ' ', nr);
 
     // TODO: too clever to reuse instead of clear...
     case '?': case '+': case '*':
-      printf("== res %d\n", nr);
+      printf("== res %d\n", nr); // DEBUG
       // TODO: is nres right? "passthrough doesn't seem to work for $s %" etc..."
       // TODO: several places?
       nres++;free(res[nr]); res[nr]=0; free(attr[nr]); attr[nr]= 0;
     switch(*r){
-    case '?': case '+': p=s; s=parse(R[r[1]],s,-1,nr);
-      if (*r=='?') { r+=2; s=s?s:p;NXT; }
-      if (!s) NXT;
+    case'?': case '+': p=s; s=parse(R[r[1]],s,-1,nr);
+      if (*r=='?') { r+=2; s=s?s:p;goto next; }
+      if (!s) goto next;
       // fallthrough
-    case'*':
-      r++;
+    case'*': r++;
       while(s&&*s) { p=s; s=parse(R[*r],s,-1,nr); }
-      r++; s=s?s:p; NXT;
-}
+      r++; s=s?s:p;
+    }
     // TODO: also too clever encoding?
-    case '%':
-      ++r;
+    Z'%': ++r;
       if ((p=strchr("\"\"''(){}[]<>", *r=='s'?*s:*r))) {
 	// quoted string
         if (*s!=*p) return NULL;
@@ -170,10 +166,10 @@ char* parse(char* r,char* s,int n,int nr){char*p=0,*os=s,*t;int on=n,onr=nres,x;
 	  res[nres+nr]=add(res[nres+nr], s, 1);
 	}
 	// TODO: result without quotes?
-	r++; s++; NXT;
+	r++; s++; goto next;
       }
 
-      if (*r=='e'&&!*s) { r++; NXT; }
+      if (*r=='e'&&!*s) { r++; goto next; }
       p=s;
       do if ((x=(*r=='_'
           || strchr("anw",*r) && isalpha(*s)
@@ -181,14 +177,13 @@ char* parse(char* r,char* s,int n,int nr){char*p=0,*os=s,*t;int on=n,onr=nres,x;
 	  s++;
 	else if (p==s) goto fail;
       while(strchr("in", *r) && x);
-      r++; NXT;
+      r++;
 
-    case 'A'...'Z': if ((p=pR(r++, s, -1))) { s= p; NXT; } else goto fail;
-    case '\\': r++; default:
+    Z'A'...'Z': if ((p=pR(r++, s, -1))) s= p; else goto fail;
+    Z'\\': r++; default:
       if (*s==*r++) s++; /* matched */ else fail: {
         DEBUG(if (debug>2) printf("     FAIL '%s' '%s'\n", r-1, s));
-        while(*r && !eor(r++)){};
-        if (eor(r) && r[-1]!='|') return NULL;
+        while(*r && !eor(r++)){}; if (eor(r) && r[-1]!='|') return NULL;
 	  // restore start state
         s=os; n=on; nres=onr;
 
