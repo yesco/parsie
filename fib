@@ -1,3 +1,6 @@
+# s3 : 7.5s for fib 35
+# alf: 5.8s
+
 echo | ./alf
 
 echo "===ALF"
@@ -8,6 +11,7 @@ echo "\"fib \"$1.\"=> \":F dz?{\0}{d1=?{\1}{d 1-F s 2-F +}} ; $1F.\$n" | time -p
 
 # erh, fewer spaces => slower??? WTF
 #echo "\"fib \"$1.\"=> \":Fdz?{\0}{d1=?{\1}{d1-Fs2-F+}}; $1F.\$n" | time -p ./a.out
+
 
 echo "===C -O3"
 clang -O3 fib.c && (time -p ./a.out $1)

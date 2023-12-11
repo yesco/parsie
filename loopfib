@@ -1,0 +1,6 @@
+# s3 : 5.147s -- 10 1000* loop 15F
+# alf: 3.88s 
+rm a.out
+clang -Ofast alf.c
+
+echo ":F dz?{\\0}{d1=?{\\1}{d 1-F s 2-F +}} ; 10 1000* {15F\\ 1-d?]}\\$n" | time -p ./a.out

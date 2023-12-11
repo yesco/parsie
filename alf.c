@@ -53,8 +53,11 @@ next: DEBUG(prstack();putchar('\n');printf("\t  '%c'\n",*p))
   case'd': S[sp]= T; sp++;NXT case'\\': sp--;NXT;
   case'o': S[sp]= S[sp-2]; sp++;NXT case 's': x=T; T= S[sp-2]; S[sp-2]= x;NXT
 
-  case'0'...'9': U= atoi(p-1); while(isdigit(*p))p++;NXT
-  case'A'...'Z': alf(F[p[-1]-'A'], 0, 0, 0);NXT
+  case'0'...'9': { double v= 0; p--;
+      while(isdigit(*p))
+	v= v*10 + *p++-'0';
+      U= v; goto next; }
+  case'A'...'Z': alf(F[p[-1]-'A'], args, n, 0);NXT
   case'x': { char x[]={POP,0}; alf(x, 0, 0, 0);NXT }
 
   // -- math stuff
@@ -124,6 +127,7 @@ OP(+,);OP(-,);OP(*,);OP(/,);OP(<,);OP(>,);OP(=,=);OP(|,|);OP(&,&);
   // ?] = break
   // ?} = again
   // ?{ = if{then}{else}
+  // probgably not correctif inside IFF???? how to propagate several layers up? special return code?
   case'?': if (POP) { switch(*p++){
     case'}': return p; case']': return NULL;
     case'{': p= alf(p, args, n, 1);

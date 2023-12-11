@@ -1,0 +1,11 @@
+lisp without parens?
+
+(define mapcar(a b)
+ (if (null b) l
+     (cons (a (car b))
+     	   (mapcar a (cdr b)))))
+
+:m ? nva va c (va b) madb
+
+difficult to replace inline and keep semantics, not composable
+
