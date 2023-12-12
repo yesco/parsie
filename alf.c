@@ -1,3 +1,4 @@
+//80----------------------------------------------------------------------------
 // ALphabetical Forth byte code
 
 #include <ctype.h>
@@ -44,7 +45,7 @@ void prstack() { printf("\t>>> ");for(int i=0; i<sp; i++){
 //   NULL if done/fail (loop/if)
 char*alf(char*p,int args,int n,int iff){long x;char*e=NULL;if(!p)return NULL;
   DEBUG(printf("\n===ALF >>>%s<<<\n", p))
-#define Z goto next; case
+  #define Z goto next; case
 next: DEBUG(prstack();putchar('\n');printf("\t  '%c'\n",*p))
   switch(*p++){
   case 0: case';': case')': return p;
@@ -58,10 +59,10 @@ next: DEBUG(prstack();putchar('\n');printf("\t  '%c'\n",*p))
   Z'x': { char x[]={POP,0}; alf(x, 0, 0, 0); }
 
   // -- math stuff
-#define L (long)
-#define SL (sizeof(long))
-#define OP(op,e) Z #op[0]: S[sp-2]=S[sp-2] op##e T; sp--;
-OP(+,);OP(-,);OP(*,);OP(/,);OP(<,);OP(>,);OP(=,=);OP(|,|);OP(&,&);
+  #define L (long)
+  #define SL (sizeof(long))
+  #define OP(op,e) Z #op[0]: S[sp-2]=S[sp-2] op##e T; sp--;
+  OP(+,);OP(-,);OP(*,);OP(/,);OP(<,);OP(>,);OP(=,=);OP(|,|);OP(&,&);
   Z'%': S[sp-2]=L T % L S[sp-2]; sp--; Z'z': T= !T; Z'n': T= -L T;
   
   // -- memory stuff (, aligns)
@@ -131,8 +132,8 @@ SW('+',+=);SW('-',-=);SW('*',*=);SW('/',/=);SW('<',<<=);SW('>',>>=);
   }
   // -- bit ops
   Z'b': switch(*p++){
-#define LOP(op,e) Z#op[0]: S[sp-2]=(L T) op##e L S[sp-2]; sp--;
-LOP(&,);LOP(|,);LOP(^,); Z'~': T= ~L T;
+  #define LOP(op,e) Z#op[0]: S[sp-2]=(L T) op##e L S[sp-2]; sp--;
+  LOP(&,);LOP(|,);LOP(^,); Z'~': T= ~L T;
   }
 
   // -- string ops
@@ -144,11 +145,11 @@ LOP(&,);LOP(|,);LOP(^,); Z'~': T= ~L T;
     // TODO: backslash quotiong \n: $\\ .
     Z'"': e=H;while(*p&&*p!='"')*H++=*p++; *H++=0;if(*p)p++; U=e-M;U=H-e-1;
     // TODO: "malloc" allocated string?
-   Z'#': prstack();putchar('\n');
-   goto next; default: p--; // error fallthrough
- }
+    Z'#': prstack();putchar('\n');
+    goto next; default: p--; // error fallthrough
+  }
 
- default: printf("\n[%% Undefined op: '%s']\n", p-1); p++; exit(3); printf("FOO\n");
+  default: printf("\n[%% Undefined op: '%s']\n", p-1); p++; exit(3); printf("FOO\n");
   }
   goto next;
 }

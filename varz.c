@@ -23,7 +23,7 @@ void glbladd(char* s) { int a=nameadd(s);
 }
 
 void bindenter(int o) { int r= _varadd(o, fr, 0); fr= o; loc= 0; }
-int bindfindid(int a) {int i=vix; while(i--)if(V[i].a==a)return i;return -1;}
+int bindfindid(int a) { int i= vix;while(i--)if(V[i].a==a)return i; return -1;}
 int bindfind(char* s) { int i=bindfindid(nameadd(s));
   //printf("== bindfind: %s @ %d\n", s, i);
   if (i>0) return i; else {
@@ -62,18 +62,18 @@ int main() {
     printf("\n--binds\n");
 
     bindenter(7);
-    bindfind("abba");
-    bindfind("bubba");
+    bindadd("abba");
+    bindadd("bubba");
     F("abba"); F("bubba"); F("circ"); printf("\n");
 
     bindenter(11);
-    bindfind("burka");
-    bindfind("circ");
+    bindadd("burka");
+    bindadd("circ");
     F("abba"); F("bubba"); F("circ"); printf("\n");
 
     bindenter(17);
-    bindfind("abba");
-    bindfind("circ");
+    bindadd("abba");
+    bindadd("circ");
     F("abba"); F("bubba"); F("circ"); printf("\n");
     
     printf("<<<<<\n");
