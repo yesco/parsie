@@ -150,6 +150,9 @@ case '?': case '+': case '*': newV(nr);
     // fallthrough
   case'*': r++; while(s&&*s) { p=s; s=parse(R[*r],s,-1,nr); } r++; s=s?s:p;
   }
+//  Z '?': r++; p=s; s=parse(R[*r],s,1); r++; s=s?s:p;
+//  Z '*': r++; do{p=s; s=parse(R[*r],s,1);}while(s && *s);r++;s=p;
+//  Z '+': r++; s=parse(R[*r],s,1); while(s&&*s){p=s;s=parse(R[*r],s,1);};r++;s=p;
 
 // TODO: also too clever encoding?
 Z'%': ++r; if ((p=strchr("\"\"''(){}[]<>", *r=='s'?*s:*r))) {
@@ -184,19 +187,13 @@ Z'\\': r++; default: if (*s==*r++) s++; /* matched */ else fail: {
 /// capture
 char* parseR(char r, char* s, int n) { int nr=++nv;
   DEBUG(if (debug>1) printf("  parseR '%c' (%d)\n", r, r));
-
   nv--; newV(nr);
-
   char *x= parse(R[r],s,n,nr);
-
   // TODO: combine repeats? concat && nv-- after call parseR
   // TODO: matching with ? seems to "fail" ???
   // TODO: for matching only subrule "| X" default should be [$1] ???
-
   if (!V[nr]) V[nr]=x?strndup(s, x-s):x;
-
   DEBUG(if (debug>1) printf("  ->%c.V[%d]='%s'\n", r, nr, V[nr]));
-
   nv= nr-1; return x;
 }
 
@@ -205,11 +202,6 @@ char* test(char rule, char* s) { nv= 0;
   if (!e || *e) printf("%%%s %c-> '%s' RES=>'%s'\n\n", e?(*e?"UNPARSED":"MATCHED!"):"FAILED", rule, e, V[nv+1]);
   printf("%s\n", V[nv+1]); return e;
 }
-
-//  Z '?': r++; p=s; s=parse(R[*r],s,1); r++; s=s?s:p;
-//  Z '*': r++; do{p=s; s=parse(R[*r],s,1);}while(s && *s);r++;s=p;
-//  Z '+': r++; s=parse(R[*r],s,1); while(s&&*s){p=s;s=parse(R[*r],s,1);};r++;s=p;
-
 
 // TODO: count loader/reader?
 
