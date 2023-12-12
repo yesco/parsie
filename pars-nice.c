@@ -259,6 +259,11 @@ void readparser(FILE* f) { char rule, *ln= NULL; size_t z= 0, d='\n';
 // ENDWCOUNT
 
 int main(int argc, char** argv) {
+  assert(sizeof(long)==8);
+  assert(sizeof(void*)==sizeof(double));
+  assert(sizeof(void*)==sizeof(long));
+  assert(sizeof(void*)==sizeof(long));
+
   // parse arguments
   do{
     if (0==strcmp("-d", argv++[0])) debug++;

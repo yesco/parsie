@@ -1,0 +1,6 @@
+clang -Ofast alf.c
+echo '$n :F [ $1 0  >z?{0}{$1 1  =?{1}{($1 1 -)F  ($1 2 -)F  +}} ];  _x 42`x!  _a 35`a!  _r (`a@)F `r!  `r@.$n' | time -p ./a.out
+
+
+
+
