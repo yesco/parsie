@@ -1,0 +1,34 @@
+Precedence levels
+edit
+The languages differ significantly when it comes to expression evaluation, but all-in-all they are comparable.
+
+
+
+Pascal
+
+Logical negation: not
+Multiplicative: * / div mod and
+Additive: + - or
+Relational: = <> < > <= >= in
+
+
+
+C
+
+Unary postfix: [] () . -> ++ --
+Unary prefix: & * + - ! ~ ++ -- (type) sizeof
+Multiplicative: * / %
+Additive: + -
+Shift: << >>
+Relational: < > <= >=
+Equality: == !=
+Bitwise and: &
+Bitwise xor: ^
+Bitwise or: |
+Logical and: &&
+Logical or: ||
+Conditional: ? :
+Assignment: = += -= *= /= %= <<= >>= &= ^= |=
+Comma operator: ,
+
+  
