@@ -30,10 +30,23 @@ char* attrval(int nr, char a) { for(int i=nr+1;i<NV;i++){ char* s= A[i];
 char* parseR(char r, char* s, int n); // FORWARD
 char* pR(char* r, char* s, int n) { nv++; return parseR(*r, s, n); }
 
-// return new string with S followed by A, free(s)
-// TODO: wasteful... use bigbuff?
-char* add(char* s, char* a, int n) { char* r= malloc((s?strlen(s):0)+n+1);
-  strncat(strcpy(r, s?s:""), a?a:"", n); free(s); return r; }
+// Dynamic String append/cat X N chars
+//
+// String pointer is resized in chunks
+// of 1024 bytes.
+//
+// S= NULL, or malloced destination
+// X= NULL, or string to append from
+// N= chars to copy, or -1=all
+//
+// Returns S or a new pointer.
+//  
+char* sncat(char* s, char* x, int n) {
+  int i= s?strlen(s):0, l= x?strlen(x):0;
+  if (n<0 || n>l) n= l;
+  s= realloc(s, 1024*((i+n+1024)/1024)); s[i+n]= 0;
+  return strncpy(s+i, x?x:"", n), s;
+}
 
 // Generate (add to *G) from [Rule] stop at ENDchar nr being $0 V[NR]
 int gen(char** g, char* r, char end, int nr) { int n, l; char *or=r, *v, *e;
@@ -44,13 +57,13 @@ int gen(char** g, char* r, char end, int nr) { int n, l; char *or=r, *v, *e;
 	e= v= attrval(nr, *r); if (!e) break; while(*e && *++e && *e!=' '){}; l= e-v;
       } else if ((e=strchr("\"\"''(){}[]<>", *r)) && isdigit(*++r)) {
 	// TODO: share w quoting?
-	v= V[*r-'0'+nr+1]; *g= add(*g, e+0, 1);
+	v= V[*r-'0'+nr+1]; *g= sncat(*g, e+0, 1);
 	printf("GEN e=%s r=%s v=%s \n", e, r, v); // DEBUG
-	while(*v) { if (*v==e[1]) *g=add(*g, "\\", 1); *g= add(*g, v++, 1); }
-	*g= add(*g, e+1, 1); break;
+	while(*v) { if (*v==e[1]) *g=sncat(*g, "\\", 1); *g= sncat(*g, v++, 1); }
+	*g= sncat(*g, e+1, 1); break;
       }
-      *g= add(*g, v, l); break;
-    case '\\': r++; default: *g= add(*g, r, 1);
+      *g= sncat(*g, v, l); break;
+    case '\\': r++; default: *g= sncat(*g, r, 1);
     }
     DEBUG(if (debug>2) printf("  V[%d]='%s'\n", nr, *g));
   }
@@ -137,7 +150,7 @@ Z' ': case '\t': while(isspace(*s))s++; r++;
 
 Z'(': Z'{': assert(!"TODO: implement");
 Z'[': r+= 1+gen(V+nr, r, ']', nr);
-Z':': A[nr]= add(A[nr], " ", 1); r+= 1+gen(A+nr, r, ' ', nr);
+Z':': A[nr]= sncat(A[nr], " ", 1); r+= 1+gen(A+nr, r, ' ', nr);
 
 // TODO: too clever to reuse instead of clear...
 case '?': case '+': case '*': newV(nr);
@@ -158,7 +171,7 @@ case '?': case '+': case '*': newV(nr);
 Z'%': ++r; if ((p=strchr("\"\"''(){}[]<>", *r=='s'?*s:*r))) {
   if (*s!=*p) return 0; else newV(nr);
   // move till unquoted endchar
-  while(*++s&&*s!=p[1]) { if (*s=='\\') s++; V[nv+nr]=add(V[nv+nr], s, 1); }
+  while(*++s&&*s!=p[1]) { if (*s=='\\') s++; V[nv+nr]=sncat(V[nv+nr], s, 1); }
   r++; s++; goto next;
 }
   if (*r=='e'&&!*s) { r++; goto next; }
