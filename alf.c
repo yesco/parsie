@@ -23,6 +23,8 @@ void initalf(size_t sz) { H=M=calloc(memsize= sz, 1); } // TODO: ?zero S F
 // Variable Name Bindings on Stack
 #include "varz.c"
 
+#include "str.c"
+
 // Parse from P a name
 // (P is pointer to char* and updated)
 //
@@ -35,7 +37,7 @@ char* parsename(char** p) { static char s[64], i; i=0; while((isalnum(**p)
 char* skip(char* p){ int n=1;while(n&&*p)if(*p=='?'&&p[1]!='{')p+=2;else n+=(*p=='{')-(*p=='}'),p++;return p;}
 
 void prstack() { printf("\t>>> ");for(int i=0; i<sp; i++){
-  nanprint((data){.d=S[i]});putchar(' ');}}
+  dprint(S[i]);putchar(' ');}}
 
 // run ALF code Program with ARGS
 // starting that stack position with
@@ -75,8 +77,8 @@ next: DEBUG(prstack();putchar('\n');printf("\t  '%c'\n",*p))
   Z'!': if (T<0) S[L-T-1]=S[sp-2]; else *(double*)&M[8*L T]= S[sp-2]; sp-=2;
 
   // -- printers (see also $...)
-  Z'.': nanprint((data){.d=POP}); Z'e': putchar(POP);
-  Z't': printf("%.*s",(int)T,M+L S[sp-2]); sp-=2; // counted
+  Z'.': dprint(POP); Z'e': putchar(POP);
+  Z't': printf("%*s.",(int)T,M+L S[sp-2]); sp-=2; // counted
   Z'\'': U= *p++; Z'"': while(*p&&*p!='"')putchar(*p++); p++;
 
   // -- define function ;
@@ -113,13 +115,19 @@ next: DEBUG(prstack();putchar('\n');printf("\t  '%c'\n",*p))
 
   // -- char ops
   Z'c': switch(*p++){
+    Z'"': e=p; while(*p&&*p!='"')p++; U=newstr(e, p-e); // managed string
+    // TODO: minimize!
+    // length of managed str/"ptr"/#atom
+    Z'c': T=dlen(T);
+    Z'r': putchar('\n');
+
     Z'@': T=M[L T]; Z'!': M[L T]=S[sp-2];sp-=2;
     Z'i': M[L T]++;sp--; Z'd': M[L T]--;sp--;
 
 #define SM(a,op) Z a: x=T; M[L T] op x; sp-=2;
 SM('+',+=);SM('-',-=);SM('*',*=);SM('/',/=);SM('<',<<=);SM('>',>>=);
     SM('&',&=);SM('|',|=);SM('^',^=);
-    // TODO: c,
+    // TODO: c, ci cd
   }
 
   // -- word ops
@@ -138,14 +146,13 @@ SW('+',+=);SW('-',-=);SW('*',*=);SW('/',/=);SW('<',<<=);SW('>',>>=);
 
   // -- string ops
   Z'$': x=1; switch(*p++) {
+    Z'#': prstack();putchar('\n');
     // TODO: address and not value?
     Z'0'...'9': U= S[args+p[-1]-'0'-1]; Z'!': S[args+*p++-'0'-1]= POP;
     Z's': x=POP; /*fallthrough*/ case' ': while(x-->=0)putchar(' ');
     Z'n': printf("\n"); Z'.': printf("%lx\n", L POP);
     // TODO: backslash quotiong \n: $\\ .
-    Z'"': e=H;while(*p&&*p!='"')*H++=*p++; *H++=0;if(*p)p++; U=e-M;U=H-e-1;
-    // TODO: "malloc" allocated string?
-    Z'#': prstack();putchar('\n');
+    Z'"': e=H;while(*p&&*p!='"')*H++=*p++; *H++=0;if(*p)p++; U=e-M; U=H-e-1;
     goto next; default: p--; // error fallthrough
   }
 
@@ -252,13 +259,16 @@ SW('+',+=);SW('-',-=);SW('*',*=);SW('/',/=);SW('<',<<=);SW('>',>>=);
    '$ '- print blank
     $s - print N blanks
     $. - print hex ($h instead? see $#)
-    $n - print newline
+    $n - print newline // TODO: have cr remove
     $# - print stack ($. instead?)
-  ( $t - print string ptr )
+
     $" - counted string
   ( $\ - interpret \n etc - counted? )
   ( $( - counted string) )
-  ( $[ = another?] )
+  ( $[ - another?] )
+    $l - strlen
+  ( $c - copy )
+  ( $m - move )
   % - mod
   & - and
   ' - char
@@ -294,9 +304,11 @@ SW('+',+=);SW('-',-=);SW('*',*=);SW('/',/=);SW('<',<<=);SW('>',>>=);
     b^ - bit ^ (64 bit)
     b~ - bit ~ (64 bit)
   c - char ops prefix !@
-  ( c' - quote char? insteadof ' )
-  ( c" - c-string? )
-  ( cr - carriage return $n already )
+    c" - managed null-terminated string
+    cc - count=length of mngd/"ptr"/#atom
+    cr - carriage return $n already
+  ( ca - append 2 mngd str->mngd )
+  ( cm - cmove ? TODO: )
     c! - 
     c@
     c, - TODO

@@ -6,17 +6,18 @@
 // only for *this* endian...
 typedef union { uint64_t u; double d; } data;
 
-// 1 sign, 7 types, 48 bits of data
+// 1 sign, 7 types, 48(47?) bits of data
 //#define MTYP 0x0007000000000000L
 //#define MNAN 0x7ff8000000000000L
 //#define MDAT 0x0000ffffffffffffL
 //#define MNEG 0x8000000000000000L
-const uint64_t MTYP=0x0007L<<48,MNAN=0x7ff8L<<48,MDAT=(1L<<49)-1,MNEG=1L<<63;
+const uint64_t MTYP=0x0007L<<48,MNAN=0x7ff8L<<48,MDAT=(1L<<48)-1L,MNEG=1L<<63;
+// TODO: MDAT should be 1L<<49?
 
 #define TYP(x) ((int)((x).u>>48) & 7)
 #define NEG(x) (x.u & MNEG)
-#define BOX(n,t,dat) ((data){.u=MNAN|((n)?MNEG:0)|(((t)&7L)<<48)|(dat)&MDAT})
-#define DAT(x) (x.u & MDAT)
+#define BOX(n,t,dat) ((data){.u=MNAN|((n)?MNEG:0)|(((t)&7L)<<48)|((long)(dat))&MDAT})
+#define DAT(x) ((x).u & MDAT)
 
 #define HPSIZE 16*1024
 char hp[HPSIZE]= {0}; int nilo; data nil, undef;

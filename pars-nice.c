@@ -30,21 +30,7 @@ char* attrval(int nr, char a) { for(int i=nr+1;i<NV;i++){ char* s= A[i];
 char* parseR(char r, char* s, int n); // FORWARD
 char* pR(char* r, char* s, int n) { nv++; return parseR(*r, s, n); }
 
-// Dynamic String append/cat string X N chars
-//
-// String pointer is resized in chunks
-// of 1024 bytes.
-//
-// S= NULL, or malloced destination
-// X= NULL, or string to append from
-// N= chars to copy, or -1=all
-//
-// Returns S or a new pointer.
-//  
-char* sncat(char* s, char* x, int n) { int i= s?strlen(s):0, l= x?strlen(x):0;
-  if (n<0 || n>l) n= l; s= realloc(s, 1024*((i+n+1024)/1024)); s[i+n]= 0;
-  return strncpy(s+i, x?x:"", n), s;
-}
+#include "str.c"
 
 // Generate (add to *G) from [Rule] stop at ENDchar nr being $0 V[NR]
 int gen(char** g, char* r, char end, int nr) { int n, l; char *or=r, *v, *e;
