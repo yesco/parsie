@@ -10,6 +10,8 @@
 
 #define dstr char*
 
+// how many strings can we handle?
+// TODO: make dynamic?
 #define ZZ 1024
 dstr ss[ZZ]={0}; char sr[ZZ]={0}; int sn=1; // pos=9 == free list
 
@@ -52,11 +54,9 @@ int dprint(double f) {
 	     
 // Concatenate D + S as new str
 // from Index in S take N chars.
-data strnconcat(data d, data s, int i, int n) {
-  // TODO: reuse
-  ss[sn]= sncat(sncat(0, str(d)?str(d):0,-1), str(s)?str(s)+i:0, n);
-  return BOX(0, 3, sn++);
-}
+// TODO: optimize?
+data strnconcat(data d, data s, int i, int n) { char* x= str(s);
+  ss[sn]= sncat(sncat(0,str(d),-1), x?x+i:0, n); return BOX(1,3,sn++); }
 
 void strgc() { memset(sr, 0, sizeof(sr));
   // simulated, lol
