@@ -23,8 +23,6 @@ void initalf(size_t sz) { H=M=calloc(memsize= sz, 1); } // TODO: ?zero S F
 // Variable Name Bindings on Stack
 #include "varz.c"
 
-#include "str.c"
-
 // Parse from P a name
 // (P is pointer to char* and updated)
 //

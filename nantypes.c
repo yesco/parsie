@@ -1,6 +1,7 @@
 // NAN boxing and unboxing of data
 #include <stdio.h>
 #include <math.h>
+#include <stdlib.h>
 #include <assert.h>
 
 // only for *this* endian...
@@ -57,35 +58,92 @@ char* nanstr(data d) { return TYP(d)==2? DAT(d)+hp+1 : 0; }
 int nanprint(data d) {int t=TYP(d);
   return isnan(d.d)?(t==2?printf("%s",nanstr(d)):-t-2):printf("%.7g ",d.d);}
 
-//long* APTR(data d, char* hp) {
-//  int ix= DAT(d), l= hp[ix];
-//  return (long*)&hp[ix+l+1];
-//}
-
 // TODO: it's not aligned
 // AtomValPTR can be used as global
 #define AVPTR(d) (TYP(d)!=2?NULL:(data*)&hp[DAT(d)+hp[DAT(d)]+2])
 
-//data* atomval(data d, char* hp) { if (TYP(d)!=2) return NULL;
-//  int i=DAT(d),l=hp[i]; return (data*)&hp[i+l+1];}
+// how many strings can we handle?
+// TODO: make dynamic?
+#define ZZ 1024
+
+// pos ss[0] is free list
+typedef char* dstr; dstr ss[ZZ]={0}; char sr[ZZ]={0}; int sn=1;
+
+// Dynamic String append/cat string X N chars
+//
+// String pointer is resized in chunks
+// of 1024 bytes.
+//
+// S= NULL, or malloced destination
+// X= NULL, or string to append from
+// N= chars to copy, or -1=all
+//
+// Returns S or a new pointer.
+//  
+char* sncat(dstr s, char* x, int n) { int i= s?strlen(s):0, l= x?strlen(x):0;
+  if (n<0 || n>l) n= l; s= realloc(s, 1024*((i+n+1024)/1024)); s[i+n]= 0;
+  return strncpy(s+i, x?x:"", n), s;
+}
+
+// Return a new str from char* S take N chars.
+double newstr(char* s,int n){ss[sn]=sncat(0,s?s:"",n);return BOX(0,3,sn++).d;}
+
+dstr str(data d) { return TYP(d)==3?ss[DAT(d)]:0; }
+
+char* dchars(double f) { data d= {.d=f}; char* e;
+  if (!isnan(f)) return M+(long)f;
+  e= nanstr(d);
+  return e?e:str(d);
+}
+
+int dlen(double f) { char* r= dchars(f); return r?strlen(r):0; }
+
+int dprint(double f) {
+  // TODO: nan?
+  if (!isnan(f)) return printf("%.7g ",f);
+  return printf("%s", dchars(f));
+}
+
+//printf("[%.8g T=%d D=%lu]", d.d, TYP(d), DAT(d));
+	     
+// Concatenate D + S as new str
+// from Index in S take N chars.
+// TODO: optimize?
+data strnconcat(data d, data s, int i, int n) { char* x= str(s);
+  ss[sn]= sncat(sncat(0,str(d),-1), x?x+i:0, n); return BOX(1,3,sn++); }
+
+void gc() { memset(sr, 0, sizeof(sr));
+  // --- MARK: sr[x]++ for each ref
+  // stack
+  // TODO: what if stack was upper part of heap and grew down?
+  for(int i=0; i<SMAX; i++) { data d= {.d=S[i]}; if (!isnan(d.d)||!NEG(d)) continue;
+    if (TYP(d)==3) sr[DAT(d)]++; }
+  // memory (and globals)
+  char* p= M; while(p<H) { data d= *(data*)p; if (!isnan(d.d)||!NEG(d)) continue;
+    if (TYP(d)==3) sr[DAT(d)]++; }
+
+  // --- SWEEP - prefer lower first
+  for(int i=sn;i;i--)if(!sr[i]){free(ss[i]);ss[i]=ss[0];ss[0]=(char*)(long)i;}
+  DEBUG({long f= 0; printf("Free: "); do printf("%lu=>", f); while((f=(long)ss[f]));printf("\n");});
+  
+}
 
 // ENDWCOUNT
 
-// TODO: extras to save space
-// but it's atoms, so no need...
-
+// NEG:  used to indicate need GC
+//
 // TYPES:
 //   0: NaN         (could be used)
-//   1: long atom   offset atom heap
-//   2: short atom  char[6]
-// not ipmlemented (yet):
-//   3: short str   char[6] (==1)
-//   4: long str    offset str heap
-//   5: void*       offset data heap
+//   1: -
+//   2: atom        offset atom heap
+//   3: dstr        managed strings
+//
+// Possible candidates:
+//   - short str   char[6] (==1)
+//   - void*       offset data heap
 //   6: closure     ix closure array
 //   7: function    ix func array
 //
-// Negative: mean need to be GC:ed
 
 /*
 typedef union data {
@@ -109,7 +167,6 @@ char* nanchar6(data d) { static char s[7]= {0}; if (TYP(d)!=1) return NULL;
 }
 
 */
-
 
 #ifdef nantypesTEST
 void P(char* desc, data d) {
