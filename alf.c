@@ -113,7 +113,7 @@ next: DEBUG(prstack();putchar('\n');printf("\t  '%c'\n",*p))
 
   // -- char ops
   Z'c': switch(*p++){
-    Z'"': e=p; while(*p&&*p!='"')p++; U=newstr(e, p-e); // managed string
+  Z'"': e=p; while(*p&&*p!='"')p++; U=newstr(e, p++-e); // mngd string
     // TODO: minimize!
     // length of managed str/"ptr"/#atom
     Z'c': T=dlen(T);

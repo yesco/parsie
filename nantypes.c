@@ -8,20 +8,23 @@
 typedef union { uint64_t u; double d; } data;
 
 // 1 sign, 7 types, 48(47?) bits of data
+// Use Typ:2B = sIII IIII IIII Ittt
 //#define MTYP 0x0007000000000000L
 //#define MNAN 0x7ff8000000000000L
 //#define MDAT 0x0000ffffffffffffL
 //#define MNEG 0x8000000000000000L
-const uint64_t MTYP=0x0007L<<48,MNAN=0x7ff8L<<48,MDAT=(1L<<48)-1L,MNEG=1L<<63;
+const uint64_t MNAN=0x7ff8L<<48,MDAT=(1L<<48)-1L; //,MNEG=1L<<63;
 // TODO: MDAT should be 1L<<49?
 
-#define TYP(x) ((int)((x).u>>48) & 7)
-#define NEG(x) (x.u & MNEG)
-#define BOX(n,t,dat) ((data){.u=MNAN|((n)?MNEG:0)|(((t)&7L)<<48)|((long)(dat))&MDAT})
+#define Box(t,dat) ((data){.u=(((long)dat)&MDAT) | (((long)t)<<48)})
 #define DAT(x) ((x).u & MDAT)
+#define TYP(x) ((int)((x).u>>48))
+
+// Typ:s constants
+const int TATM=0x8ff9 /*-2*/, TSTR=0xfffb /*-3*/, TCONS=0xfff9 /*-1*/;
 
 #define HPSIZE 16*1024
-char hp[HPSIZE]= {0}; int nilo; data nil, undef;
+char hp[HPSIZE]= {0}; int nilo=0; data nil, undef;
 
 // Add a String to HP limited by SIZE
 //
@@ -44,22 +47,12 @@ int nameadd(char* s) { char* p= hp; int l= strlen(s);
 void prnames() { char* p= hp; printf("\n"); while(*p) { data* d= (data*)(p+1+strlen(p+1)+1); printf("%5ld: %d v=> %10.7g %5ld\t%s\n", p-hp, *p, d->d, d->u, p+1); p+=strlen(p+1)+1+1+sizeof(data); } } // DEBUG
 
 // Return a data atom
-data atom(char* s){return BOX(0,2,nameadd(s));}
+data atom(char* s){return Box(TATM, nameadd(s));}
 
 void inittypes() {nil=atom("nil");assert(DAT(nil)==nilo);undef=atom("undef");}
 
-char* nanstr(data d) { return TYP(d)==2? DAT(d)+hp+1 : 0; }
-
-// Prints a nanData valuie using HeaP
-//
-// Returns 0-n chars printed
-//   -1: EOF on error
-//   -2..-9 if not handled: =TYP(d)-2
-int nanprint(data d) {int t=TYP(d);
-  return isnan(d.d)?(t==2?printf("%s",nanstr(d)):-t-2):printf("%.7g ",d.d);}
-
 // TODO: it's not aligned
-// AtomValPTR can be used as global
+// AtomValPTR is used as address to global var storage in M
 #define AVPTR(d) (TYP(d)!=2?NULL:(data*)&hp[DAT(d)+hp[DAT(d)]+2])
 
 // how many strings can we handle?
@@ -86,41 +79,39 @@ char* sncat(dstr s, char* x, int n) { int i= s?strlen(s):0, l= x?strlen(x):0;
 }
 
 // Return a new str from char* S take N chars.
-double newstr(char* s,int n){ss[sn]=sncat(0,s?s:"",n);return BOX(0,3,sn++).d;}
-
-dstr str(data d) { return TYP(d)==3?ss[DAT(d)]:0; }
+double newstr(char* s,int n){ ss[sn]=sncat(0,s?s:"",n);return Box(TSTR,sn++).d;}
 
 char* dchars(double f) { data d= {.d=f}; char* e;
-  if (!isnan(f)) return M+(long)f;
-  e= nanstr(d);
-  return e?e:str(d);
-}
+  switch(TYP(d)){
+  case TATM: return DAT(d)+hp+1;
+  case TSTR: return ss[DAT(d)];
+  case TCONS: assert(!"TODO: TCONS");
+  // TODO: hmmm, or number?
+  //default: return M+(long)f;
+  } return 0;}
 
 int dlen(double f) { char* r= dchars(f); return r?strlen(r):0; }
 
-int dprint(double f) {
-  // TODO: nan?
-  if (!isnan(f)) return printf("%.7g ",f);
-  return printf("%s", dchars(f));
+int dprint(double f) { char* s= dchars(f);
+  // TODO: TCONS?
+  return s?printf("%s",s):printf("%.7g ",f);
 }
 
-//printf("[%.8g T=%d D=%lu]", d.d, TYP(d), DAT(d));
-	     
 // Concatenate D + S as new str
 // from Index in S take N chars.
 // TODO: optimize?
-data strnconcat(data d, data s, int i, int n) { char* x= str(s);
-  ss[sn]= sncat(sncat(0,str(d),-1), x?x+i:0, n); return BOX(1,3,sn++); }
+double strnconcat(double d, double s, int i, int n) { char* x= dchars(s);
+  ss[sn]= sncat(sncat(0,dchars(d),-1), x?x+i:0, n); return Box(TSTR,sn++).d; }
 
+// GC for managed strings
+// TODO: TCONS
 void gc() { memset(sr, 0, sizeof(sr));
   // --- MARK: sr[x]++ for each ref
   // stack
   // TODO: what if stack was upper part of heap and grew down?
-  for(int i=0; i<SMAX; i++) { data d= {.d=S[i]}; if (!isnan(d.d)||!NEG(d)) continue;
-    if (TYP(d)==3) sr[DAT(d)]++; }
+  for(int i=0; i<SMAX; i++) { data d= {.d=S[i]}; if (TYP(d)==TSTR) sr[DAT(d)]++; }
   // memory (and globals)
-  char* p= M; while(p<H) { data d= *(data*)p; if (!isnan(d.d)||!NEG(d)) continue;
-    if (TYP(d)==3) sr[DAT(d)]++; }
+  char* p= M; while(p<H) { data d= *(data*)p; if (TYP(d)==TSTR) sr[DAT(d)]++; }
 
   // --- SWEEP - prefer lower first
   for(int i=sn;i;i--)if(!sr[i]){free(ss[i]);ss[i]=ss[0];ss[0]=(char*)(long)i;}
@@ -180,8 +171,6 @@ void P(char* desc, data d) {
 
 int main() {
   inittypes();
-
-  //assert(mtyp==MTYP);assert(mnan==MNAN);assert(mdat==MDAT);assert(mneg==MNEG);
 
   data n= {.u=MNAN};
   data f= BOX(1, 7, MDAT);
