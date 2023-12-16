@@ -30,7 +30,13 @@ char* attrval(int nr, char a) { for(int i=nr+1;i<NV;i++){ char* s= A[i];
 char* parseR(char r, char* s, int n); // FORWARD
 char* pR(char* r, char* s, int n) { nv++; return parseR(*r, s, n); }
 
-#include "str.c"
+//#include "str.c"
+// TODO: remove
+char* sncat(char* s, char* x, int n) { int i= s?strlen(s):0, l= x?strlen(x):0; // DEBUG
+  if (n<0 || n>l) n= l; s= realloc(s, 1024*((i+n+1024)/1024)); s[i+n]= 0; // DEBUG
+  return strncpy(s+i, x?x:"", n), s; // DEBUG
+}
+
 
 // Generate (add to *G) from [Rule] stop at ENDchar nr being $0 V[NR]
 int gen(char** g, char* r, char end, int nr) { int n, l; char *or=r, *v, *e;
@@ -121,7 +127,7 @@ int gen(char** g, char* r, char end, int nr) { int n, l; char *or=r, *v, *e;
 // Returns:
 ///  NULL=fail
 //   rest of string (unparsed)
-char* parse(char* r,char* s,int n,int nr){char*p=0,*os=s,*t;int on=n,onr=nv,x;
+char* parse(char* r,char* s,int n,int nr){char*p=0,*os=s,*t,*m;int on=n,onr=nv,x;
   DEBUG(if (debug>2) printf("    parse '%s' '%s' %d\n", r, s, n));
   // TODO: move while below next?
 next: while(n-- && r && s) { while(isspace(*s)) s++;
@@ -142,7 +148,7 @@ case '?': case '+': case '*': newV(nr);
   // TODO: several places?
   switch(*r){
   case'?': case '+': p=s; s=parse(R[r[1]],s,-1,nr);
-    if (*r=='?') { r+=2; s=s?s:p;goto next; } else if (!s) return 0;
+    if (*r=='?') { r+=2; s=s?s:p;goto next; } else if (!s) goto fail;
     // fallthrough
   case'*': r++; while(s&&*s) { p=s; s=parse(R[*r],s,-1,nr); } r++; s=s?s:p;
   }
@@ -152,20 +158,17 @@ case '?': case '+': case '*': newV(nr);
 
 // TODO: also too clever encoding?
 Z'%': ++r; if ((p=strchr("\"\"''(){}[]<>", *r=='s'?*s:*r))) {
-  if (*s!=*p) return 0; else newV(nr);
+    // TODO: goto fail?
+  if (*s!=*p) goto fail; else newV(nr);
   // move till unquoted endchar
   while(*++s&&*s!=p[1]) { if (*s=='\\') s++; V[nv+nr]=sncat(V[nv+nr], s, 1); }
   r++; s++; goto next;
 }
-  if (*r=='e'&&!*s) { r++; goto next; }
-  p=s;
-  do { if ((x=(*r=='_'
-    || strchr("anw",*r) && isalpha(*s)
-    || strchr(p==s?"di":"dwin", *r) && isdigit(*s))))
-    s++;
-    else if (p==s) goto fail;
-  } while(strchr("in", *r) && x);
-  r++;
+  // "XYZZZZ" X skipped if first ch
+  // XY will take more chars
+  p=s; do{ t=isdigit(*s)?"nidw":isalpha(*s)?" nwa":*s=='_'?" nw":*s?0:"  e";
+    m= t?strchr(t+(s==p), *r):0; if (!m && s==p) goto fail;
+  } while(*++s && m && m-t<2);  s-=!m; r++;
 
 Z'A'...'Z': if ((p=pR(r++, s, -1))) s= p; else goto fail;
 Z'\\': r++; default: if (*s==*r++) s++; /* matched */ else fail: {
