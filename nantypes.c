@@ -16,7 +16,7 @@ typedef union { uint64_t u; double d; } data;
 const uint64_t MNAN=0x7ff8L<<48,MDAT=(1L<<48)-1L; //,MNEG=1L<<63;
 // TODO: MDAT should be 1L<<49?
 
-#define Box(t,dat) ((data){.u=(((long)dat)&MDAT) | (((long)t)<<48)})
+#define BOX(t,dat) ((data){.u=(((long)dat)&MDAT) | (((long)t)<<48)})
 #define DAT(x) ((x).u & MDAT)
 #define TYP(x) ((int)((x).u>>48))
 
@@ -47,7 +47,7 @@ int nameadd(char* s) { char* p= hp; int l= strlen(s);
 void prnames() { char* p= hp; printf("\n"); while(*p) { data* d= (data*)(p+1+strlen(p+1)+1); printf("%5ld: %d v=> %10.7g %5ld\t%s\n", p-hp, *p, d->d, d->u, p+1); p+=strlen(p+1)+1+1+sizeof(data); } } // DEBUG
 
 // Return a data atom
-data atom(char* s){return Box(TATM, nameadd(s));}
+data atom(char* s){return BOX(TATM, nameadd(s));}
 
 void inittypes() {nil=atom("nil");assert(DAT(nil)==nilo);undef=atom("undef");}
 
@@ -79,7 +79,7 @@ char* sncat(dstr s, char* x, int n) { int i= s?strlen(s):0, l= x?strlen(x):0;
 }
 
 // Return a new str from char* S take N chars.
-double newstr(char* s,int n){ ss[sn]=sncat(0,s?s:"",n);return Box(TSTR,sn++).d;}
+double newstr(char* s,int n){ ss[sn]=sncat(0,s?s:"",n);return BOX(TSTR,sn++).d;}
 
 char* dchars(double f) { data d= {.d=f}; char* e;
   switch(TYP(d)){
@@ -101,7 +101,7 @@ int dprint(double f) { char* s= dchars(f);
 // from Index in S take N chars.
 // TODO: optimize?
 double strnconcat(double d, double s, int i, int n) { char* x= dchars(s);
-  ss[sn]= sncat(sncat(0,dchars(d),-1), x?x+i:0, n); return Box(TSTR,sn++).d; }
+  ss[sn]= sncat(sncat(0,dchars(d),-1), x?x+i:0, n); return BOX(TSTR,sn++).d; }
 
 // GC for managed strings
 // TODO: TCONS
