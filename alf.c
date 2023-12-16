@@ -124,9 +124,8 @@ next: DEBUG(prstack();putchar('\n');printf("\t  '%c'\n",*p))
     Z'@': T=M[L T]; Z'!': M[L T]=S[sp-2];sp-=2;
     Z'i': M[L T]++;sp--; Z'd': M[L T]--;sp--;
 
-#define SM(a,op) Z a: x=T; M[L T] op x; sp-=2;
-SM('+',+=);SM('-',-=);SM('*',*=);SM('/',/=);SM('<',<<=);SM('>',>>=);
-    SM('&',&=);SM('|',|=);SM('^',^=);
+#define SM(op) Z#op[0]: x=T; M[L T] op x; sp-=2;
+SM(+=);SM(-=);SM(*=);SM(/=);SM(<<=);SM(>>=);SM(&=);SM(|=);SM(^=);
     // TODO: c, ci cd
   }
 
@@ -135,8 +134,8 @@ SM('+',+=);SM('-',-=);SM('*',*=);SM('/',/=);SM('<',<<=);SM('>',>>=);
     Z'@': T=*(long*)&M[8*L T]; Z'!': *(long*)&M[8*L T]= S[sp-2];sp-=2;
     // TODO: w,
     Z'i': (*(long*)&M[8*L T])++;sp--; Z'd': (*(long*)&M[8*L T])--;sp--;
-#define SW(a,op) Z a: x=S[sp-2]; (*(long*)&M[8*L T]) op x; sp-=2;
-SW('+',+=);SW('-',-=);SW('*',*=);SW('/',/=);SW('<',<<=);SW('>',>>=);
+  #define SW(a,op) Z#a[0]: x=S[sp-2]; (*(long*)&M[8*L T]) op x; sp-=2;
+SW(+,+=);SW(-,-=);SW(*,*=);SW(/,/=);SW(<,<<=);SW(>,>>=);
   }
   // -- bit ops
   Z'b': switch(*p++){
@@ -156,7 +155,7 @@ SW('+',+=);SW('-',-=);SW('*',*=);SW('/',/=);SW('<',<<=);SW('>',>>=);
     goto next; default: p--; // error fallthrough
   }
 
-  default: printf("\n[%% Undefined op: '%s']\n", p-1); p++; exit(3); printf("FOO\n");
+  default: printf("\n[%% Undefined op: '%s']\n", p-1); p++; exit(3);
   }
   goto next;
 }

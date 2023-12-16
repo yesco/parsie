@@ -158,12 +158,14 @@ case '?': case '+': case '*': newV(nr);
 
 // TODO: also too clever encoding?
 Z'%': ++r; if ((p=strchr("\"\"''(){}[]<>", *r=='s'?*s:*r))) {
-    // TODO: goto fail?
   if (*s!=*p) goto fail; else newV(nr);
   // move till unquoted endchar
   while(*++s&&*s!=p[1]) { if (*s=='\\') s++; V[nv+nr]=sncat(V[nv+nr], s, 1); }
   r++; s++; goto next;
 }
+  // char class: %a %d %w %i %n %e
+  // The T string classify curent
+  // char, returning list of classes
   // "XYZZZZ" X skipped if first ch
   // XY will take more chars
   p=s; do{ t=isdigit(*s)?"nidw":isalpha(*s)?" nwa":*s=='_'?" nw":*s?0:"  e";
