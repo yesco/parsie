@@ -8,12 +8,12 @@
 #define DEBUG(a) do a while(0);
 #endif
 
-#define dstr char*
-
 // how many strings can we handle?
 // TODO: make dynamic?
 #define ZZ 1024
-dstr ss[ZZ]={0}; char sr[ZZ]={0}; int sn=1; // pos=9 == free list
+
+// pos ss[0] is free list
+typedef char* dstr; dstr ss[ZZ]={0}; char sr[ZZ]={0}; int sn=1;
 
 // Dynamic String append/cat string X N chars
 //
@@ -26,7 +26,7 @@ dstr ss[ZZ]={0}; char sr[ZZ]={0}; int sn=1; // pos=9 == free list
 //
 // Returns S or a new pointer.
 //  
-dstr sncat(dstr s, char* x, int n) { int i= s?strlen(s):0, l= x?strlen(x):0;
+char* sncat(dstr s, char* x, int n) { int i= s?strlen(s):0, l= x?strlen(x):0;
   if (n<0 || n>l) n= l; s= realloc(s, 1024*((i+n+1024)/1024)); s[i+n]= 0;
   return strncpy(s+i, x?x:"", n), s;
 }
