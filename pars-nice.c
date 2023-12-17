@@ -9,8 +9,7 @@ int debug= 0; // DEBUG
 
 // Results and Attributes
 #define NV 256
-int nv= 0;
-char *V[NV]= {0}, *R[128]= {0}, *A[NV]= {0};
+char *V[NV]= {0}, *R[128]= {0}, *A[NV]= {0}; int nv= 0;
 
 // TODO: nv++ and nr? hmmm
 void newV(int nr) { nv++; free(V[nr]); V[nr]=0; free(A[nr]); A[nr]= 0; }
@@ -48,8 +47,7 @@ int gen(char** g, char* r, char end, int nr) { int n, l; char *or=r, *v, *e;
       } else if ((e=strchr("\"\"''(){}[]<>", *r)) && isdigit(*++r)) { // $"1 quoted
 	v= V[*r-'0'+nr+1]; *g= sncat(*g, e+0, 1);
 	printf("GEN e=%s r=%s v=%s \n", e, r, v); // DEBUG
-	while(*v) { if (*v==e[1]) *g=sncat(*g, "\\", 1); *g= sncat(*g, v++, 1); }
-	*g= sncat(*g, e+1, 1); break;
+	while(*v) { if (*v==e[1]) *g=sncat(*g, "\\", 1); *g= sncat(*g, v++, 1); } v=e+1;l=1;
       }
       *g= sncat(*g, v, l); break;
     case '\\': r++; default: *g= sncat(*g, r, 1);
@@ -130,13 +128,10 @@ int gen(char** g, char* r, char end, int nr) { int n, l; char *or=r, *v, *e;
 char* parse(char* r,char* s,int n,int nr){char*p=0,*os=s,*t,*m;int on=n,onr=nv,x;
   DEBUG(if (debug>2) printf("    parse '%s' '%s' %d\n", r, s, n));
   // TODO: move while below next?
-next: while(n-- && r && s) { while(isspace(*s)) s++;
+  while(n-- && r && s) {next: while(isspace(*s))s++;while(isspace(*r))r++;
 DEBUG(if (debug>3)printf("     next '%s' (%d)\n\t   of '%s' left=%d\n",r,*r,s,n));
 
-switch(*r){
-case 0: case '\n': case '\r': case '|': return s; // end
-Z' ': case '\t': while(isspace(*s))s++; r++;
-
+switch(*r){ case 0: case '\n': case '\r': case '|': return s; // end
 Z'(': Z'{': assert(!"TODO: implement");
 Z'[': r+= 1+gen(V+nr, r, ']', nr);
 Z':': A[nr]= sncat(A[nr], " ", 1); r+= 1+gen(A+nr, r, ' ', nr);
@@ -186,39 +181,21 @@ Z'\\': r++; default: if (*s==*r++) s++; /* matched */ else fail: {
 }
 
 /// capture
-char* parseR(char r, char* s, int n) { int nr=++nv;
-  DEBUG(if (debug>1) printf("  parseR '%c' (%d)\n", r, r));
-  nv--; newV(nr);
-  char *x= parse(R[r],s,n,nr);
-  // TODO: combine repeats? concat && nv-- after call parseR
-  // TODO: matching with ? seems to "fail" ???
-  // TODO: for matching only subrule "| X" default should be [$1] ???
-  if (!V[nr]) V[nr]=x?strndup(s, x-s):x;
-  DEBUG(if (debug>1) printf("  ->%c.V[%d]='%s'\n", r, nr, V[nr]));
-  nv= nr-1; return x;
-}
+char* parseR(char r, char* s, int n){ int nr=++nv; nv--; newV(nr); char *x;
+  x=parse(R[r],s,n,nr); if(!V[nr])V[nr]=x?strndup(s,x-s):x; nv=nr-1;return x;}
 
-char* test(char rule, char* s) { nv= 0;
-  char* e= parseR(rule, s, -1);
-  if (!e || *e) printf("%%%s %c-> '%s' RES=>'%s'\n\n", e?(*e?"UNPARSED":"MATCHED!"):"FAILED", rule, e, V[nv+1]);
-  printf("%s\n", V[nv+1]); return e;
-}
+char* test(char r, char* s){ nv=0; char* e=parseR(r,s,-1); if(!e||*e)printf(
+    "%%%s %c->'%s'\n",e?(*e?"MORE":"OK!"):"FAIL",r,e);
+  printf("%s\n",V[nv+1]);return e;}
 
-void readparser(FILE* f) { char rule, *ln= NULL; size_t z= 0, d='\n';
-  while(getdelim(&ln, &z, d, f)>0) {
-    if (ln && ln[strlen(ln)-1]=='\n') ln[strlen(ln)-1]= 0;
+void readparser(FILE* f) { char rule, *ln= NULL; size_t z= 0, d='\n'; int n;
+  while((n=getdelim(&ln, &z, d, f))>0) { if (ln && ln[n-1]=='\n') ln[n-1]= 0;
     DEBUG(printf("> %s\n", ln))
-    if (!ln) break;
-    if (!*ln) continue;
-    if (ln[1]=='=' && isalpha(*ln) && isupper(*ln)) R[ln[0]]= strdup(ln+2);
-    else if (*ln=='#') ; // comment
-    else if (*ln=='?') rule=ln[1];
-    else if (*ln=='*') { rule=ln[1]; d=0; }
+    if (!ln) break; if (!*ln || *ln=='#') continue;
+    if (ln[1]=='=' && isalpha(*ln) && isupper(*ln)) R[ln[0]]=strdup(ln+2); else
+    if (*ln=='?') rule=ln[1]; else if (*ln=='*') { rule=ln[1]; d=0; } else
     //    else if (*ln=='$' && strchr("[{(<", ln[1])) { parsgen(ln+1, "", NULL); free(pgen); pgen= NULL; }
-    else test(rule, ln);
-  }
-  free(ln);
-}
+    test(rule, ln); } free(ln);}
 
 // ENDWCOUNT
 

@@ -1,5 +1,5 @@
-TOO MINIFIED:
--- use: pars-nice.bnf
+//TOO MINIFIED:
+//-- use: pars-nice.bnf
 
 #include <stdio.h>
 #include <stdlib.h>
