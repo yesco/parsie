@@ -29,13 +29,12 @@ char* attrval(int nr, char a) { for(int i=nr+1;i<NV;i++){ char* s= A[i];
 char* parseR(char r, char* s, int n); // FORWARD
 char* pR(char* r, char* s, int n) { nv++; return parseR(*r, s, n); }
 
-//#include "str.c"
+//#include "nantypes.c"
 // TODO: remove
 char* sncat(char* s, char* x, int n) { int i= s?strlen(s):0, l= x?strlen(x):0; // DEBUG
   if (n<0 || n>l) n= l; s= realloc(s, 1024*((i+n+1024)/1024)); s[i+n]= 0; // DEBUG
   return strncpy(s+i, x?x:"", n), s; // DEBUG
 }
-
 
 // Generate (add to *G) from [Rule] stop at ENDchar nr being $0 V[NR]
 int gen(char** g, char* r, char end, int nr) { int n, l; char *or=r, *v, *e;
@@ -46,7 +45,7 @@ int gen(char** g, char* r, char end, int nr) { int n, l; char *or=r, *v, *e;
 	e= v= attrval(nr, *r); if (!e) break; while(*e && *++e && *e!=' '){}; l= e-v;
       } else if ((e=strchr("\"\"''(){}[]<>", *r)) && isdigit(*++r)) { // $"1 quoted
 	v= V[*r-'0'+nr+1]; *g= sncat(*g, e+0, 1);
-	printf("GEN e=%s r=%s v=%s \n", e, r, v); // DEBUG
+	DEBUG(if (debug>1) printf("GEN e=%s r=%s v=%s \n", e, r, v)); // DEBUG
 	while(*v) { if (*v==e[1]) *g=sncat(*g, "\\", 1); *g= sncat(*g, v++, 1); } v=e+1;l=1;
       }
       *g= sncat(*g, v, l); break;
@@ -139,8 +138,6 @@ Z':': A[nr]= sncat(A[nr], " ", 1); r+= 1+gen(A+nr, r, ' ', nr);
 // TODO: too clever to reuse instead of clear...
 case '?': case '+': case '*': newV(nr);
   DEBUG(if (debug>1) printf("== res %d\n", nr)); // DEBUG
-  // TODO: is nv right? "passthrough doesn't seem to work for $s %" etc..."
-  // TODO: several places?
   switch(*r){
   case'?': case '+': p=s; s=parse(R[r[1]],s,-1,nr);
     if (*r=='?') { r+=2; s=s?s:p;goto next; } else if (!s) goto fail;
@@ -192,10 +189,9 @@ void readparser(FILE* f) { char rule, *ln= NULL; size_t z= 0, d='\n'; int n;
   while((n=getdelim(&ln, &z, d, f))>0) { if (ln && ln[n-1]=='\n') ln[n-1]= 0;
     DEBUG(printf("> %s\n", ln))
     if (!ln) break; if (!*ln || *ln=='#') continue;
-    if (ln[1]=='=' && isalpha(*ln) && isupper(*ln)) R[ln[0]]=strdup(ln+2); else
-    if (*ln=='?') rule=ln[1]; else if (*ln=='*') { rule=ln[1]; d=0; } else
-    //    else if (*ln=='$' && strchr("[{(<", ln[1])) { parsgen(ln+1, "", NULL); free(pgen); pgen= NULL; }
-    test(rule, ln); } free(ln);}
+    if (ln[1]=='=') R[ln[0]]=strdup(ln+2); else switch(*ln){
+    case '*': d=0; case '?': rule=ln[1]; break; default: test(rule, ln);
+    } } free(ln);}
 
 // ENDWCOUNT
 
