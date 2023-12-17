@@ -94,7 +94,7 @@ next: DEBUG(prstack();putchar('\n');printf("\t  '%c'\n",*p))
   Z'^': assert(!"implement"); // TODO: "exit" / "return" / break?
   Z']': bindexit(); S[args]= T; sp= args+1; Z'_': bindadd(parsename(&p));
   // TODO: we negate in bindfind too!
-  Z'`': U= -bindfind(parsename(&p))-1; Z'#': U= atom(parsename(&p)).d;
+  Z'`': U= -bindfind(parsename(&p))-1; Z'#': U= atom(parsename(&p));
 
   // control/IF/FOR/WHILE - ? { }
   Z'}': return iff?p:NULL;

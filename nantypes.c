@@ -10,6 +10,9 @@ typedef union { uint64_t u; double d; } data;
 // alias to clarify extended meaning
 typedef double D;
 
+unsigned long d2l(D d) { return *(long*)(&d); }
+D l2d(long u) { return *(D*)(&u); }
+
 // 1 sign, 7 types, 48(47?) bits of data
 // Use Typ:2B = sIII IIII IIII Ittt
 //#define MTYP 0x0007000000000000L
@@ -19,15 +22,15 @@ typedef double D;
 //const uint64_t MNAN=0x7ff8L<<48,MDAT=(1L<<48)-1L; //,MNEG=1L<<63;
 // TODO: MDAT should be 1L<<49?
 
-#define BOX(t,dat) ((data){.u=(((long)dat)&((1L<<48)-1L)) | (((long)t)<<48)})
-#define DAT(x) ((x).u&(((1L<<48))-1L))
-#define TYP(x) ((int)((x).u>>48))
+#define BOX(t,dat) ((((long)dat)&((1L<<48)-1L)) | (((long)t)<<48))
+#define DAT(x) (d2l(x)&(((1L<<48))-1L))
+#define TYP(x) ((int)(d2l(x)>>48))
 
 // Typ:s constants
 const int TATM=0x8ff9 /*-2*/, TSTR=0xfffb /*-3*/, TCONS=0xfff9 /*-1*/;
 
 #define HPSIZE 16*1024
-char hp[HPSIZE]= {0}; int nilo=0; data nil, undef;
+char hp[HPSIZE]= {0}; int nilo=0; D nil, undef;
 
 // Add a String to HP limited by SIZE
 //
@@ -50,13 +53,13 @@ int nameadd(char* s) { char* p= hp; int l= strlen(s);
 void prnames() { char* p= hp; printf("\n"); while(*p) { data* d= (data*)(p+1+strlen(p+1)+1); printf("%5ld: %d v=> %10.7g %5ld\t%s\n", p-hp, *p, d->d, d->u, p+1); p+=strlen(p+1)+1+1+sizeof(data); } } // DEBUG
 
 // Return a data atom
-data atom(char* s){return BOX(TATM, nameadd(s));}
+D atom(char* s){return l2d(BOX(TATM, nameadd(s)));}
 
 void inittypes() {nil=atom("nil");assert(DAT(nil)==nilo);undef=atom("undef");}
 
 // TODO: it's not aligned
 // AtomValPTR is used as address to global var storage in M
-#define AVPTR(d) (TYP(d)!=2?NULL:(data*)&hp[DAT(d)+hp[DAT(d)]+2])
+#define AVPTR(d) (TYP(d)!=2?NULL:(D*)&hp[DAT(d)+hp[DAT(d)]+2])
 
 // how many strings can we handle?
 // TODO: make dynamic?
@@ -82,9 +85,9 @@ char* sncat(dstr s, char* x, int n) { int i= s?strlen(s):0, l= x?strlen(x):0;
 }
 
 // Return a new str from char* S take N chars.
-D newstr(char* s,int n){ ss[sn]=sncat(0,s?s:"",n);return BOX(TSTR,sn++).d;}
+D newstr(char* s,int n){ ss[sn]=sncat(0,s?s:"",n);return l2d(BOX(TSTR,sn++));}
 
-char* dchars(D f) { data d= {.d=f}; char* e;
+char* dchars(D d) {
   switch(TYP(d)){
   case TATM: return DAT(d)+hp+1;
   case TSTR: return ss[DAT(d)];
@@ -104,7 +107,7 @@ int dprint(D f) { char* s= dchars(f);
 // from Index in S take N chars.
 // TODO: optimize?
 D strnconcat(D d, D s, int i, int n) { char* x= dchars(s);
-  ss[sn]= sncat(sncat(0,dchars(d),-1), x?x+i:0, n); return BOX(TSTR,sn++).d; }
+  ss[sn]= sncat(sncat(0,dchars(d),-1), x?x+i:0, n); return BOX(TSTR,sn++); }
 
 // GC for managed strings
 // TODO: TCONS
@@ -112,9 +115,9 @@ void gc() { memset(sr, 0, sizeof(sr));
   // --- MARK: sr[x]++ for each ref
   // stack
   // TODO: what if stack was upper part of heap and grew down?
-  for(int i=0; i<SMAX; i++) { data d= {.d=S[i]}; if (TYP(d)==TSTR) sr[DAT(d)]++; }
+  for(int i=0; i<SMAX; i++) { D d= S[i]; if (TYP(d)==TSTR) sr[DAT(d)]++; }
   // memory (and globals)
-  char* p= M; while(p<H) { data d= *(data*)p; if (TYP(d)==TSTR) sr[DAT(d)]++; }
+  char* p= M; while(p<H) { D d= *(D*)p; if (TYP(d)==TSTR) sr[DAT(d)]++; }
 
   // --- SWEEP - prefer lower first
   for(int i=sn;i;i--)if(!sr[i]){free(ss[i]);ss[i]=ss[0];ss[0]=(char*)(long)i;}
