@@ -4,14 +4,11 @@
 #include <stdlib.h>
 #include <assert.h>
 
-// only for *this* endian...
-typedef union { uint64_t u; double d; } data;
-
 // alias to clarify extended meaning
 typedef double D;
 
-unsigned long d2l(D d) { return *(long*)(&d); }
-D l2d(long u) { return *(D*)(&u); }
+unsigned long d2u(D d) { return *(long*)(&d); }
+D u2d(long u) { return *(D*)(&u); }
 
 // 1 sign, 7 types, 48(47?) bits of data
 // Use Typ:2B = sIII IIII IIII Ittt
@@ -23,11 +20,11 @@ D l2d(long u) { return *(D*)(&u); }
 // TODO: MDAT should be 1L<<49?
 
 #define BOX(t,dat) ((((long)dat)&((1L<<48)-1L)) | (((long)t)<<48))
-#define DAT(x) (d2l(x)&(((1L<<48))-1L))
-#define TYP(x) ((int)(d2l(x)>>48))
+#define DAT(x) (d2u(x)&(((1L<<48))-1L))
+#define TYP(x) ((int)(d2u(x)>>48))
 
 // Typ:s constants
-const int TATM=0x8ff9 /*-2*/, TSTR=0xfffb /*-3*/, TCONS=0xfff9 /*-1*/;
+const int TATM=0x8ff9 /*2*/, TSTR=0xfffb /*-3*/, TCONS=0xfff9 /*-1*/;
 
 #define HPSIZE 16*1024
 char hp[HPSIZE]= {0}; int nilo=0; D nil, undef;
@@ -45,15 +42,15 @@ char hp[HPSIZE]= {0}; int nilo=0; D nil, undef;
 //   len=0 means end of list
 //   note: assumes zeroed HeaP
 int nameadd(char* s) { char* p= hp; int l= strlen(s);
-  while(*p){if(!strcmp(s,p+1))return p-hp;p+=1+strlen(p+1)+1+sizeof(data);}
+  while(*p){if(!strcmp(s,p+1))return p-hp;p+=1+strlen(p+1)+1+sizeof(D);}
   assert(p+l+2-hp < HPSIZE);
   return *p=l, strcpy(p+1, s)-hp-1;
 }
 
-void prnames() { char* p= hp; printf("\n"); while(*p) { data* d= (data*)(p+1+strlen(p+1)+1); printf("%5ld: %d v=> %10.7g %5ld\t%s\n", p-hp, *p, d->d, d->u, p+1); p+=strlen(p+1)+1+1+sizeof(data); } } // DEBUG
+void prnames() { char* p= hp; printf("\n"); while(*p) { D* d= (D*)(p+1+strlen(p+1)+1); printf("%5ld: %d v=> %10.7g %5ld\t%s\n", p-hp, *p, *d, d2u(*d), p+1); p+=strlen(p+1)+1+1+sizeof(D); } } // DEBUG
 
 // Return a data atom
-D atom(char* s){return l2d(BOX(TATM, nameadd(s)));}
+D atom(char* s){return u2d(BOX(TATM, nameadd(s)));}
 
 void inittypes() {nil=atom("nil");assert(DAT(nil)==nilo);undef=atom("undef");}
 
@@ -85,23 +82,15 @@ char* sncat(dstr s, char* x, int n) { int i= s?strlen(s):0, l= x?strlen(x):0;
 }
 
 // Return a new str from char* S take N chars.
-D newstr(char* s,int n){ ss[sn]=sncat(0,s?s:"",n);return l2d(BOX(TSTR,sn++));}
+D newstr(char* s,int n){ ss[sn]=sncat(0,s?s:"",n);return u2d(BOX(TSTR,sn++));}
 
-char* dchars(D d) {
-  switch(TYP(d)){
-  case TATM: return DAT(d)+hp+1;
-  case TSTR: return ss[DAT(d)];
-  case TCONS: assert(!"TODO: TCONS");
-  // TODO: hmmm, or number?
-  //default: return M+(long)f;
-  } return 0;}
+char* dchars(D d) { int t=TYP(d);
+  return t==TATM?DAT(d)+hp+1:t==TSTR?(char*)ss[DAT(d)]:0; }
 
 int dlen(D f) { char* r= dchars(f); return r?strlen(r):0; }
 
 int dprint(D f) { char* s= dchars(f);
-  // TODO: TCONS?
-  return s?printf("%s",s):printf("%.7g ",f);
-}
+  return s?printf("%s",s):printf("%.7g ",f); }
 
 // Concatenate D + S as new str
 // from Index in S take N chars.

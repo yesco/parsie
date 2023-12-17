@@ -16,9 +16,9 @@ int fr=0,loc=0,vix= 0; struct var { int a,f,l; } V[MAXVAR]={0};
 int _varadd(int f, int l, int a) { V[vix]= (struct var){a,f,l}; return vix++; }
 void glbladd(char* s) { int a=nameadd(s);
   while((H-M)%8 || H>M==0)H++; // align
-  data* p=(data*)AVPTR(atom(s));
+  D* p= AVPTR(atom(s));
   DEBUG(printf("== glbladd: %s @ %ld\n", s, H-M));
-  p->u= H-M; *(data*)H= (data){.d=4711.42}; H+= 8;
+  *p= H-M; *(D*)H= 4711.42; H+= 8;
   //printf(" >>> u= %ld\n", p->u);
   // BUG:
   // TODO: if defined sevea times it allocates more! lol
@@ -30,8 +30,8 @@ int bindfindid(int a) { int i= vix;while(i--)if(V[i].a==a)return i; return -1;}
 int bindfind(char* s) { int i=bindfindid(nameadd(s));
   //printf("== bindfind: %s @ %d\n", s, i);
   if (i>0) return i; else {
-    data* p= (data*)AVPTR(atom(s)); int i= p->u;
-    DEBUG(printf(" >>> u= %ld\n", p->u));
+    D* p= AVPTR(atom(s)); unsigned long l= d2u(*p);
+    DEBUG(printf(" >>> u= %ld\n", l));
     //printf("  == GLOBFIND: %s @ u=%ld => %d\n", s, p->u, i);
 
     // TODO: it's 0 if not found!
