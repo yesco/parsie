@@ -7,17 +7,20 @@
 // only for *this* endian...
 typedef union { uint64_t u; double d; } data;
 
+// alias to clarify extended meaning
+typedef double D;
+
 // 1 sign, 7 types, 48(47?) bits of data
 // Use Typ:2B = sIII IIII IIII Ittt
 //#define MTYP 0x0007000000000000L
 //#define MNAN 0x7ff8000000000000L
 //#define MDAT 0x0000ffffffffffffL
 //#define MNEG 0x8000000000000000L
-const uint64_t MNAN=0x7ff8L<<48,MDAT=(1L<<48)-1L; //,MNEG=1L<<63;
+//const uint64_t MNAN=0x7ff8L<<48,MDAT=(1L<<48)-1L; //,MNEG=1L<<63;
 // TODO: MDAT should be 1L<<49?
 
-#define BOX(t,dat) ((data){.u=(((long)dat)&MDAT) | (((long)t)<<48)})
-#define DAT(x) ((x).u & MDAT)
+#define BOX(t,dat) ((data){.u=(((long)dat)&((1L<<48)-1L)) | (((long)t)<<48)})
+#define DAT(x) ((x).u&(((1L<<48))-1L))
 #define TYP(x) ((int)((x).u>>48))
 
 // Typ:s constants
@@ -79,9 +82,9 @@ char* sncat(dstr s, char* x, int n) { int i= s?strlen(s):0, l= x?strlen(x):0;
 }
 
 // Return a new str from char* S take N chars.
-double newstr(char* s,int n){ ss[sn]=sncat(0,s?s:"",n);return BOX(TSTR,sn++).d;}
+D newstr(char* s,int n){ ss[sn]=sncat(0,s?s:"",n);return BOX(TSTR,sn++).d;}
 
-char* dchars(double f) { data d= {.d=f}; char* e;
+char* dchars(D f) { data d= {.d=f}; char* e;
   switch(TYP(d)){
   case TATM: return DAT(d)+hp+1;
   case TSTR: return ss[DAT(d)];
@@ -90,9 +93,9 @@ char* dchars(double f) { data d= {.d=f}; char* e;
   //default: return M+(long)f;
   } return 0;}
 
-int dlen(double f) { char* r= dchars(f); return r?strlen(r):0; }
+int dlen(D f) { char* r= dchars(f); return r?strlen(r):0; }
 
-int dprint(double f) { char* s= dchars(f);
+int dprint(D f) { char* s= dchars(f);
   // TODO: TCONS?
   return s?printf("%s",s):printf("%.7g ",f);
 }
@@ -100,7 +103,7 @@ int dprint(double f) { char* s= dchars(f);
 // Concatenate D + S as new str
 // from Index in S take N chars.
 // TODO: optimize?
-double strnconcat(double d, double s, int i, int n) { char* x= dchars(s);
+D strnconcat(D d, D s, int i, int n) { char* x= dchars(s);
   ss[sn]= sncat(sncat(0,dchars(d),-1), x?x+i:0, n); return BOX(TSTR,sn++).d; }
 
 // GC for managed strings
@@ -172,7 +175,7 @@ void P(char* desc, data d) {
 int main() {
   inittypes();
 
-  data n= {.u=MNAN};
+  data n= NAN;
   data f= BOX(1, 7, MDAT);
   //data c= char6nan("gurkafoobar");
   data s= BOX(1, 7, 4711);

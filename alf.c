@@ -21,6 +21,7 @@ char* F['Z'-'A'+1]= {0};
 void initalf(size_t sz) { H=M=calloc(memsize= sz, 1); } // TODO: ?zero S F
 
 // Variable Name Bindings on Stack
+#include "nantypes.c"
 #include "varz.c"
 
 // Parse from P a name
@@ -54,7 +55,7 @@ next: DEBUG(prstack();putchar('\n');printf("\t  '%c'\n",*p))
   Z'd': S[sp]= T; sp++; Z'\\': sp--;
   Z'o': S[sp]= S[sp-2]; sp++; Z's': x=T; T= S[sp-2]; S[sp-2]= x;
 
-  Z'0'...'9': {double v=0;p--;while(isdigit(*p))v=v*10+*p++-'0';U=v;}
+  Z'0'...'9': {D v=0;p--;while(isdigit(*p))v=v*10+*p++-'0';U=v;}
   Z'A'...'Z': alf(F[p[-1]-'A'], args, n, 0);
   Z'x': { char x[]={POP,0}; alf(x, 0, 0, 0); }
 
@@ -71,8 +72,8 @@ next: DEBUG(prstack();putchar('\n');printf("\t  '%c'\n",*p))
   Z'g': case ',': H=(char*)((((L H)+SL-1)/SL)*SL); if (p[-1]=='g') goto next;
      memcpy(H,&POP,SL); H+=SL; // ',' - action
   // TODO: use raw offset, alignment error?
-  Z'@': if (T<0) T=S[(L-T)-1]; else T=*(double*)&M[8*L T];
-  Z'!': if (T<0) S[L-T-1]=S[sp-2]; else *(double*)&M[8*L T]= S[sp-2]; sp-=2;
+  Z'@': if (T<0) T=S[(L-T)-1]; else T=*(D*)&M[8*L T];
+  Z'!': if (T<0) S[L-T-1]=S[sp-2]; else *(D*)&M[8*L T]= S[sp-2]; sp-=2;
 
   // -- printers (see also $...)
   Z'.': dprint(POP); Z'e': putchar(POP);
@@ -143,11 +144,11 @@ SW(+,+=);SW(-,-=);SW(*,*=);SW(/,/=);SW(<,<<=);SW(>,>>=);
 
   // -- string ops
   Z'$': x=1; switch(*p++) {
-    Z'#': prstack();putchar('\n');
+    Z'.': prstack();putchar('\n');
     // TODO: address and not value?
     Z'0'...'9': U= S[args+p[-1]-'0'-1]; Z'!': S[args+*p++-'0'-1]= POP;
     Z's': x=POP; /*fallthrough*/ case' ': while(x-->=0)putchar(' ');
-    Z'n': printf("\n"); Z'.': printf("%lx\n", L POP);
+    Z'n': printf("\n"); Z'h': printf("%lx\n", L POP);
     // TODO: backslash quotiong \n: $\\ .
     Z'"': e=H;while(*p&&*p!='"')*H++=*p++; *H++=0;if(*p)p++; U=e-M; U=H-e-1;
     goto next; default: p--; // error fallthrough
@@ -164,8 +165,8 @@ SW(+,+=);SW(-,-=);SW(*,*=);SW(/,/=);SW(<,<<=);SW(>,>>=);
 // ====================
 // as VM for 'parsie"
 
-// DOUBLE stack!
-// Ops default on doubles (64bit).
+// D stack!
+// Ops default on Ds (64bit).
 // Cast to long for bit ops.
 // int32 is safe and correct!
 // memory is addressed using offset
@@ -255,9 +256,10 @@ SW(+,+=);SW(-,-=);SW(*,*=);SW(/,/=);SW(<,<<=);SW(>,>>=);
     $!1 - $!9 - set frame parameter N
    '$ '- print blank
     $s - print N blanks
-    $. - print hex ($h instead? see $#)
+    $h - print hex
+    $. - print stack (.S normally)
     $n - print newline // TODO: have cr remove
-    $# - print stack ($. instead?)
+  ( $# - format? )
 
     $" - counted string
   ( $\ - interpret \n etc - counted? )
@@ -274,7 +276,7 @@ SW(+,+=);SW(-,-=);SW(*,*=);SW(/,/=);SW(<,<<=);SW(>,>>=);
   * - mul
   + - add
   , - ret aligned here, write word
-  . - print data (double/atom)
+  . - print data (D/atom)
   / - div
   0123456789 - number
   : - define
@@ -369,7 +371,7 @@ SW(+,+=);SW(-,-=);SW(*,*=);SW(/,/=);SW(<,<<=);SW(>,>>=);
 
 int main(int argc, char** argv) {
   assert(sizeof(long)==8);
-  assert(sizeof(void*)==sizeof(double));
+  assert(sizeof(void*)==sizeof(D));
   assert(sizeof(void*)==sizeof(long));
   assert(sizeof(void*)==sizeof(long));
 

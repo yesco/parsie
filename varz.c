@@ -4,7 +4,10 @@
 #include <stddef.h>
 #include <assert.h>
 
+// TODO: remove
+#ifdef nantypesTEST
 #include "nantypes.c"
+#endif
 
 // register name
 #define MAXVAR 1024
