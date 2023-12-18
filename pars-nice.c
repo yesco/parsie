@@ -135,26 +135,14 @@ Z'(': Z'{': assert(!"TODO: implement");
 Z'[': r+= 1+gen(V+nr, r, ']', nr);
 Z':': A[nr]= sncat(A[nr], " ", 1); r+= 1+gen(A+nr, r, ' ', nr);
 
-// TODO: too clever to reuse instead of clear...
-// TODO: maybe remove, not work for collation anyway... save 5 lines...
- Z'?': case '+': case '*': x=*r++;;newV(nr);
-  DEBUG(if (debug>1) printf("== res %d\n", nr)); // DEBUG
-  while(s&&*s){p=s;s=parse(R[*r],s,-1,nr);
-    if(x=='?'){r++;s=s?s:p;goto next;}
-    if(x=='+'&&!s)goto fail;
-  } r++; s=s?s:p;
+Z'?':case'+':case'*':x=*r++;newV(nr);while(s&&*s){p=s;s=parse(R[*r],s,-1,nr);
+  if(x=='?'){r++;s=s?s:p;goto next;}if(x=='+'&&!s)goto fail;}  r++;s=s?s:p;
 
-//  Z '?': r++; p=s; s=parse(R[*r],s,1); r++; s=s?s:p;
-//  Z '*': r++; do{p=s; s=parse(R[*r],s,1);}while(s && *s);r++;s=p;
-//  Z '+': r++; s=parse(R[*r],s,1); while(s&&*s){p=s;s=parse(R[*r],s,1);};r++;s=p;
+// % qoting/charclass
+Z'%':++r;if((p=strchr("\"\"''(){}[]<>",*r=='s'?*s:*r))){ if(*s!=*p)goto fail;
+newV(nr);r++;  while(*++s&&*s!=*p){if(*s=='\\')s++;
+  V[nv+nr]=sncat(V[nv+nr],s,1);}  s++;goto next;}
 
-// TODO: also too clever encoding?
-Z'%': ++r; if ((p=strchr("\"\"''(){}[]<>", *r=='s'?*s:*r))) {
-  if (*s!=*p) goto fail; else newV(nr);
-  // move till unquoted endchar
-  while(*++s&&*s!=p[1]) { if (*s=='\\') s++; V[nv+nr]=sncat(V[nv+nr], s, 1); }
-  r++; s++; goto next;
-}
   // char class: %a %d %w %i %n %e
   // The T string classify curent
   // char, returning list of classes
