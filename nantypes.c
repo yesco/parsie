@@ -1,3 +1,4 @@
+//80----------------------------------------------------------------------------
 // NAN boxing and unboxing of data
 #include <stdio.h>
 #include <math.h>
@@ -6,9 +7,7 @@
 
 // alias to clarify extended meaning
 typedef double D;
-
-unsigned long d2u(D d) { return *(long*)(&d); }
-D u2d(long u) { return *(D*)(&u); }
+unsigned long d2u(D d) { return *(long*)(&d); } D u2d(long u) { return *(D*)(&u); }
 
 // 1 sign, 7 types, 48(47?) bits of data
 // Use Typ:2B = sIII IIII IIII Ittt
@@ -41,10 +40,9 @@ char hp[HPSIZE]= {0}; int nilo=0; D nil, undef;
 //   HP=[len=3, "foo", 8b data]...
 //   len=0 means end of list
 //   note: assumes zeroed HeaP
-int nameadd(char* s) { char* p= hp; int l= strlen(s);
-  while(*p){if(!strcmp(s,p+1))return p-hp;p+=1+strlen(p+1)+1+sizeof(D);}
-  assert(p+l+2-hp < HPSIZE);
-  return *p=l, strcpy(p+1, s)-hp-1;
+int nameadd(char* s) { char* p=hp;int l=strlen(s);  while(*p){if(!strcmp(s,p+1))
+  return p-hp;p+=1+strlen(p+1)+1+sizeof(D);} *p=l; return strcpy(p+1, s)-hp-1;
+  //assert(p+l+2-hp < HPSIZE);
 }
 
 void prnames() { char* p= hp; printf("\n"); while(*p) { D* d= (D*)(p+1+strlen(p+1)+1); printf("%5ld: %d v=> %10.7g %5ld\t%s\n", p-hp, *p, *d, d2u(*d), p+1); p+=strlen(p+1)+1+1+sizeof(D); } } // DEBUG
@@ -82,15 +80,14 @@ char* sncat(dstr s, char* x, int n) { int i= s?strlen(s):0, l= x?strlen(x):0;
 }
 
 // Return a new str from char* S take N chars.
-D newstr(char* s,int n){ ss[sn]=sncat(0,s?s:"",n);return u2d(BOX(TSTR,sn++));}
+D newstr(char* s,int n){ ss[sn]=sncat(0,s?s:"",n); return u2d(BOX(TSTR,sn++)); }
 
-char* dchars(D d) { int t=TYP(d);
-  return t==TATM?DAT(d)+hp+1:t==TSTR?(char*)ss[DAT(d)]:0; }
+char* dchars(D d) { int t=TYP(d), x=DAT(d);
+  return t==TATM? x+hp+1: t==TSTR? (char*)ss[x]: 0;}
 
 int dlen(D f) { char* r= dchars(f); return r?strlen(r):0; }
 
-int dprint(D f) { char* s= dchars(f);
-  return s?printf("%s",s):printf("%.7g ",f); }
+int dprint(D f) {char* s= dchars(f);return s?printf("%s",s):printf("%.7g ",f);}
 
 // Concatenate D + S as new str
 // from Index in S take N chars.
@@ -110,6 +107,7 @@ void gc() { memset(sr, 0, sizeof(sr));
 
   // --- SWEEP - prefer lower first
   for(int i=sn;i;i--)if(!sr[i]){free(ss[i]);ss[i]=ss[0];ss[0]=(char*)(long)i;}
+  
   DEBUG({long f= 0; printf("Free: "); do printf("%lu=>", f); while((f=(long)ss[f]));printf("\n");});
   
 }
