@@ -136,14 +136,14 @@ Z'[': r+= 1+gen(V+nr, r, ']', nr);
 Z':': A[nr]= sncat(A[nr], " ", 1); r+= 1+gen(A+nr, r, ' ', nr);
 
 // TODO: too clever to reuse instead of clear...
-case '?': case '+': case '*': newV(nr);
+// TODO: maybe remove, not work for collation anyway... save 5 lines...
+ Z'?': case '+': case '*': x=*r++;;newV(nr);
   DEBUG(if (debug>1) printf("== res %d\n", nr)); // DEBUG
-  switch(*r){
-  case'?': case '+': p=s; s=parse(R[r[1]],s,-1,nr);
-    if (*r=='?') { r+=2; s=s?s:p;goto next; } else if (!s) goto fail;
-    // fallthrough
-  case'*': r++; while(s&&*s) { p=s; s=parse(R[*r],s,-1,nr); } r++; s=s?s:p;
-  }
+  while(s&&*s){p=s;s=parse(R[*r],s,-1,nr);
+    if(x=='?'){r++;s=s?s:p;goto next;}
+    if(x=='+'&&!s)goto fail;
+  } r++; s=s?s:p;
+
 //  Z '?': r++; p=s; s=parse(R[*r],s,1); r++; s=s?s:p;
 //  Z '*': r++; do{p=s; s=parse(R[*r],s,1);}while(s && *s);r++;s=p;
 //  Z '+': r++; s=parse(R[*r],s,1); while(s&&*s){p=s;s=parse(R[*r],s,1);};r++;s=p;
