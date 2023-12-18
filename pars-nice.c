@@ -18,9 +18,9 @@ int eor(char* r) { return !r || !*r || *r=='\n' || *r=='|' && r[-1]!='\\'; }
 
 // find start of attr val string
 char* attrval(int nr, char a) { for(int i=nr+1;i<NV;i++){ char* s= A[i];
-  // TODO: not MAXRES...
-  DEBUG(if (debug) if (s) printf("find.A[%d] = '%s'\n", i, s));
-  while(s&&*s&&(s=strchr(s, ' ')))if(s[1]==a&&s[2]=='=') return s+3; else s++;
+    // TODO: not MAXRES...
+    DEBUG(if (debug) if (s) printf("find.A[%d] = '%s'\n", i, s));
+    while(s&&*s&&(s=strchr(s, ' ')))if(s[1]==a&&s[2]=='=') return s+3; else s++;
   }
   return 0;
 }
@@ -38,20 +38,20 @@ char* sncat(char* s, char* x, int n) { int i= s?strlen(s):0, l= x?strlen(x):0; /
 
 // Generate (add to *G) from [Rule] stop at ENDchar nr being $0 V[NR]
 int gen(char** g, char* r, char end, int nr) { int n, l; char *or=r, *v, *e;
-  DEBUG(if (debug>3) printf("GEN: '%s'\n", r));
-  while(*r && *++r!=end && *r) { switch(*r){
-    case '$': r++; if (isdigit(*r)) { v= V[*r-'0'+nr+1]; l=-1; } else if (isalpha(*r)) {
-	DEBUG(if (debug) printf("ATTRVAL= '%s'\n", r))
-	e= v= attrval(nr, *r); if (!e) break; while(*e && *++e && *e!=' '){}; l= e-v;
-      } else if ((e=strchr("\"\"''(){}[]<>", *r)) && isdigit(*++r)) { // $"1 quoted
-	v= V[*r-'0'+nr+1]; *g= sncat(*g, e+0, 1);
-	DEBUG(if (debug>1) printf("GEN e=%s r=%s v=%s \n", e, r, v)); // DEBUG
-	while(*v) { if (*v==e[1]) *g=sncat(*g, "\\", 1); *g= sncat(*g, v++, 1); } v=e+1;l=1;
-      }
-      *g= sncat(*g, v, l); break;
-    case '\\': r++; default: *g= sncat(*g, r, 1);
-    }
-    DEBUG(if (debug>2) printf("  V[%d]='%s'\n", nr, *g));
+DEBUG(if (debug>3) printf("GEN: '%s'\n", r));
+while(*r && *++r!=end && *r) { switch(*r){
+  case'$':r++; if(isdigit(*r)){ v=V[*r-'0'+nr+1]; l=-1; } else if (isalpha(*r)) {
+    DEBUG(if (debug) printf("ATTRVAL= '%s'\n", r))
+    e= v= attrval(nr, *r); if (!e) break; while(*e && *++e && *e!=' '){}; l= e-v;
+   } else if ((e=strchr("\"\"''(){}[]<>", *r)) && isdigit(*++r)) { // $"1 quoted
+    v= V[*r-'0'+nr+1]; *g= sncat(*g, e+0, 1);
+    DEBUG(if (debug>1) printf("GEN e=%s r=%s v=%s \n", e, r, v)); // DEBUG
+    while(*v){ if(*v==e[1]) *g=sncat(*g,"\\",1); *g=sncat(*g,v++,1); } v=e+1;l=1;
+   }
+  *g= sncat(*g, v, l); break;
+  case '\\': r++; default: *g= sncat(*g, r, 1);
+  }
+  DEBUG(if (debug>2) printf("  V[%d]='%s'\n", nr, *g));
   }
   return r-or;
 }
