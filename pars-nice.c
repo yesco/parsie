@@ -56,6 +56,57 @@ while(*r && *++r!=end && *r) { switch(*r){
   return r-or;
 }
 
+#define Z goto next; case 
+
+// Parse a Rule for String using max N matches starting at results at NR
+//   n==-1 infinity
+//   n==1 one time (for ? + *)
+// Returns:
+///  NULL=fail
+//   rest of string (unparsed)
+char* parse(char* r,char* s,int n,int nr){char*p=0,*os=s,*t,*m;int on=n,onr=nv,x;
+  DEBUG(if (debug>2) printf("    parse '%s' '%s' %d\n", r, s, n));
+  // TODO: move while below next?
+  while(n-- && r && s) {next: while(isspace(*s))s++;while(isspace(*r))r++;
+DEBUG(if (debug>3)printf("     next '%s' (%d)\n\t   of '%s' left=%d\n",r,*r,s,n));
+
+switch(*r){ case 0: case '\n': case '\r': case '|': return s; // end
+Z'(': Z'{': assert(!"TODO: implement");
+Z'[': r+= 1+gen(V+nr, r, ']', nr);
+Z':': A[nr]= sncat(A[nr], " ", 1); r+= 1+gen(A+nr, r, ' ', nr);
+
+Z'?':case'+':case'*':x=*r++;newV(nr);while(s&&*s){p=s;s=parse(R[*r],s,-1,nr);
+  if(x=='?'){r++;s=s?s:p;goto next;}if(x=='+'&&!s)goto fail;}  r++;s=s?s:p;
+
+// % qoting/charclass
+Z'%':++r;if((p=strchr("\"\"''(){}[]<>",*r=='s'?*s:*r))){ if(*s!=*p)goto fail;
+newV(nr);r++;  while(*++s&&*s!=*p){if(*s=='\\')s++;
+  V[nv+nr]=sncat(V[nv+nr],s,1);}  s++;goto next;}
+
+  // char class: %a %d %w %i %n %e
+  // The T string classify curent
+  // char, returning list of classes
+  // "XYZZZZ" X skipped if first ch
+  // XY will take more chars
+  p=s; do{ t=isdigit(*s)?"nidw":isalpha(*s)?" nwa":*s=='_'?" nw":*s?0:"  e";
+    m= t?strchr(t+(s==p), *r):0; if (!m && s==p) goto fail;
+  } while(*++s && m && m-t<2);  s-=!m; r++;
+
+Z'A'...'Z': if ((p=pR(r++, s, -1))) s= p; else goto fail;
+Z'\\': r++; default: if (*s==*r++) s++; /* matched */ else fail: {
+  DEBUG(if (debug>2) printf("     FAIL '%s' '%s'\n", r-1, s));
+  while(*r && !eor(r++)){}; if (eor(r) && r[-1]!='|') return NULL;
+  // restore start state
+  s=os; n=on; nv=onr;
+  DEBUG(if (debug>2) printf("     |OR  '%s' '%s'\n", r-1, s));
+  } // fail
+} // switch
+} // while
+  return s;
+}
+
+/// capture
+
 // --- rules
 // is a single Capital follows by =
 //
@@ -116,56 +167,7 @@ while(*r && *++r!=end && *r) { switch(*r){
 //
 //
 
-#define Z goto next; case 
 
-// Parse a Rule for String using max N matches starting at results at NR
-//   n==-1 infinity
-//   n==1 one time (for ? + *)
-// Returns:
-///  NULL=fail
-//   rest of string (unparsed)
-char* parse(char* r,char* s,int n,int nr){char*p=0,*os=s,*t,*m;int on=n,onr=nv,x;
-  DEBUG(if (debug>2) printf("    parse '%s' '%s' %d\n", r, s, n));
-  // TODO: move while below next?
-  while(n-- && r && s) {next: while(isspace(*s))s++;while(isspace(*r))r++;
-DEBUG(if (debug>3)printf("     next '%s' (%d)\n\t   of '%s' left=%d\n",r,*r,s,n));
-
-switch(*r){ case 0: case '\n': case '\r': case '|': return s; // end
-Z'(': Z'{': assert(!"TODO: implement");
-Z'[': r+= 1+gen(V+nr, r, ']', nr);
-Z':': A[nr]= sncat(A[nr], " ", 1); r+= 1+gen(A+nr, r, ' ', nr);
-
-Z'?':case'+':case'*':x=*r++;newV(nr);while(s&&*s){p=s;s=parse(R[*r],s,-1,nr);
-  if(x=='?'){r++;s=s?s:p;goto next;}if(x=='+'&&!s)goto fail;}  r++;s=s?s:p;
-
-// % qoting/charclass
-Z'%':++r;if((p=strchr("\"\"''(){}[]<>",*r=='s'?*s:*r))){ if(*s!=*p)goto fail;
-newV(nr);r++;  while(*++s&&*s!=*p){if(*s=='\\')s++;
-  V[nv+nr]=sncat(V[nv+nr],s,1);}  s++;goto next;}
-
-  // char class: %a %d %w %i %n %e
-  // The T string classify curent
-  // char, returning list of classes
-  // "XYZZZZ" X skipped if first ch
-  // XY will take more chars
-  p=s; do{ t=isdigit(*s)?"nidw":isalpha(*s)?" nwa":*s=='_'?" nw":*s?0:"  e";
-    m= t?strchr(t+(s==p), *r):0; if (!m && s==p) goto fail;
-  } while(*++s && m && m-t<2);  s-=!m; r++;
-
-Z'A'...'Z': if ((p=pR(r++, s, -1))) s= p; else goto fail;
-Z'\\': r++; default: if (*s==*r++) s++; /* matched */ else fail: {
-  DEBUG(if (debug>2) printf("     FAIL '%s' '%s'\n", r-1, s));
-  while(*r && !eor(r++)){}; if (eor(r) && r[-1]!='|') return NULL;
-  // restore start state
-  s=os; n=on; nv=onr;
-  DEBUG(if (debug>2) printf("     |OR  '%s' '%s'\n", r-1, s));
-  } // fail
-} // switch
-} // while
-  return s;
-}
-
-/// capture
 char* parseR(char r, char* s, int n){ int nr=++nv; nv--; newV(nr); char *x;
   x=parse(R[r],s,n,nr); if(!V[nr])V[nr]=x?strndup(s,x-s):x; nv=nr-1;return x;}
 
