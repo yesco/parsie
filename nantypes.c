@@ -60,13 +60,13 @@ void inittypes() {nil=atom("nil");assert(DAT(nil)==nilo);undef=atom("undef");}
 // TODO: make dynamic?
 #define ZZ 1024
 
-// pos ss[0] is free list
+
 typedef char* dstr; dstr ss[ZZ]={0}; char sr[ZZ]={0}; int sn=1;
 
-// Dynamic String append/cat string X N chars
+// Dynamic String dstr append/cat string X N chars
 //
-// String pointer is resized in chunks
-// of 1024 bytes.
+// dstr: String pointer is resized in chunks
+// of 1024 bytes. Free as normal
 //
 // S= NULL, or malloced destination
 // X= NULL, or string to append from
@@ -74,7 +74,7 @@ typedef char* dstr; dstr ss[ZZ]={0}; char sr[ZZ]={0}; int sn=1;
 //
 // Returns S or a new pointer.
 //  
-char* sncat(dstr s, char* x, int n) { int i= s?strlen(s):0, l= x?strlen(x):0;
+dstr sncat(dstr s, char* x, int n) { int i= s?strlen(s):0, l= x?strlen(x):0;
   if (n<0 || n>l) n= l; s= realloc(s, 1024*((i+n+1024)/1024)); s[i+n]= 0;
   return strncpy(s+i, x?x:"", n), s;
 }
