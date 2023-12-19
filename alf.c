@@ -15,6 +15,10 @@ double S[SMAX]={0}; int sp=0,memsize=0; char *M=0, *H=0, *F['Z'-'A'+1]={0};
 #define POP S[--sp]
 #define U S[sp++]
 
+#define L (long)
+#define SL (sizeof L)
+#define P printf
+#define align() while((H-M)%SL&!(H-M))H++
 
 void initalf(size_t sz) { H=M=calloc(memsize= sz, 1); } // TODO: ?zero S F
 
@@ -33,7 +37,7 @@ char* parsename(char** p) { static char s[64], i; i=0; while((isalnum(**p)
 //   TODO: must skip STRINGs!!! lol
 char* skip(char* p){ int n=1;while(n&&*p)if(*p=='?'&&p[1]!='{')p+=2;else n+=(*p=='{')-(*p=='}'),p++;return p;}
 
-void prstack(){printf("\t:");for(int i=0;i<sp;i++){dprint(S[i]);putchar(' ');}}
+void prstack(){P("\t:");for(int i=0;i<sp;i++){dprint(S[i]);putchar(' ');}}
 
 // run ALF code Program with ARGS
 // starting that stack position with
@@ -41,99 +45,97 @@ void prstack(){printf("\t:");for(int i=0;i<sp;i++){dprint(S[i]);putchar(' ');}}
 //
 // Returns next position to parse from
 //   NULL if done/fail (loop/if)
-char*alf(char*p,int args,int n,int iff){long x;char*e=NULL;if(!p)return NULL;
-  DEBUG(printf("\n===ALF >>>%s<<<\n", p))
-  #define Z goto next; case
-next: DEBUG(prstack();putchar('\n');printf("\t  '%c'\n",*p))
-  switch(*p++){ case 0: case';': case')': return p; Z' ': Z'\n': Z'\t': Z'\r':
-  // -- stack stuff
-  Z'd': S[sp]= T; sp++; Z'\\': sp--;
-  Z'o': S[sp]= S[sp-2]; sp++; Z's': x=T; T= S[sp-2]; S[sp-2]= x;
+char* alf(char*p,int args,int n,int iff) {long x;char*e=NULL;if(!p)return NULL;
+DEBUG(P("\n===ALF >>>%s<<<\n", p))
+#define Z goto next; case
+next: DEBUG(prstack();putchar('\n');P("\t  '%c'\n",*p))
+switch(*p++){ case 0: case';': case')': return p; Z' ': Z'\n': Z'\t': Z'\r':
+// -- stack stuff
+Z'd': S[sp]= T; sp++; Z'\\': sp--; // TODO: more?
+Z'o': S[sp]= S[sp-2]; sp++; Z's': x=T; T= S[sp-2]; S[sp-2]= x;
 
-  Z'0'...'9':{D v=0;p--;while(isdigit(*p))v=v*10+*p++-'0';U=v;}
-  Z'A'...'Z':alf(F[p[-1]-'A'],args,n,0); Z'x':{char x[]={POP,0};alf(x,0,0,0); }
+Z'0'...'9':{D v=0;p--;while(isdigit(*p))v=v*10+*p++-'0';U=v;}
+Z'A'...'Z':alf(F[p[-1]-'A'],args,n,0); Z'x':{char x[]={POP,0};alf(x,0,0,0); }
 
-  // -- math stuff
-  #define L (long)
-  #define SL (sizeof(long))
-  #define OP(op,e) Z #op[0]: S[sp-2]=S[sp-2] op##e T; sp--;
-  OP(+,);OP(-,);OP(*,);OP(/,);OP(<,);OP(>,);OP(=,=);OP(|,|);OP(&,&);
-  Z'%': S[sp-2]=L T % L S[sp-2]; sp--; Z'z': T= !T; Z'n': T= -L T;
+// -- math stuff
+#define OP(op,e) Z #op[0]: S[sp-2]=S[sp-2] op##e T; sp--;
+OP(+,);OP(-,);OP(*,);OP(/,);OP(<,);OP(>,);OP(=,=);OP(|,|);OP(&,&);
+Z'%': S[sp-2]=L T % L S[sp-2]; sp--; Z'z': T= !T; Z'n': T= -L T;
+
+// -- memory stuff (, aligns)
+// TODO: malloc/free not use arena
+Z'h': U=H-M; Z'm':x=T;T=H-M;H+=x; Z'a':H+=L POP;
+Z'g': case ',': align(); if (p[-1]=='g') goto next; memcpy(H,&POP,SL); H+=SL;
   
-  // -- memory stuff (, aligns)
-  // TODO: malloc/free not use arena
-  Z'h': U=H-M; Z'm':x=T;T=H-M;H+=x; Z'a':H+=L POP;
-  Z'g': case ',': H=(char*)((((L H)+SL-1)/SL)*SL); if (p[-1]=='g') goto next;
-     memcpy(H,&POP,SL); H+=SL; // ',' - action
-  // TODO: use raw offset, alignment error?
-  Z'@': if (T<0) T=S[(L-T)-1]; else T=*(D*)&M[8*L T];
-  Z'!': if (T<0) S[L-T-1]=S[sp-2]; else *(D*)&M[8*L T]= S[sp-2]; sp-=2;
-
+// TODO: use raw offset, alignment error?
+Z'@':T=T<0?S[(L-T)-1]:*(D*)&M[8*L T]; Z'!':*(T<0?S+L-T-1:(D*)&M[8*L T])=S[sp-2];
+     
   // -- printers (see also $...)
-  Z'.': dprint(POP); Z'e': putchar(POP);
-  Z't': printf("%*s.",(int)T,M+L S[sp-2]); sp-=2; // counted
-  Z'\'': U= *p++; Z'"': while(*p&&*p!='"')putchar(*p++); p++;
+Z'.': dprint(POP);Z'e':putchar(POP);Z't': P("%*s.",(int)T,M+L S[sp-2]);sp-=2;
 
-  // -- define function ;
-  Z':': e=strchr(p,';'); if(e) F[*p-'A']=strndup(p+1,e-p),p=e+1;
+Z'\'': U= *p++; Z'"': while(*p&&*p!='"')putchar(*p++); p++;
 
-  // Function call parameters handling
-  //                  v--args
-  // (11 22 33) -> .. 11 22 33 args
-  // [          -> .. 11 22 33 args 3
-  // p1 p3      -> 11 33
-  // 99]        -> .. 99 (and exit)
-  Z'(': x= sp; p= alf(p, args, n, 1); U= x; // ')' will return
-  Z'[': args= T; n= S[sp]= sp-args-1; sp++; bindenter(args);
-  Z'^': assert(!"implement"); // TODO: "exit" / "return" / break?
-  Z']': bindexit(); S[args]= T; sp= args+1; Z'_': bindadd(parsename(&p));
-  // TODO: we negate in bindfind too!
-  Z'`': U= -bindfind(parsename(&p))-1; Z'#': U= atom(parsename(&p));
+// -- define function ;
+Z':': e=strchr(p,';'); if(e) F[*p-'A']=strndup(p+1,e-p),p=e+1;
 
-  // control/IF/FOR/WHILE - ? { }
-  Z'}': return iff?p:NULL; Z'{': while(!((e=alf(p, args, n, 0)))){}; p= e;
-  // -- control flow
-  // ?] = break
-  // ?} = again
-  // ?{ = if{then}{else}
-  // probgably not correctif inside IFF???? how to propagate several layers up? special return code?
-  Z'?': if (POP) { switch(*p++){ Z'}': return p; Z']': return 0;
-    Z'{': p=alf(p,args,n,1);if(*p=='{')p=skip(p+1); default:p=alf(p,args,n,1);
-  }} else { // IF==false
-    if (*p=='{') { p=skip(p+1); } if (p) p= alf(p+1, args, n, 1); else return 0; }
+// Function call parameters handling
+//                  v--args
+// (11 22 33) -> .. 11 22 33 args
+// [          -> .. 11 22 33 args 3
+// p1 p3      -> 11 33
+// 99]        -> .. 99 (and exit)
+Z'(': x= sp; p= alf(p, args, n, 1); U= x; // ')' will return
+Z'[': args= T; n= S[sp]= sp-args-1; sp++; bindenter(args);
+Z'^': assert(!"implement"); // TODO: "exit" / "return" / break?
+Z']': bindexit(); S[args]= T; sp= args+1; Z'_': bindadd(parsename(&p));
+// TODO: we negate in bindfind too!
+Z'`': U= -bindfind(parsename(&p))-1; Z'#': U= atom(parsename(&p));
 
-  // -- char ops
-  Z'c': switch(*p++){ Z'"': e=p; while(*p&&*p!='"')p++; U=newstr(e, p++-e);
-    Z'c':T=dlen(T);Z'r':putchar('\n');Z'@':T=M[L T];Z'!':M[L T]=S[sp-2];sp-=2;
-    Z'i':M[L T]++;sp--;Z'd': M[L T]--;sp--;
+// control/IF/FOR/WHILE - ? { }
+Z'}': return iff?p:NULL; Z'{': while(!((e=alf(p, args, n, 0)))){}; p= e;
+// -- control flow
+// ?] = break
+// ?} = again
+// ?{ = if{then}{else}
+// probgably not correctif inside IFF???? how to propagate several layers up? special return code?
+Z'?': if (POP) { switch(*p++){ Z'}': return p; Z']': return 0;
+  Z'{': p=alf(p,args,n,1);if(*p=='{')p=skip(p+1); default:p=alf(p,args,n,1);
+ }} else { // IF==false
+  if (*p=='{') { p=skip(p+1); } if (p) p= alf(p+1, args, n, 1); else return 0; }
 
-#define SM(op) Z#op[0]: x=T; M[L T] op x; sp-=2;
-SM(+=);SM(-=);SM(*=);SM(/=);SM(<<=);SM(>>=);SM(&=);SM(|=);SM(^=);
-    // TODO: c, ci cd
-  }
+// -- char ops
+Z'c': switch(*p++){ Z'"': e=p; while(*p&&*p!='"')p++; U=newstr(e, p++-e);
+  Z'c':T=dlen(T);Z'r':putchar('\n');Z'@':T=M[L T];Z'!':M[L T]=S[sp-2];sp-=2;
+  Z'i':M[L T]++;sp--;Z'd': M[L T]--;sp--;
 
-  // -- word ops
-  Z'w': switch(*p++){
-    Z'@': T=*(long*)&M[8*L T]; Z'!': *(long*)&M[8*L T]= S[sp-2];sp-=2;
-    // TODO: w,
-    Z'i': (*(long*)&M[8*L T])++;sp--; Z'd': (*(long*)&M[8*L T])--;sp--;
-    #define SW(a,op) Z#a[0]: x=S[sp-2]; (*(long*)&M[8*L T]) op x; sp-=2;
-    SW(+,+=);SW(-,-=);SW(*,*=);SW(/,/=);SW(<,<<=);SW(>,>>=);
-  }
-  // -- bit ops
-  Z'b': switch(*p++){
-    #define LOP(op,e) Z#op[0]: S[sp-2]=(L T) op##e L S[sp-2]; sp--;
-    LOP(&,);LOP(|,);LOP(^,); Z'~': T= ~L T;
-  }
+  #define SM(op) Z#op[0]: x=T; M[L T] op x; sp-=2;
+  SM(+=);SM(-=);SM(*=);SM(/=);SM(<<=);SM(>>=);SM(&=);SM(|=);SM(^=);
+  // TODO: c, ci cd
+}
 
-  // -- string ops
-  Z'$': x=1;switch(*p++){ Z'.': prstack(); Z'0'...'9': U=S[args+p[-1]-'0'-1];
-    Z'!': S[args+*p++-'0'-1]=POP; Z's':x=POP;case' ':while(x-->=0)putchar(' ');
-    Z'"': e=H;while(*p&&*p!='"')*H++=*p++; *H++=0;if(*p)p++; U=e-M; U=H-e-1;
-    Z'n': printf("\n"); Z'h': printf("%lx\n", L POP);goto next; default: p--;
-  }
+// -- word ops
+Z'w': switch(*p++){
+  Z'@': T=*(long*)&M[8*L T]; Z'!': *(long*)&M[8*L T]= S[sp-2];sp-=2;
+  // TODO: w,
+  Z'i': (*(long*)&M[8*L T])++;sp--; Z'd': (*(long*)&M[8*L T])--;sp--;
+  #define SW(a,op) Z#a[0]: x=S[sp-2]; (*(long*)&M[8*L T]) op x; sp-=2;
+  SW(+,+=);SW(-,-=);SW(*,*=);SW(/,/=);SW(<,<<=);SW(>,>>=);
+}
 
-  default: printf("\n[%% Undefined op: '%s']\n", p-1);p++;exit(3);} goto next;
+// -- bit ops
+Z'b': switch(*p++){
+  #define LOP(op,e) Z#op[0]: S[sp-2]=(L T) op##e L S[sp-2]; sp--;
+  LOP(&,);LOP(|,);LOP(^,); Z'~': T= ~L T;
+}
+
+// -- string ops
+Z'$': x=1;switch(*p++){ Z'.': prstack(); Z'0'...'9': U=S[args+p[-1]-'0'-1];
+  Z'!': S[args+*p++-'0'-1]=POP; Z's':x=POP;case' ':while(x-->=0)putchar(' ');
+  Z'"': e=H;while(*p&&*p!='"')*H++=*p++; *H++=0;if(*p)p++; U=e-M; U=H-e-1;
+  Z'n': P("\n"); Z'h': P("%lx\n", L POP);goto next; default: p--;
+}
+
+default: P("\n[%% Undefined op: '%s']\n", p-1);p++;exit(3);} goto next;
 }
 
 // ENDWCOUNT

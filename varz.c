@@ -14,12 +14,8 @@
 int fr=0,loc=0,vix= 0; struct var { int a,f,l; } V[1024]={0};
 
 int _varadd(int f, int l, int a) { V[vix]= (struct var){a,f,l}; return vix++; }
-void glbladd(char* s) { int a=nameadd(s);
-while((H-M)%8||H>M==0)H++; D* p=AVPTR(atom(s)); *p=H-M; *(D*)H=4711.42; H+= 8;
-  DEBUG(printf("== glbladd: %s @ %ld\n", s, H-M));
-  // TODO: BUG: if defined sevea times it allocates more! lol
-  //prnames();
-}
+
+void glbladd(char* s){int a=nameadd(s);align();*(D*)AVPTR(atom(s))=H-M;H+=8;}
 
 void bindenter(int o) { int r= _varadd(o, fr, 0); fr= o; loc= 0; }
 int bindfindid(int a) { int i= vix;while(i--)if(V[i].a==a)return i; return -1;}
@@ -30,7 +26,7 @@ int bindfind(char* s) { int i=bindfindid(nameadd(s)); if (i>0) return i;
   //printf("  == GLOBFIND: %s @ u=%ld => %d\n", s, p->u, i);
   // TODO: it's 0 if not found!
 }
-void bindadd(char* s) { if(!fr)glbladd(s);else _varadd(fr, ++loc, nameadd(s));}
+void bindadd(char* s) { if(!fr)glbladd(s); else _varadd(fr,++loc,nameadd(s));}
 void bindexit() { int i= bindfindid(nilo); fr= V[i].f; vix= i; loc= V[i].l; }
 
 // ENDWCOUNT

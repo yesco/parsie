@@ -1,0 +1,35 @@
+# count ; in code (SOC):
+# - no full comment lines '//' '#'
+# - no comment sections /* ... */
+# - no empty lines
+# - no single '{' or '}'
+# - no include
+# - no DEBUG lines
+# - no FORWARD lines
+# - no 'TRACE(' lines
+# - no 'assert(' lines
+# - no 'else'-only lines
+# - nothing after the string  'ENDWCOUNT'
+
+# TODO: not working - /* */
+#sed ":a; s:/\\*[\\n.]*?\\*/::g" | \
+
+# grep -iPv '^\s*#' | \
+
+rm .total.c
+
+ls -1 pars-nice.c varz.c nantypes.c alf.c | xargs -I% sh -c "
+cat % | \
+sed '/ENDWCOUNT/q' | \
+grep -iPv '^\s*//' | \
+grep -iPv '^\s*}\s*$' | \
+grep -iPv '^\s*{\s*$' | \
+grep -v '^\s*$' | \
+grep -vP '#include' | \
+grep -vP 'DEBUG' | \
+grep -vP 'FORWARD' | \
+grep -vP 'TRACE\(' | \
+grep -vP 'assert\(' | \
+grep -vinP '^\s*}?\s*else\s*{?\s*(//.*)?$' " >> .total.c
+
+cat .total.c | (tr -d -c ";" $* | wc | (read a b c ; echo $c))
