@@ -1,24 +1,42 @@
+// Stack VAR
+//
+// For keeping track of stack state
+// and global variables during
+// parsing/compilation.
+
+// int returned:
+// -n: means n:th in current frame
+//  0: not found
+// +n: means n:th 8B value (double)
+
 #include <stdlib.h> // DEBUG
 #include <stdio.h> // DEBUG
 #include <string.h> // DEBUG
 #include <strings.h> // DEBUG
 
-void pr(char* s) { while(s && *s) {  if (*s>=' ') putchar(*s++); else printf("=%d ", *s++);  } } // DEBUG
+// Reads a "Base 128 Varint"
+// (same Google Protocol Buffers)
+// High bit is continuation flag
 
+int rdint(char**s){int i=0,l=0;while(**s>127)i+=(*(*s)++&127)<<l,l+=7;return i;}
 
-char globals[16*1024]={0}, vars[sizeof(globals)]={0}; int gn=15, ln=0;
+void pr(char* s) { while(s && *s) if (*s<128) putchar(*s++); else printf("=%d ", rdint(&s)); } // DEBUG
+
+//char globals[16*1024]={0}, vars[sizeof(globals)]={0}; int gn=0, ln=0;
+
+char globals[16*1024]={0}, vars[sizeof(globals)]={0}; int gn=123455, ln=777776;
 
 void newframe() { ln=0; }
 
-int newvar(char* vs, int* nn, char* n) { int l= strlen(n); memmove(vs+l+1, vs,
-  sizeof(globals)-l-1); vs[l]= ++*nn; memmove(vs, n, l); return *nn; }
+int newvar(char* vs, int* nn, char* n) { int l= strlen(n); char s[l+16];
+  memcpy(s, n, l); int i= ++*nn; while(i) {s[l++]= 0x80+(i&0x7f);i>>=7;}
+  memmove(vs+l, vs, sizeof(globals)-l); memmove(vs, s, l); return *nn; }
 
 // might find substring...
-int _findvar(char* vs, char* n) { char* s=vs; int l=strlen(n); while(s &&
-  (s=memmem(s, strlen(s), n, l)) && s && *s) if (s[l]<32) return s[l]; else
-    while(*s && *s>' ')s++; return 0; }
+int _findvar(char* vs, char* n) { int l=strlen(n); while(*vs) {
+    if (0==strncmp(vs, n, l) && *(vs+=l)>127) return rdint(&vs);
+    while(*vs && *vs<128) vs++; rdint(&vs); } return 0; }
 
-/// ooops only 31 globals
 int findvar(char* n) { int i= _findvar(vars, n); return i?-i:_findvar(globals, n); }
 
 int setvar(char* n) { int i= findvar(n); return i?i:newvar(globals, &gn, n);}
@@ -45,6 +63,7 @@ int main() {
   newvar(vars, &ln, "a"); P();
   setvar("gfish"); P();
   newvar(vars, &ln, "b"); P();
+  newvar(vars, &ln, "aaaaaa"); P(); 
 }
 
        
