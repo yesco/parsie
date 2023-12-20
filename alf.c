@@ -67,11 +67,10 @@ Z'%': S[sp-2]=L T % L S[sp-2]; sp--; Z'z': T= !T; Z'n': T= -L T;
 Z'h': U=H-M; Z'm':x=T;T=H-M;H+=x; Z'a':H+=L POP;
 Z'g': case ',': align(); if (p[-1]=='g') goto next; memcpy(H,&POP,SL); H+=SL;
 
-Z'l':case'!":case'@":x+=4;case'w':x+=3;case'c':x++;d=&T;e=T<0?S+L-T-1:M+8*L T;
+Z'l':case'!':case'@':x+=4;case'w':x+=3;case'c':x++;d=(char*)&T;e=T<0?(char*)S+L-T-1:M+8*L T;
 // LOL: some "overlap"
   switch(*p++){ Z'!': sp--; Z'@': memcpy(d, e, x); Z'r':putchar('\n');
   Z'"': e=p; while(*p&&*p!='"')p++; U=newstr(e, p++-e); Z'c':T=dlen(T);
-
 }
  // -- printers (see also $...)
 Z'.': dprint(POP);Z'e':putchar(POP);Z't': P("%*s.",(int)T,M+L S[sp-2]);sp-=2;
@@ -107,8 +106,9 @@ Z'b': switch(*p++){
 // -- string ops
 Z'$': x=1;switch(*p++){ Z'.': prstack(); Z'0'...'9': U=S[args+p[-1]-'0'-1];
   Z'!': S[args+*p++-'0'-1]=POP; Z's':x=POP;case' ':while(x-->=0)putchar(' ');
+    // TODO: quotes?
   Z'"': e=H;while(*p&&*p!='"')*H++=*p++; *H++=0;if(*p)p++; U=e-M; U=H-e-1;
-  Z'n': P("\n"); Z'h': P("%lx\n", L POP);goto next; default: p--;
+  Z'n': P("\n"); Z'h': P("%lx\n", L POP);goto next; default: p--; // err
 }
 
 default: P("\n[%% Undefined op: '%s']\n", p-1);p++;exit(3);} goto next;
@@ -135,7 +135,7 @@ default: P("\n[%% Undefined op: '%s']\n", p-1);p++;exit(3);} goto next;
 //   [ ... ] enter stack frame
 //   This enables varargs etc.
 
-// -- 67 ops:
+// -- 94 ops:
 // stack:	dup \=drop s=swap o=over
 // delim:       ' '
 // numbers
