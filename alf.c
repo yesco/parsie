@@ -203,7 +203,7 @@ default: P("\n[%% Undefined op: '%s']\n", p-1);p++;exit(3);} goto next;
  30   record separator
  31   unit separator
   <spc> - delimiter
-  ! - store
+  ! - store (& prefix by c/w/l)
   " - print string
 ( # - formatting? or printf? )
   $ - string functions
@@ -240,10 +240,11 @@ default: P("\n[%% Undefined op: '%s']\n", p-1);p++;exit(3);} goto next;
   = - equal
   > - greater than
   ? - if
-    ?] - if true exit {loop}
-    ?} - if true begin again
-    ?{ - 1?{then}{else}
-  @ - read
+    ?] - if true exit {loop} = break
+    ?} - if true begin again = cont
+    ?{ - IF-stmt 1?{then}{else}
+  @ - read (& prefix by c/w/l)
+
   ABCDEFGHIJKLMNOPQRSTUVWXYZ - UDF
   [ - enter parameter frame
   \ - drop

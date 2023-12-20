@@ -9,6 +9,9 @@
 //  0: not found
 // +n: means n:th 8B value (double)
 
+// 10 lines==svar
+// +8 gives atomix...
+
 #include <stdlib.h> // DEBUG
 #include <stdio.h> // DEBUG
 #include <string.h> // DEBUG
@@ -32,10 +35,12 @@ int newvar(char* vs, int* nn, char* n) { int l= strlen(n); char s[l+16];
   memcpy(s, n, l); int i= ++*nn; while(i) {s[l++]= 0x80+(i&0x7f);i>>=7;}
   memmove(vs+l, vs, sizeof(globals)-l); memmove(vs, s, l); return *nn; }
 
-// might find substring...
-int _findvar(char* vs, char* n) { int l=strlen(n); while(*vs) {
-    if (0==strncmp(vs, n, l) && *(vs+=l)>127) return rdint(&vs);
+char* __findvar(char* vs, char* n) { int l=strlen(n); while(*vs) {
+    if (0==strncmp(vs, n, l) && *(vs+=l)>127) return vs;
     while(*vs && *vs<128) vs++; rdint(&vs); } return 0; }
+
+int _findvar(char* vs, char* n) { int l=strlen(n); char* p= __findvar(vs, n);
+  return p?rdint(&p):0; }
 
 int findvar(char* n) { int i= _findvar(vars, n); return i?-i:_findvar(globals, n); }
 
@@ -44,10 +49,16 @@ int setvar(char* n) { int i= findvar(n); return i?i:newvar(globals, &gn, n);}
 // TODO: restore?
 void exitframe() { ln=-667; }
 
+int atomix(char* n){char*p=__findvar(globals,n);if(!p){newvar(globals,&gn,n);
+  p=__findvar(globals,n);}return p?p-globals-strlen(n):0;}
+
+char* atomstr(int n) { static char r[64]= {0}; char *d=r,*p= globals-n;
+  while(*p && *p<128) *d++= *p++; *d++= 0; return r; }
+
 // ENDWCOUNT
 
 void f(char* n){
-  int l=findvar(n);
+  int l= findvar(n);
   printf("  %s=%d\n", n, l);
 }
 
@@ -64,6 +75,8 @@ int main() {
   setvar("gfish"); P();
   newvar(vars, &ln, "b"); P();
   newvar(vars, &ln, "aaaaaa"); P(); 
+  printf("atom: '%s'\n", atomstr(atomix("foo")));
+  printf("=="); pr(globals); printf("\n");
 }
 
        
