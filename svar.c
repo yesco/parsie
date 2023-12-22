@@ -25,15 +25,13 @@ int rdint(char**s){int i=0,l=0;while(**s>127)i+=(*(*s)++&127)<<l,l+=7;return i;}
 
 void pr(char* s) { while(s && *s) if (*s<128) putchar(*s++); else printf("=%d ", rdint(&s)); } // DEBUG
 
-//char globals[16*1024]={0}, vars[sizeof(globals)]={0}; int gn=0, ln=0;
-
-char globals[16*1024]={0}, vars[sizeof(globals)]={0}; int gn=123455, ln=777776;
-
-void newframe() { ln=0; }
+char globals[16*1024]={0}, vars[sizeof(globals)]={0}; int frame=0, gn=0, ln=0;
 
 int newvar(char* vs, int* nn, char* n) { int l= strlen(n); char s[l+16];
   memcpy(s, n, l); int i= ++*nn; while(i) {s[l++]= 0x80+(i&0x7f);i>>=7;}
   memmove(vs+l, vs, sizeof(globals)-l); memmove(vs, s, l); return *nn; }
+
+void enterframe() { frame++; ln=0; newvar(&vars, &ln, "--"); ln= 0; }
 
 char* __findvar(char* vs, char* n) { int l=strlen(n); while(*vs) {
     if (0==strncmp(vs, n, l) && *(vs+=l)>127) return vs;
@@ -47,7 +45,13 @@ int findvar(char* n) { int i= _findvar(vars, n); return i?-i:_findvar(globals, n
 int setvar(char* n) { int i= findvar(n); return i?i:newvar(globals, &gn, n);}
 
 // TODO: restore?
-void exitframe() { ln=-667; }
+void exitframe() { frame--; ln=-667;
+  char* n= __findvar(vars,"--");
+  printf("EXIT>>>: v='%s'\n", vars);
+  printf("EXIT>>>: n='%s'\n", n);
+  memmove(vars, n, strlen(n)+1);
+  printf("EXIT<<<: v='%s'\n", vars);
+}
 
 int atomix(char* n){char*p=__findvar(globals,n);if(!p){newvar(globals,&gn,n);
   p=__findvar(globals,n);}return p?p-globals-strlen(n):0;}
@@ -56,6 +60,8 @@ char* atomstr(int n) { static char r[64]= {0}; char *d=r,*p= globals-n;
   while(*p && *p<128) *d++= *p++; *d++= 0; return r; }
 
 // ENDWCOUNT
+
+#ifdef svarTEST
 
 void f(char* n){
   int l= findvar(n);
@@ -69,6 +75,8 @@ void P() {
 }
 
 int main() {
+  gn=1234566, ln=777776;
+    
   P();
   setvar("gfoo"); P();
   newvar(vars, &ln, "a"); P();
@@ -79,4 +87,4 @@ int main() {
   printf("=="); pr(globals); printf("\n");
 }
 
-       
+#endif

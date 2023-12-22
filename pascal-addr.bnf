@@ -27,7 +27,7 @@ C= E Z E [$1 $3 $2] | not C [$1~] | C and C [$1 $2 &]
 
 Q= integer :t=i8 | char :t=c1 | string :t=s
 # TODO: repeated w ,
-V= var N\:Q=E; ::$1 V [_$1 $3`$1! $4 ] | var N\:Q; V [_$1 $3 ] |
+V= var N\:Q=E; ::$1 V [ $3`$1! $4 ] | var N\:Q; V ::$1 [ $3 ] |
 L= N\:=E :=$1 [$2 $:1 !]
 I= if C then S else S [$1?{$2}{$3}] | if C then S [$1?{$2} ]
 R= repeat G until C
@@ -52,9 +52,113 @@ G= S G[$1 $2] | S [$1] | ;
 B= begin V G end [$1 $2]
 # not working with *V
 
+P= program N; *V B.%e ["$1:"$n $2 $3]
 P= program N; B.%e ["$1:"$n $2]
+
+?N
+42
+a
+
+?A
+1
+1,2,3
+a
+1,a,b,4
+a,b,c
+a,1,b,cc,222,333
+
+?F
+#fine
+foo(1)
+foo(1,2)
+
+#fail
+foo()
+foo(a)
+foo(a,3)
+
+
+?L
+q:=7
+
+?E
+3+4*2
+
+?U
+42
+a
+ab
+?N
+42
+a
+ab
+?n
+42
+a
+ab
 
 ?V
 var x: integer;
 var a: integer = 42;
 var r: integer = "foobar";
+
+
+# TODO: need type-info ???
+# not working?
+
+#?S
+#writeln(fib(a));
+
+?H
+a,b,c
+
+?Z
+>=
+
+?C
+1=1
+1+1=2
+F(3)=3*2*1
+
+?I
+if 1=1 then a:=3;
+if 1=1 then a:=3; else a:=7;
+
+
+Y= procedure N\(H\) B [: $1 $3 ; ]
+?Y
+procedure P(n) begin P(n-1); end
+
+?S
+Result:=fib(n-1)+fib(n-2);
+
+?I
+if n=0 then Result:=0;
+if n=0 then Result:=0; else Result:=1;
+if n=1 then Result:=1; else Result:=fib(n-1)+fib(n-2);
+if n=0 then Result:=0; else if n=1 then Result:=1; else Result:=2;
+if n=1 then Result:=1; else begin Result:=fib(n-1)+fib(n-2); end
+
+J= function N\(:E H\)\:Q B [:$1 $4 \]; :X
+?J
+function F(n):integer begin if n=0 then Result:=0; else if n=1 then Result:=1; else Result:=fib(n-1)+fib(n-2); end
+
+P= program N; J B.%e ["$1:"\$n $2 $3]
+*P
+program foo;
+
+function F(n):integer begin
+  if n<=0 then Result:=0;
+  else if n=1 then Result:=1;
+  else Result:=F(n-1)+F(n-2);
+end
+
+begin
+  var x: integer = 42;
+  var a: integer = 3;
+  var r: integer = F(a);
+  write("Fib( ");
+  write(a);
+  write(") = ");
+  writeln(r);
+end.

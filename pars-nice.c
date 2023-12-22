@@ -4,6 +4,13 @@
 #include <ctype.h>
 #include <assert.h>
 
+#include "svar.c"
+
+char* parsename(char** p) { static char s[64], i; i=0; while((isalnum(**p) // DEBUG
+  ||**p=='_') && i<sizeof(s)-1) s[i++]=*(*p)++; s[i]= 0; return s;} // DEBUG
+
+
+
 int debug= 0; // DEBUG
 #define DEBUG(D) if (debug) do{D;}while(0);
 
@@ -40,7 +47,25 @@ char* sncat(char* s, char* x, int n) { int i= s?strlen(s):0, l= x?strlen(x):0; /
 int gen(char** g, char* r, char end, int nr) { int n, l; char *or=r, *v, *e;
 DEBUG(if (debug>3) printf("GEN: '%s'\n", r));
 while(*r && *++r!=end && *r) { switch(*r){
-  case'$':r++; if(isdigit(*r)){ v=V[*r-'0'+nr+1]; l=-1; } else if (isalpha(*r)) {
+  case'$': r++;
+    if (*r==':') { r++;
+      printf("$: GEN *r='%c'\n", *r);
+      v= V[*r-'0'+nr+1];
+      printf("$: GEN v='%s'\n", v);
+      n= findvar(v);
+      printf("$: GEN: findvar '%s' => %d\n", v, n);
+      if (!n) {
+	printf("GEN: name='%s' is undefined\n", v); exit(1);
+      }
+      char s[10]= {0};
+      if (n>0) 
+	sprintf(s, "%d", n);
+      else {
+	sprintf(s, "$%d", -n);
+      }
+      *g=sncat(*g,s,-1);
+      break;
+    } else if(isdigit(*r)){ v=V[*r-'0'+nr+1]; l=-1; } else if (isalpha(*r)) {
     DEBUG(if (debug) printf("ATTRVAL= '%s'\n", r))
     e= v= attrval(nr, *r); if (!e) break; while(*e && *++e && *e!=' '){}; l= e-v;
    } else if ((e=strchr("\"\"''(){}[]<>", *r)) && isdigit(*++r)) { // $"1 quoted
@@ -48,13 +73,15 @@ while(*r && *++r!=end && *r) { switch(*r){
     DEBUG(if (debug>1) printf("GEN e=%s r=%s v=%s \n", e, r, v)); // DEBUG
     while(*v){ if(*v==e[1]) *g=sncat(*g,"\\",1); *g=sncat(*g,v++,1); } v=e+1;l=1;
    }
-  *g= sncat(*g, v, l); break;
+   *g= sncat(*g, v, l); break;
   case '\\': r++; default: *g= sncat(*g, r, 1);
   }
   DEBUG(if (debug>2) printf("  V[%d]='%s'\n", nr, *g));
   }
   return r-or;
 }
+
+
 
 #define Z goto next; case 
 
@@ -64,17 +91,40 @@ while(*r && *++r!=end && *r) { switch(*r){
 // Returns:
 ///  NULL=fail
 //   rest of string (unparsed)
+
 char* parse(char* r,char* s,int n,int nr){char*p=0,*os=s,*t,*m;int on=n,onr=nv,x;
   DEBUG(if (debug>2) printf("    parse '%s' '%s' %d\n", r, s, n));
   // TODO: move while below next?
-  while(n-- && r && s) {next: while(isspace(*s))s++;while(isspace(*r))r++;
+  while(n-- && r && s) {next: while(isspace(*r))r++;
+    // don't include in match
+    if(*r)while(isspace(*s))s++;
 DEBUG(if (debug>3)printf("     next '%s' (%d)\n\t   of '%s' left=%d\n",r,*r,s,n));
 
 switch(*r){ case 0: case '\n': case '\r': case '|': return s; // end
 Z'(': Z'{': assert(!"TODO: implement");
 Z'[': r+= 1+gen(V+nr, r, ']', nr);
-Z':': A[nr]= sncat(A[nr], " ", 1); r+= 1+gen(A+nr, r, ' ', nr);
-
+Z':': switch(x=r[1]) {
+  Z'E': enterframe(); r+= 2;
+  Z':': case'=': { char *name= 0;
+      r+= 1;
+      printf("r===='%s'\n", r);
+      r+= gen(&name, r, ' ', nr);
+      printf("r===='%s'\n", r);
+      printf("name=='%s'\n", name);
+      // This is allowing global var to be set/defined if not declared
+      if (x=='=' || !frame)
+	printf("SETVAR\n"),setvar(name);
+      else 
+	printf("NEWVAR\n"),x=newvar(vars, &ln, name);
+      ///sprintf(s, " n=%d", ln);
+      //A[nr]= sncat(A[nr], s, -1);
+      //printf("\nATTR[%d]='%s'\n", nr, A[nr]);
+      printf("r AFTER = '%s'\n", r);
+    }
+  Z'X': exitframe(); r+=2; goto next;
+  default: A[nr]= sncat(A[nr], " ", 1); r+= 1+gen(A+nr, r, ' ', nr);
+}
+  
 Z'?':case'+':case'*':x=*r++;newV(nr);while(s&&*s){p=s;s=parse(R[*r],s,-1,nr);
   if(x=='?'){r++;s=s?s:p;goto next;}if(x=='+'&&!s)goto fail;}  r++;s=s?s:p;
 
