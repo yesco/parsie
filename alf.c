@@ -55,7 +55,8 @@ Z'd': S[sp]= T; sp++; Z'\\': sp--; // TODO: more?
 Z'o': S[sp]= S[sp-2]; sp++; Z's': x=T; T= S[sp-2]; S[sp-2]= x;
 
 Z'0'...'9':{D v=0;p--;while(isdigit(*p))v=v*10+*p++-'0';U=v;}
-Z'A'...'Z':alf(F[p[-1]-'A'],args,n,0); Z'x':{char x[]={POP,0};alf(x,0,0,0); }
+Z'A'...'Z':alf(F[p[-1]-'A'],sp,0,0); Z'x':{char x[]={POP,0};alf(x,0,0,0); }
+    //Z'A'...'Z':alf(F[p[-1]-'A'],args,n,0); Z'x':{char x[]={POP,0};alf(x,0,0,0); }
 
 // -- math stuff
 #define OP(op,e) Z #op[0]: S[sp-2]=S[sp-2] op##e T; sp--;
@@ -67,8 +68,13 @@ Z'%': S[sp-2]=L T % L S[sp-2]; sp--; Z'z': T= !T; Z'n': T= -L T;
 Z'h': U=H-M; Z'm':x=T;T=H-M;H+=x; Z'a':H+=L POP;
 Z'g': case ',': align(); if (p[-1]=='g') goto next; memcpy(H,&POP,SL); H+=SL;
 
-Z'l':case'!':case'@':x+=4;case'w':x+=3;case'c':x++;d=(char*)&T;e=T<0?(char*)S+L-T-1:M+8*L T;
+Z'@': T=T<0?S[sp+L T-1]:*(long*)(M+8*L T);
+  Z'!': x=POP; if(x<0) S[sp+x-1]=S[sp-1]; else *(long*)(M+8*L x)= S[sp-1]; POP;
+ goto next;
+  
+//Z'l':case'!':case'@':x+=4;case'w':x+=3;case'c':x++;d=(char*)&T;e=T<0?(char*)S+L-T-1:M+8*L T;
 // LOL: some "overlap"
+case 'c':
   switch(*p++){ Z'!': sp--; Z'@': memcpy(d, e, x); Z'r':putchar('\n');
   Z'"': e=p; while(*p&&*p!='"')p++; U=newstr(e, p++-e); Z'c':T=dlen(T);
 }
@@ -80,7 +86,8 @@ Z'\'': U= *p++; Z'"': while(*p&&*p!='"')putchar(*p++); p++;
 // -- define function ;
 Z':': e=strchr(p,';'); if(e) F[*p-'A']=strndup(p+1,e-p),p=e+1;
 
-Z'^': assert(!"implement"); // TODO: "exit" / "return" / break?
+// Exit (Function) removes args
+Z'^': S[args+1]= T; sp=args+1; return 0;
 
 // TODO: only lisp need atoms? globals?
 //Z'#': U= atom(parsename(&p));
@@ -104,11 +111,14 @@ Z'b': switch(*p++){
 }
 
 // -- string ops
-Z'$': x=1;switch(*p++){ Z'.': prstack(); Z'0'...'9': U=S[args+p[-1]-'0'-1];
+Z'$': x=1;switch(*p++){ Z'.': prstack(); case'n': putchar('\n');
+    //  Z'0'...'9':U=S[args+p[-1]-'0'-1]; Z'd': S[sp]=sp;sp++;
+  Z'0'...'9': U=p[-1]-'0'-n-1;
+  Z'$': n=POP;args-=n;
   Z'!': S[args+*p++-'0'-1]=POP; Z's':x=POP;case' ':while(x-->=0)putchar(' ');
     // TODO: quotes?
   Z'"': e=H;while(*p&&*p!='"')*H++=*p++; *H++=0;if(*p)p++; U=e-M; U=H-e-1;
-  Z'n': P("\n"); Z'h': P("%lx\n", L POP);goto next; default: p--; // err
+  Z'h': P("%lx\n", L POP);goto next; default: p--; // err
 }
 
 default: P("\n[%% Undefined op: '%s']\n", p-1);p++;exit(3);} goto next;
@@ -207,13 +217,13 @@ default: P("\n[%% Undefined op: '%s']\n", p-1);p++;exit(3);} goto next;
   " - print string
 ( # - formatting? or printf? )
   $ - string functions
+    $d - depth (of stack)
     $1 - $9 - get frame parameter N
     $!1 - $!9 - set frame parameter N
    '$ '- print blank
     $s - print N blanks
     $h - print hex
     $. - print stack (.S normally)
-    $n - print newline // TODO: have cr remove
   ( $# - format? )
 
     $" - counted string

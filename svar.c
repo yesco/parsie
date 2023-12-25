@@ -27,11 +27,15 @@ void pr(char* s) { while(s && *s) if (*s<128) putchar(*s++); else printf("=%d ",
 
 char globals[16*1024]={0}, vars[sizeof(globals)]={0}; int frame=0, gn=0, ln=0;
 
-int newvar(char* vs, int* nn, char* n) { int l= strlen(n); char s[l+16];
+int _newvar(char* vs, int* nn, char* n) { int l= strlen(n); char s[l+16];
   memcpy(s, n, l); int i= ++*nn; while(i) {s[l++]= 0x80+(i&0x7f);i>>=7;}
   memmove(vs+l, vs, sizeof(globals)-l); memmove(vs, s, l); return *nn; }
 
-void enterframe() { frame++; ln=0; newvar(&vars, &ln, "--"); ln= 0; }
+int newvar(char* n) {
+  if (frame) return _newvar(vars, &ln, n); else return _newvar(globals, &gn, n);
+}
+
+void enterframe() { frame++; ln=0; _newvar(vars, &ln, "--"); ln= 0; }
 
 char* __findvar(char* vs, char* n) { int l=strlen(n); while(*vs) {
     if (0==strncmp(vs, n, l) && *(vs+=l)>127) return vs;
@@ -42,10 +46,10 @@ int _findvar(char* vs, char* n) { int l=strlen(n); char* p= __findvar(vs, n);
 
 int findvar(char* n) { int i= _findvar(vars, n); return i?-i:_findvar(globals, n); }
 
-int setvar(char* n) { int i= findvar(n); return i?i:newvar(globals, &gn, n);}
+int setvar(char* n) { int i= findvar(n); return i?i:_newvar(globals, &gn, n);}
 
 // TODO: restore?
-void exitframe() { frame--; ln=-667;
+void exitframe() { frame--; ln=-10000;
   char* n= __findvar(vars,"--");
   printf("EXIT>>>: v='%s'\n", vars);
   printf("EXIT>>>: n='%s'\n", n);
@@ -53,7 +57,7 @@ void exitframe() { frame--; ln=-667;
   printf("EXIT<<<: v='%s'\n", vars);
 }
 
-int atomix(char* n){char*p=__findvar(globals,n);if(!p){newvar(globals,&gn,n);
+int atomix(char* n){char*p=__findvar(globals,n);if(!p){_newvar(globals,&gn,n);
   p=__findvar(globals,n);}return p?p-globals-strlen(n):0;}
 
 char* atomstr(int n) { static char r[64]= {0}; char *d=r,*p= globals-n;
@@ -79,10 +83,10 @@ int main() {
     
   P();
   setvar("gfoo"); P();
-  newvar(vars, &ln, "a"); P();
+  _newvar(vars, &ln, "a"); P();
   setvar("gfish"); P();
-  newvar(vars, &ln, "b"); P();
-  newvar(vars, &ln, "aaaaaa"); P(); 
+  _newvar(vars, &ln, "b"); P();
+  _newvar(vars, &ln, "aaaaaa"); P(); 
   printf("atom: '%s'\n", atomstr(atomix("foo")));
   printf("=="); pr(globals); printf("\n");
 }

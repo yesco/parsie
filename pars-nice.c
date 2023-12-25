@@ -48,7 +48,9 @@ int gen(char** g, char* r, char end, int nr) { int n, l; char *or=r, *v, *e;
 DEBUG(if (debug>3) printf("GEN: '%s'\n", r));
 while(*r && *++r!=end && *r) { switch(*r){
   case'$': r++;
-    if (*r==':') { r++;
+    if (*r=='#') { char e[]={ ln+'0', 0 };
+      *g=sncat(*g,e,-1); break;
+    } else if (*r==':') { r++;
       printf("$: GEN *r='%c'\n", *r);
       v= V[*r-'0'+nr+1];
       printf("$: GEN v='%s'\n", v);
@@ -61,7 +63,7 @@ while(*r && *++r!=end && *r) { switch(*r){
       if (n>0) 
 	sprintf(s, "%d", n);
       else {
-	sprintf(s, "$%d", -n);
+	sprintf(s, "$%d", ln+n+1);
       }
       *g=sncat(*g,s,-1);
       break;
@@ -92,7 +94,11 @@ while(*r && *++r!=end && *r) { switch(*r){
 ///  NULL=fail
 //   rest of string (unparsed)
 
-char* parse(char* r,char* s,int n,int nr){char*p=0,*os=s,*t,*m;int on=n,onr=nv,x;
+char* parse(char* r,char* s,int n, int nr){char *p=0, *os=s, *t, *m;
+  int on=n, onr=nv, x, oln=ln;
+  // TODO: need to undo actions of
+  // :E ::var :=var :X ...
+  // copy of global/vars ???
   DEBUG(if (debug>2) printf("    parse '%s' '%s' %d\n", r, s, n));
   // TODO: move while below next?
   while(n-- && r && s) {next: while(isspace(*r))r++;
@@ -104,7 +110,8 @@ switch(*r){ case 0: case '\n': case '\r': case '|': return s; // end
 Z'(': Z'{': assert(!"TODO: implement");
 Z'[': r+= 1+gen(V+nr, r, ']', nr);
 Z':': switch(x=r[1]) {
-  Z'E': enterframe(); r+= 2;
+  Z'E': enterframe(); oln=ln; r+=2;
+    printf("ACTION: $E oln=%d gn=%d\n", oln, gn);
   Z':': case'=': { char *name= 0;
       r+= 1;
       printf("r===='%s'\n", r);
@@ -115,13 +122,16 @@ Z':': switch(x=r[1]) {
       if (x=='=' || !frame)
 	printf("SETVAR\n"),setvar(name);
       else 
-	printf("NEWVAR\n"),x=newvar(vars, &ln, name);
+	printf("NEWVAR\n"),x=newvar(name);
       ///sprintf(s, " n=%d", ln);
       //A[nr]= sncat(A[nr], s, -1);
       //printf("\nATTR[%d]='%s'\n", nr, A[nr]);
       printf("r AFTER = '%s'\n", r);
+      printf("ACTION: $: '%s' ln=%d gn=%d\n", name, ln, gn);
     }
-  Z'X': exitframe(); r+=2; goto next;
+  Z'X': exitframe(); ln=oln; r+=2;
+    printf("ACTION: $X oln=%d, gn=%d\n", oln, gn);
+    goto next;
   default: A[nr]= sncat(A[nr], " ", 1); r+= 1+gen(A+nr, r, ' ', nr);
 }
   
@@ -225,13 +235,15 @@ char* test(char r, char* s){ nv=0; char* e=parseR(r,s,-1); if(!e||*e)printf(
     "%%%s %c->'%s'\n",e?(*e?"MORE":"OK!"):"FAIL",r,e);
   printf("%s\n",V[nv+1]);return e;}
 
-void readparser(FILE* f) { char rule, *ln= NULL; size_t z= 0, d='\n'; int n;
-  while((n=getdelim(&ln, &z, d, f))>0) { if (ln && ln[n-1]=='\n') ln[n-1]= 0;
+char rule=0; int dlm= '\n';
+void readparser(FILE* f) { char *ln= 0; size_t z= 0; int n;
+  while((n=getdelim(&ln, &z, dlm, f))>0) { if (ln && ln[n-1]=='\n') ln[n-1]= 0;
     DEBUG(printf("> %s\n", ln))
     if (!ln) break; if (!*ln || *ln=='#') continue;
+    if (*ln=='<') readparser(fopen(ln+1, "r")); else
     if (ln[1]=='=') R[ln[0]]=strdup(ln+2); else switch(*ln){
-    case '*': d=0; case '?': rule=ln[1]; break; default: test(rule, ln);
-    } } free(ln);}
+    case '*': dlm=0; case '?': rule=ln[1]; break; default: test(rule, ln);
+    } } free(ln); }
 
 // ENDWCOUNT
 
