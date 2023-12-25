@@ -116,7 +116,7 @@ Z'`': switch(*p++) {
   
 // -- string ops
 Z'$': x=1;switch(*p++){ Z'.': prstack(); case'n': putchar('\n');
-    //  Z'0'...'9':U=S[args+p[-1]-'0'-1]; Z'd': S[sp]=sp;sp++;
+  Z'0'...'9':U=S[args+n+p[-1]-'0'-n-1]; Z'd': S[sp]=sp;sp++;
   Z'$': n=POP;args-=n;
   Z'!': S[args+*p++-'0'-1]=POP; Z's':x=POP;case' ':while(x-->=0)putchar(' ');
     // TODO: quotes?

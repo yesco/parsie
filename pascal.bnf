@@ -47,7 +47,7 @@ F= N\(A\) [ $2 F ]
 
 S= B [$1] | \Exit E; [$1^] | \Exit [$1^]; | \Result\:\=E; [$1] | result:=E; [$1] | M; [$1] | L; [$1] | I [$1] | repeat G until C [--REPEAT--] | while E do S [--WHILE--] | F; [$1] 
 
-G= S G[$1 $2] | S [$1] | ;
+G= S G [$1 $2] | ; |
 # TODO: vars mixed w statements?
 # TODO: how are vars allocated in block?(stack?)
 
@@ -57,7 +57,7 @@ B= begin V G end [$1 $2]
 P= program N; *V B.%e ["$1:"cr $2 $3]
 P= program N; B.%e ["$1:"cr $2]
 
-J= function N\(:E H\)\:Q B [:$1 $#\$\$ $4 $. ^ ; ] :X
+J= function N\(:E H\)\:Q B [:$1 $#\$\$ $4 ^ ; ] :X
 
 P= program N; J B.%e ["$1:"cr $2 $3]
 *P

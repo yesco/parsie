@@ -26,5 +26,7 @@ begin
   write(F(7));
   write(F(8));
   write(F(9));
-  write(F(10));  
+  writeln(F(10));
+
+  writeln(F(35));
 end.

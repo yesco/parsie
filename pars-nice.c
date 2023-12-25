@@ -74,7 +74,7 @@ while(*r && *++r!=end && *r) { switch(*r){
     v= V[*r-'0'+nr+1]; *g= sncat(*g, e+0, 1);
     DEBUG(if (debug>1) printf("GEN e=%s r=%s v=%s \n", e, r, v)); // DEBUG
     while(*v){ if(*v==e[1]) *g=sncat(*g,"\\",1); *g=sncat(*g,v++,1); } v=e+1;l=1;
-   }
+  } else { break; /* ERROR */ }
    *g= sncat(*g, v, l); break;
   case '\\': r++; default: *g= sncat(*g, r, 1);
   }
