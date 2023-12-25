@@ -63,7 +63,7 @@ while(*r && *++r!=end && *r) { switch(*r){
       if (n>0) 
 	sprintf(s, "%d", n);
       else {
-	sprintf(s, "$%d", ln+n+1);
+	sprintf(s, "`%d", ln+n+1);
       }
       *g=sncat(*g,s,-1);
       break;

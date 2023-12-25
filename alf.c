@@ -55,7 +55,7 @@ Z'd': S[sp]= T; sp++; Z'\\': sp--; // TODO: more?
 Z'o': S[sp]= S[sp-2]; sp++; Z's': x=T; T= S[sp-2]; S[sp-2]= x;
 
 Z'0'...'9':{D v=0;p--;while(isdigit(*p))v=v*10+*p++-'0';U=v;}
-Z'A'...'Z':alf(F[p[-1]-'A'],sp,0,0); Z'x':{char x[]={POP,0};alf(x,0,0,0); }
+Z'A'...'Z': alf(F[p[-1]-'A'],sp,0,0); Z'x':{char x[]={POP,0};alf(x,0,0,0); }
     //Z'A'...'Z':alf(F[p[-1]-'A'],args,n,0); Z'x':{char x[]={POP,0};alf(x,0,0,0); }
 
 // -- math stuff
@@ -68,13 +68,13 @@ Z'%': S[sp-2]=L T % L S[sp-2]; sp--; Z'z': T= !T; Z'n': T= -L T;
 Z'h': U=H-M; Z'm':x=T;T=H-M;H+=x; Z'a':H+=L POP;
 Z'g': case ',': align(); if (p[-1]=='g') goto next; memcpy(H,&POP,SL); H+=SL;
 
-Z'@': T=T<0?S[sp+L T-1]:*(long*)(M+8*L T);
-  Z'!': x=POP; if(x<0) S[sp+x-1]=S[sp-1]; else *(long*)(M+8*L x)= S[sp-1]; POP;
- goto next;
+Z'@': T=T<0?S[args+n+L T]:*(long*)(M+8*L T);
+Z'!': x=POP; if(x<0) S[args+x]=S[sp-1]; else *(long*)(M+8*L x)= S[sp-1]; POP;
   
+// TODO: not good/aligned?
 //Z'l':case'!':case'@':x+=4;case'w':x+=3;case'c':x++;d=(char*)&T;e=T<0?(char*)S+L-T-1:M+8*L T;
 // LOL: some "overlap"
-case 'c':
+Z'c':
   switch(*p++){ Z'!': sp--; Z'@': memcpy(d, e, x); Z'r':putchar('\n');
   Z'"': e=p; while(*p&&*p!='"')p++; U=newstr(e, p++-e); Z'c':T=dlen(T);
 }
@@ -87,7 +87,7 @@ Z'\'': U= *p++; Z'"': while(*p&&*p!='"')putchar(*p++); p++;
 Z':': e=strchr(p,';'); if(e) F[*p-'A']=strndup(p+1,e-p),p=e+1;
 
 // Exit (Function) removes args
-Z'^': S[args+1]= T; sp=args+1; return 0;
+Z'^': S[args]= T; sp=args+1; return p;
 
 // TODO: only lisp need atoms? globals?
 //Z'#': U= atom(parsename(&p));
@@ -110,10 +110,13 @@ Z'b': switch(*p++){
   LOP(&,);LOP(|,);LOP(^,); Z'~': T= ~L T;
 }
 
+Z'`': switch(*p++) {
+  Z'0'...'9': U=p[-1]-'0'-n-1;
+}
+  
 // -- string ops
 Z'$': x=1;switch(*p++){ Z'.': prstack(); case'n': putchar('\n');
     //  Z'0'...'9':U=S[args+p[-1]-'0'-1]; Z'd': S[sp]=sp;sp++;
-  Z'0'...'9': U=p[-1]-'0'-n-1;
   Z'$': n=POP;args-=n;
   Z'!': S[args+*p++-'0'-1]=POP; Z's':x=POP;case' ':while(x-->=0)putchar(' ');
     // TODO: quotes?

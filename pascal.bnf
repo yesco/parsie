@@ -16,7 +16,7 @@ K=%s
 # Relational: = <> < > <= >= in
 
 
-U= D | F [$1] | N [$:1 @] | \( E \) [$1]
+U= D | F [$1] | N [$:1@] | \( E \) [$1]
 T= U \* T [$1 $2 *] | U \/ T [$1 $2 /] | U [$1]
 E= K [\$$1\\] | T \+ E [$1 $2 +] | T \- E [$1 $2 -] | T [$1]
 
@@ -57,7 +57,7 @@ B= begin V G end [$1 $2]
 P= program N; *V B.%e ["$1:"cr $2 $3]
 P= program N; B.%e ["$1:"cr $2]
 
-J= function N\(:E H\)\:Q B [:$1 $#\$\$ $4 ; ] :X
+J= function N\(:E H\)\:Q B [:$1 $#\$\$ $4 $. ^ ; ] :X
 
 P= program N; J B.%e ["$1:"cr $2 $3]
 *P
