@@ -84,6 +84,7 @@ Z'.': dprint(POP);Z'e':putchar(POP);Z't': P("%*s.",(int)T,M+L S[sp-2]);sp-=2;
 Z'\'': U= *p++; Z'"': while(*p&&*p!='"')putchar(*p++); p++;
 
 // -- define function ;
+// TODO: optimize by remove ' ' unless digit + digit... (and in string etc) can save 20% in fib...
 Z':': e=strchr(p,';'); if(e) F[*p-'A']=strndup(p+1,e-p),p=e+1;
 
 // Exit (Function) removes args

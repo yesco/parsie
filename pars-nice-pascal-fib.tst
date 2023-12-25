@@ -9,12 +9,9 @@ end
 
 begin
   var x: integer = 42;
-  var a: integer = 4;
-  var r: integer = F(a);
-  write("Fib( ");
-  write(a);
-  write(") = ");
-  writeln(r);
+  var a: integer = 35;
+  var r: integer;
+
   write("FIB: ");
   write(F(0));
   write(F(1));
@@ -28,5 +25,9 @@ begin
   write(F(9));
   writeln(F(10));
 
-  writeln(F(35));
+  write("Fib( ");
+  write(a);
+  write(") = ");
+  r:= F(a);
+  writeln(r);
 end.
