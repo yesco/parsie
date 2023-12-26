@@ -196,6 +196,24 @@ Z'\\': r++; default: if (*s==*r++) s++; /* matched */ else fail: {
 char* parseR(char r, char* s, int n){ int nr=++nv; nv--; newV(nr); char *x;
   x=parse(R[r],s,n,nr); if(!V[nr])V[nr]=x?strndup(s,x-s):x; nv=nr-1;return x;}
 
+// Blank out comments
+// ... // c/c++ comment
+// ^# script comment
+// ... /* comm \n ent */
+// ... (* comm \n ent *)
+
+char* comments(char* os) { int c= 0; char *e= 0, *s= os; if (!s) return os;
+  while(*s) switch(*s++) {
+    case'\'':case'"': c=s[-1]; while(*s!=c){if(*s=='\\')s++; s++;break;c=0;}
+    case'(': if (*s!='*') break;  c=1; e="*)";
+    case'/': if(!c){if(*s!='/'){if(*s!='*')break;e="*/";}else e="\n";}  c=1;
+    case'\n': if (!c){ if(*s!='#') break; e="\n"; }
+      if (!e) break; s--; while(*s&&e&&strncmp(s, e, strlen(e))) *s++= ' '; c=0;
+      for(int i=0;i<strlen(e);i++){if(*s&&!isspace(*s))*s++=' ';else s++;} e=0;
+  }
+  return os;
+}
+
 char* test(char r, char* s){ nv=0; char* e=parseR(r,s,-1); if(!e||*e)printf(
     "%%%s %c->'%s'\n",e?(*e?"MORE":"OK!"):"FAIL",r,e);
   printf("%s\n",V[nv+1]);return e;}
@@ -207,7 +225,7 @@ void readparser(FILE* f) { char *ln= 0; size_t z= 0; int n;
     if (!ln) break; if (!*ln || *ln=='#') continue;
     if (*ln=='<') readparser(fopen(ln+1, "r")); else
     if (ln[1]=='=') R[ln[0]]=strdup(ln+2); else switch(*ln){
-    case '*': dlm=0; case '?': rule=ln[1]; break; default: test(rule, ln);
+      case '*': dlm=0; case '?': rule=ln[1]; break; default: test(rule, comments(ln));
     } } free(ln); }
 
 // ENDWCOUNT

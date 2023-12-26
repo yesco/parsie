@@ -1,7 +1,8 @@
 <pascal.bnf
+(* Fibonacci program *)
 program foo;
 
-function F(n):integer begin
+function F(n(*comment*)):integer begin
   if n<=0 then Result:=0;
   else if n=1 then Result:=1;
   else Result:=F(n-1)+F(n-2);
@@ -13,8 +14,12 @@ begin
   var r: integer;
 
   write("FIB: ");
+(*
+  writeln(F(9999))
+  xy+;3/3;lk3j4t;l43kj
+*)
   write(F(0));
-  write(F(1));
+  write(F(1)); // mix and match comment
   write(F(2));
   write(F(3));
   write(F(4));
