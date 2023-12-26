@@ -7,6 +7,8 @@
 # Capabilities
 # - integer/real/string/char "types" and "values"
 # - "var" declare of single variable/init single variable
+# - (must) define a single function 
+# - function only be named A-Z...
 # - IF expr THEN stmts [ELSE stmt] supported
 # - function call (in expressions, too)
 # - setting var to expression a:=42+a;
@@ -96,8 +98,9 @@ A= E R [$1 $2] |
 # function calls
 #   TODO: long function call
 #F= N\(A\) [($2) `$1@x]
-#   "BUG:" only a function named F
-F= N\(A\) [$2F]
+#   BUG: calling non-existent fun
+#        == idenity!!!
+F= N\(A\) [$2$1]
 
 # statement is
 S= B [$1] | \Exit E; [^] | \Exit [^]; | \Result\:\=E; [$1] | result:=E; [$1] | M; [$1] | L; [$1] | I [$1] | repeat G until C [--REPEAT--] | while E do S [--WHILE--] | for N:=E to E [--FOR--] | for N:=E downto E [--FOR--] | F; [$1] 
