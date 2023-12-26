@@ -1,0 +1,47 @@
+# PASCAL type parser
+#
+# used: B..GHIJ..L..W..XYZ
+#
+# TODO: harmonize/coordinate
+#   with c-types.bnf
+
+# quantifier
+Q= ^Q | O [$1] | R [$1] | A [$1] | E [$1] | U [$1] | F [$1] | P [$1] | M [$1] | D [$1]
+
+# ordinals/scalars
+O= boolean [B1] | integer [I4] | char [C1] | string [S*] | real [R8]
+# enum
+E= \( $,N \) [ $1 ]
+
+# sub range
+S= %d...%d [R$1,$2 ] | %'...%' [R$1,$2 ]
+
+# complex objects
+
+R= record *;Q end [C($1)]
+# TODO: multi-dimensional array
+A= array[S] of Q [A$1 $2]
+
+D= file of Q
+M= set of O
+
+# union
+U= case of V begin... end
+
+F= function ...
+P= procedure ...
+
+# values
+#   TODO: %r
+A= %d | %r | %' | nil | true | false;
+
+# syntax
+V= var *(+,N:Q;) [V$1 $2]
+T= type *(+,N=Q;) [T$1 $2]
+K= const *(N=Q;) [--CONST--] | const *(N:Q=E) [-- CONST --]
+
+?Q
+integer
+string
+record a: integer; s: string; end
+
