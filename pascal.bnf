@@ -8,7 +8,7 @@
 # - integer/real/string/char "types" and "values"
 # - "strings" are used, should be 'foo'
 # - "var" declare of single variable/init single variable
-# - (must) define a single function 
+# - can define several functions/none
 # - function only be named A-Z...
 # - IF expr THEN stmts [ELSE stmt] supported
 # - function call (in expressions, too)
@@ -30,8 +30,8 @@
 # - (BUG: can have several VAR clauses, lol TODO: decl several vars)
 # - VAR can be inited by function call result (can pascal?)
 # - no type checking - use as scripting?
-# - only a single function (function F, lol TODO: extend)
 # - function arguments types not parsed...
+# - non-existing functions == identity!
 # - no procedure yet
 # - setting an undeclared var creates a global
 # - string stuff untested except for printing static strings
@@ -112,7 +112,7 @@ B= begin V G end [$1 $2]
 
 # single function!
 #   TODO: generalize
-J= function N\(:E H\)\:Q B [:$1$#\$\$$4^; ] :X
+J= function N\(:E H\)\:Q B [:$1$#\$\$$4^; ] :X J [$5] |
 
 
 # A program is...
