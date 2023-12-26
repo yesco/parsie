@@ -68,8 +68,8 @@ Z'%': S[sp-2]=L T % L S[sp-2]; sp--; Z'z': T= !T; Z'n': T= -L T;
 Z'h': U=H-M; Z'm':x=T;T=H-M;H+=x; Z'a':H+=L POP;
 Z'g': case ',': align(); if (p[-1]=='g') goto next; memcpy(H,&POP,SL); H+=SL;
 
-Z'@': T=T<0?S[args+n+L T]:*(long*)(M+8*L T);
-Z'!': x=POP; if(x<0) S[args+x]=S[sp-1]; else *(long*)(M+8*L x)= S[sp-1]; POP;
+Z'@': T=T<0?S[args+n+L T]:*(D*)(M+8*L T);
+Z'!': {D d=POP;x=d;if(x<0) S[args+x]=S[sp-1]; else *(D*)(M+8*x)= S[sp-1]; POP;}
   
 // TODO: not good/aligned?
 //Z'l':case'!':case'@':x+=4;case'w':x+=3;case'c':x++;d=(char*)&T;e=T<0?(char*)S+L-T-1:M+8*L T;

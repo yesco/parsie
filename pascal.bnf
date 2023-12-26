@@ -51,6 +51,8 @@
 # TODO: these are needed, shouldn't be?
 N=%n
 D=%i
+
+# TODO: pascal string is '...'
 K=%s
 
 # lowest level
@@ -60,7 +62,7 @@ U= D | F [$1] | N [$:1@] | \( E \) [$1]
 T= U \* T [$1 $2 *] | U \/ T [$1 $2 /] | U [$1]
 
 # Additive: + - TODO: here? "or"
-E= K [\$$1\\] | T \+ E [$1 $2 +] | T \- E [$1 $2 -] | T [$1]
+E= K [c$1] | T \+ E [$1 $2 +] | T \- E [$1 $2 -] | T [$1]
 
 # Relational: = <> < > <= >= in
 Z= = | <> [z] | <= [>z] | < | >= [<z] | >
@@ -114,7 +116,7 @@ J= function N\(:E H\)\:Q B [:$1$#\$\$$4^; ] :X
 #P= program N; *V B.%e ["$1:"cr$2 $3]
 #P= program N; B.%e ["$1:"cr$2]
 
-P= program N; J B.%e ["$1:"cr$2 $3]
+P= program N; J B.%e ["PROGRAM $1 running:"crcr$2 $3]
 
 # Read rest as file inputs as one "chunk" and parse all as pascal!
 *P
