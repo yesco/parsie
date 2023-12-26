@@ -6,6 +6,7 @@
 
 # Capabilities
 # - integer/real/string/char "types" and "values"
+# - "strings" are used, should be 'foo'
 # - "var" declare of single variable/init single variable
 # - (must) define a single function 
 # - function only be named A-Z...
@@ -103,7 +104,7 @@ A= E R [$1 $2] |
 F= N\(A\) [$2$1]
 
 # statement is
-S= B [$1] | \Exit E; [^] | \Exit [^]; | \Result\:\=E; [$1] | result:=E; [$1] | M; [$1] | L; [$1] | I [$1] | repeat G until C [--REPEAT--] | while E do S [--WHILE--] | for N:=E to E [--FOR--] | for N:=E downto E [--FOR--] | F; [$1] 
+S= B [$1] | \Exit E; [^] | \Exit [^]; | \Result\:\=E; [$1] | result:=E; [$1] | M; [$1] | L; [$1] | I [$1] | repeat G until C [--REPEAT--] | while E do S [--WHILE--] | for N:=E to E [--FOR--] | for N:=E downto E [--FOR--] | F; [$1]
 
 # BEGIN END grouping of statement
 G= S G [$1 $2] | ; |
