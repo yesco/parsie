@@ -202,6 +202,7 @@ char* parseR(char r, char* s, int n){ int nr=++nv; nv--; newV(nr); char *x;
 // ... /* comm \n ent */
 // ... (* comm \n ent *)
 
+// TODO: parametrice/config/input 9 loc
 char* comments(char* os) { int c= 0; char *e= 0, *s= os; if (!s) return os;
   while(*s) switch(*s++) {
     case'\'':case'"': c=s[-1]; while(*s!=c){if(*s=='\\')s++; s++;break;c=0;}

@@ -1,5 +1,5 @@
 echo "LOC: `./wcode alf.c`"
-clang alf.c && ./a.out $*
+clang -O3 alf.c && time -p ./a.out $*
 
 
 
