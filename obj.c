@@ -11,36 +11,18 @@ int debug= 0; // DEBUG
 #define NPN 6 // => 6*2+4=>16*8B=128B
 
 // TODO: change pointers to D
-typedef struct Obj {
-  struct Obj* proto;
-  struct Obj* next;
-  D arr, reserved;
+typedef struct Obj { struct Obj *proto, *next; D arr, reserved;
+  struct np { D name, val; } np[NPN]; } Obj;
 
-  struct nameprop { D name, val; } np[NPN];
-} Obj;
-
-Obj* obj() {
-  // TODO: use Memory/Stack
-  Obj* o= calloc(sizeof(Obj), 1);
-  for(int i=0; i<NPN; i++) {
-    o->np[i].name= undef;
-    o->np[i].val= undef;
-  }
-  return o;
-}
+// TODO: use Memory/Stack
+Obj* obj() { Obj* o= calloc(sizeof(Obj), 1);
+  for(int i=0; i<NPN; i++)  o->np[i]=(struct np){undef, undef};  return o; }
 
 // Set in direct obj
-D set(Obj* o, D name, D val) {
-  if (!o) return undef;
-  Obj *last= 0, *p= o;
-  while(p) {
-    for(int i=0; i<NPN; i++) {
+D set(Obj* o, D name, D val) { if (!o) return undef; Obj *last= 0, *p= o;
+  while(p) { for(int i=0; i<NPN; i++) {
       D n= p->np[i].name;
-      if (n==name || n==undef) {
-	p->np[i].name= name;
-	p->np[i].val= val;
-	return val;
-      }
+      if (n==name || n==undef) {p->np[i]=(struct np){name,val}; return val; }
     }
     last= p; p= p->next;
   }
@@ -49,16 +31,10 @@ D set(Obj* o, D name, D val) {
 }
 
 // Search obj first, then proto...
-D get(Obj* o, D name) {
-  if (!o) return undef;
-  Obj* p= o;
+D get(Obj* o, D name) { if (!o) return undef; Obj* p= o;
   // search obj specific props
-  while(p) {
-    for(int i=0; i<NPN; i++)
-      // inf == inf ?
-      if (p->np[i].name==name) return p->np[i].val;
-    p= p->next;
-  }
+  while(p) { for(int i=0; i<NPN; i++)
+      if (p->np[i].name==name) return p->np[i].val;  p= p->next; }
   // Obj all the way up
   // TODO: rename Obj to Turtle? :-D
   return get(o->proto, name);
