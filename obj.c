@@ -67,8 +67,11 @@ void _probj(int indent, Obj* o) {
   if (!o) return;
   printf("%*s---proto\n", indent, "");
   _probj(indent+2, o->proto);
-  // TODO: arr
+  // TODO: arr - could have array
+  //   array usage is very slow
+  //   keys would also be unordered
   // TODO: reserved
+  //   potentially variable NPN ?
   printf("%*s---props\n", indent, "");
   for(int i=0; i<NPN; i++) {
     printf("%*s[%d] ", indent, "", i);
