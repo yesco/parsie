@@ -40,7 +40,7 @@ next: DEBUG(prstack();putchar('\n');P("\t  '%c'\n",*p))
 x=0;switch(*p++){ case 0:case';':case')':return p; Z' ':Z'\n':Z'\t':Z'\r':
 // -- stack stuff
 Z'd': S[sp]= T; sp++; Z'\\': sp--; // TODO: more?
-Z'o': S[sp]= S[sp-2]; sp++; Z's': x=T; T= S[sp-2]; S[sp-2]= x;
+Z'o': S[sp]= S[sp-2]; sp++; Z's': {D d=T; T= S[sp-2]; S[sp-2]= d;}
 
 Z'0'...'9':{D v=0;p--;while(isdigit(*p))v=v*10+*p++-'0';U=v;}
 Z'A'...'Z': alf(F[p[-1]-'A'],sp,0,0); Z'x':{char x[]={POP,0};alf(x,0,0,0); }
@@ -56,8 +56,8 @@ Z'%': S[sp-2]=L T % L S[sp-2]; sp--; Z'z': T= !T; Z'n': T= -L T;
 Z'h': U=H-M; Z'm':x=T;T=H-M;H+=x; Z'a':H+=L POP;
 Z'g': case ',': align(); if (p[-1]=='g') goto next; memcpy(H,&POP,SL); H+=SL;
 
-Z'@': T=T<0?S[args+n+L T]:*(D*)(M+8*L T);
-Z'!': {D d=POP;x=d;if(x<0) S[args+x]=S[sp-1]; else *(D*)(M+8*x)= S[sp-1]; POP;}
+Z'@': T<0?S[args+n+L T]:*(D*)(M+8*L T);
+Z'!': {x=L POP; if(x<0) S[args+x]=POP; else *(D*)(M+8*x)= POP,printf("FISH:"),dprint(*(D*)(M+8*x)); }
   
 // TODO: not good/aligned?
 //Z'l':case'!':case'@':x+=4;case'w':x+=3;case'c':x++;d=(char*)&T;e=T<0?(char*)S+L-T-1:M+8*L T;
@@ -78,7 +78,7 @@ Z':': e=strchr(p,';'); if(e) F[*p-'A']=strndup(p+1,e-p),p=e+1;
 Z'^': S[args]= T; sp=args+1; return p;
 
 // TODO: only lisp need atoms? globals?
-//Z'#': U= atom(parsename(&p));
+Z'#': U= atom(parsename(&p));
 
 // control/IF/FOR/WHILE - ? { }
 Z'}': return iff?p:NULL; Z'{': while(!((e=alf(p, args, n, 0)))){}; p= e;
@@ -99,7 +99,9 @@ Z'b': switch(*p++){
 }
 
 Z'`': switch(*p++) {
+  Z'#': U=n;
   Z'0'...'9': U=p[-1]-'0'-n-1;
+  // TODO: outer frame scope/closures?
 }
   
 // -- string ops
@@ -110,7 +112,14 @@ Z'$': x=1;switch(*p++){ Z'.': prstack(); case'n': putchar('\n');
     // TODO: quotes?
   Z'"': e=H;while(*p&&*p!='"')*H++=*p++; *H++=0;if(*p)p++; U=e-M; U=H-e-1;
   Z'h': P("%lx\n", L POP);goto next; default: p--; // err
-}
+  Z'D': for(int i=0; i<T;) { int n= S[sp-2]; printf("\n%04x ", n);
+      for(int j=0; j<8; j++) printf("%02x%*s", M[n+j], j==3, "");  printf("  ");
+      for(int j=0; j<8; j++) printf("%c", M[n+j]?(M[n+j]<32||M[n+j]>126? '?': M[n+j]):'.');
+      D d= *(D*)(M+n); x=TYP(d); if ((x&0x0ff8)==0x0ff8) { if (x>32*1024) x=-(x&7); else x= x&7; } else x=0;
+	printf(" %2ld:", x); dprint(d);
+      S[sp-2] += 8; i+= 8;
+    }
+  } printf("\n"); prstack(); break;
 
 default: P("\n[%% Undefined op: '%s']\n", p-1);p++;exit(3);} goto next;
 }
@@ -119,7 +128,7 @@ default: P("\n[%% Undefined op: '%s']\n", p-1);p++;exit(3);} goto next;
 char* opt(char* p) { char *s= p;
   while(s&&s[0]&&s[1]&&s[2]){switch(s[0]){
     case '"': while(*s && *++s!='"'){} break;
-    case '#': break;//TODO: #atom \128...
+    case '#': s++; parsename(&s); printf("\n>>>%s<<<\n", s); break;
     case '`': break;//TODO: `4@ => $4
     case '0'...'9': if (isdigit(s[2])) break;
     default: if (!isspace(s[1])) break;
@@ -222,13 +231,14 @@ char* opt(char* p) { char *s= p;
   " - print string
 ( # - formatting? or printf? )
   $ - string functions
-    $d - depth (of stack)
     $1 - $9 - get frame parameter N
     $!1 - $!9 - set frame parameter N
-   '$ '- print blank
-    $s - print N blanks
+   '$ '- print space
+    $s - print N spaces
     $h - print hex
     $. - print stack (.S normally)
+    $d - depth of stack
+    $D - dump from address
   ( $# - format? )
 
     $" - counted string
@@ -266,7 +276,10 @@ char* opt(char* p) { char *s= p;
   ] - exit param frame
 ( ^ - break  b~ for xor )
   _ - stack name define
-  ` - address of stack name
+  ` - prefix: addresses?
+    `1-`9 - address of N;th parameter
+    `@    - number of args
+    $1-$9 - see this
   a - allot (inc here, from arena)
   b - bit ops:
     b& - bit & (64 bit)

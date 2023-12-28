@@ -11,10 +11,10 @@ unsigned long d2u(D d) { return *(long*)(&d); } D u2d(long u) { return *(D*)(&u)
 
 // 1 sign, 7 types, 48(47?) bits of data
 // Use Typ:2B = sIII IIII IIII Ittt
-//#define MTYP 0x0007000000000000L
-//#define MNAN 0x7ff8000000000000L
-//#define MDAT 0x0000ffffffffffffL
-//#define MNEG 0x8000000000000000L
+//#define MTYP 0x000070000000000L
+//#define MNAN 0x7fff80000000000L
+//#define MDAT 0x0000fffffffffffL
+//#define MNEG 0x800000000000000L
 //const uint64_t MNAN=0x7ff8L<<48,MDAT=(1L<<48)-1L; //,MNEG=1L<<63;
 // TODO: MDAT should be 1L<<49?
 
@@ -22,17 +22,17 @@ unsigned long d2u(D d) { return *(long*)(&d); } D u2d(long u) { return *(D*)(&u)
 #define DAT(x) (d2u(x)&(((1L<<48))-1L))
 #define TYP(x) ((int)(d2u(x)>>48))
 
-// Typ:s constants
-//  0 reserved 0xfff8 plain nan
-//  2 = TATM   0x8ff9
-// -1 = TCONS  0xffff
-//  2 reserved 9xfffe
-// -3 = TSTR   0xfffd
-// -4 = TOBJ   9xfffc
-// -5 = TENV   0xfffb ?
-// -6          0xfffa
-// -7          0xfff9
-const int TATM=0x8ff9,TSTR=0xfffb,TCONS=0xfff9,TOBJ=0xfffa;
+// Typ:s constants (neg if need to be GC:ed)
+//  0 reserved 0xfff8 - plain nan (can be used for more...)
+//  1 inline6  0x7ff9 - inline 6c x 8=48 chars, 8c x 6=A-Za-z0-9_\0
+//  2 = TATM   0x7ffa - atom
+// -3 = TSTR   0xfffb - managed GC strings
+//(-4 = TOBJ   9xfffc - TODO: JS-style objects)
+//(-5 = TENV   0xfffd - TODO: same same?      )
+//(-6 = TCONS  0xfffe - TODO:                 ) 
+//(-7 = TCLOS  0xffff - TODO:                 }
+const int TATM=0x7ffa,TSTR=0xfffb,TOBJ=0xfffc,TCONS=0xfffe,TENV=0xffd;
+//,TCONS=0xfffe,TCLOS=0xffff;
 
 #define HPSIZE 16*1024
 char hp[HPSIZE]= {0}; int nilo=0; D nil, undef;
