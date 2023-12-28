@@ -1,0 +1,2 @@
+: fib dup 1 < if drop 0 else dup 2 < if drop 1 else dup 1 - recurse swap 2 - recurse + then then ;
+35 dup . fib . cr
