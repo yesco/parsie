@@ -40,12 +40,12 @@ Obj* obj() { Obj* o= calloc(sizeof(Obj), 1);
   for(int i=0; i<NPN; i++)  o->np[i]=(struct np){undef, undef};  return o; }
 
 // Set in direct obj
+// if val is undef, name is removed
 D set(Obj* o, D name, D val) { if (!o) return undef; Obj *last= 0, *p= o;
   while(p) { for(int i=0; i<NPN; i++) {
       D n= p->np[i].name;
-      if (n==name || n==undef) {p->np[i]=(struct np){name,val}; return val; }
-    }
-    last= p; p= p->next;
+      if (n==name || n==undef) {p->np[i]=(struct np){val==undef?undef:name,val};
+	return val; } } last= p; p= p->next;
   }
   // need one more chunk
   return set((last->next=obj()), name, val);
@@ -148,6 +148,12 @@ int main(void) {
   set(x, atom("bar"), 333);
   set(x, atom("foo"), 321);
   printf("get foo after 2ndset: "); dprint(get(x, atom("foo"))); printf("\n");
+  probj(x);
+  printf("\n=== UNSET\n");
+  set(x, atom("foo"), undef);
+  printf("get undef foo: "); dprint(get(x, atom("foo"))); printf("\n");
+  probj(x);
+  
   probj(x);
 
   dprint(undef); printf("\n");
