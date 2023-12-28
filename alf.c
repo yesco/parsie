@@ -120,7 +120,6 @@ default: P("\n[%% Undefined op: '%s']\n", p-1);p++;exit(3);} goto next;
 char* opt(char* p) { char *s= p; while((*s)) { if (*s=='"') while(*++s!='"'){};
   if (isspace(s[1])) {if(isdigit(s[0]) && isdigit(s[2])) ;// NOT
   else memmove(s+1, s+2, strlen(s+2)+1); } else s++; }
-  printf("%s\n", p);
   return p; }
 
 
