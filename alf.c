@@ -8,19 +8,7 @@
 int debug= 0; // DEBUG
 #define DEBUG(D) if (debug) do{D;}while(0);
 
-#define SMAX 1024
-double S[SMAX]={0}; int sp=0,memsize=0; char *M=0, *H=0, *F['Z'-'A'+1]={0};
-
-#define T S[sp-1]
-#define POP S[--sp]
-#define U S[sp++]
-
-#define L (long)
-#define SL (sizeof L)
-#define P printf
-#define align() while((H-M)%SL&!(H-M))H++
-
-void initalf(size_t sz) { H=M=calloc(memsize= sz, 1); } // TODO: ?zero S F
+#include "mem.c"
 
 // Variable Name Bindings on Stack
 #include "nantypes.c"
@@ -356,7 +344,7 @@ int main(int argc, char** argv) {
     if (0==strcmp("-d", argv++[0])) debug++;
   } while(--argc);
 
-  inittypes(); initalf(16*1024);
+  inittypes(); initmem(16*1024);
 
 if(0){
   alf("3d.4d.+. 44444d. 1111111d. + . 3 3=. 4 3=. 1 0|. 7 3|. 1 0&. 1 3&.", 0, 0, 0);

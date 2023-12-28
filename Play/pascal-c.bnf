@@ -1,0 +1,158 @@
+# PASCAL bnf -> ALF
+#
+# (free: Z) LOL
+
+# TODO: preprocess comments?
+
+N=%n
+D=%i
+K=%s
+
+# math priority ( ) >>> * / >>> + -
+U= D | F [$1] | N [`$1@] | \( E \) [$1]
+T= U \* T [$1 $2 *] | U \/ T [$1 $2 /] | U [$1]
+E= K [\$$1\\] | T \+ E [$1 $2 +] | T \- E [$1 $2 -] | T [$1]
+
+Z= = | <= [>z] | < | >= [<z] | >
+# TODO: and >>> or
+# TODO: E Z E may not work
+C= E Z E [$1 $3 $2] | not C [$1~] | C and C [$1 $2 &]
+
+
+Q= integer :t=i8 | char :t=c1 | string :t=s
+# TODO: repeated w ,
+V= var N\:Q=E; V [_$1 $3`$1! $4 ] | var N\:Q; V [_$1 $3 ] |
+L= N\:=E [$2 `$1!]
+I= if C then S else S [$1?{$2}{$3}] | if C then S [$1?{$2} ]
+R= repeat G until C
+W= while E do S
+
+X= E,X [$1:print $1 $2] | E [$1:print $1] |
+M= write\(K\) [$1] | write\(E\) [$1.] | writeln\(K\) [$1$n] | writeln\(E\) [$1.\$n]|
+
+A= E,A [$1 $2] | E [$1] |
+H= N,H [_$1 $2] | N [_$1] |
+
+# TODO: long function call
+F= N\(A\) [($2) `$1@x]
+F= N\(A\) [($2)F ]
+
+S= B [$1] | \Exit E; [$1^] | \Exit [$1^]; | \Result\:\=E; [$1] | result:=E; [$1] | M; [$1] | L; [$1] | I [$1] | R [$1] | W[$1] | F; [$1] 
+
+G= S G[$1 $2] | S [$1] | ;
+# TODO: vars mixed w statements?
+# TODO: how are vars allocated in block?(stack?)
+
+B= begin V G end [$1 $2]
+# not working with *V
+
+P= program N; *V B.%e ["$1:"$n $2 $3]
+P= program N; B.%e ["$1:"$n $2]
+
+?N
+42
+a
+
+?A
+1
+1,2,3
+a
+1,a,b,4
+a,b,c
+a,1,b,cc,222,333
+
+?F
+#fine
+foo(1)
+foo(1,2)
+
+#fail
+foo()
+foo(a)
+foo(a,3)
+
+
+?L
+q:=7
+
+?E
+3+4*2
+
+?U
+42
+a
+ab
+?N
+42
+a
+ab
+?n
+42
+a
+ab
+
+?V
+var x: integer;
+var a: integer = 42;
+var r: integer = "foobar";
+
+
+# TODO: need type-info ???
+# not working?
+
+#?S
+#writeln(fib(a));
+
+?H
+a,b,c
+
+?Z
+>=
+
+?C
+1=1
+1+1=2
+F(3)=3*2*1
+
+?I
+if 1=1 then a:=3;
+if 1=1 then a:=3; else a:=7;
+
+
+Y= procedure N\(H\) B [: $1 \[ $2 $3 \]; ]
+?Y
+procedure P(n) begin P(n-1); end
+
+?S
+Result:=fib(n-1)+fib(n-2);
+
+?I
+if n=0 then Result:=0;
+if n=0 then Result:=0; else Result:=1;
+if n=1 then Result:=1; else Result:=fib(n-1)+fib(n-2);
+if n=0 then Result:=0; else if n=1 then Result:=1; else Result:=2;
+if n=1 then Result:=1; else begin Result:=fib(n-1)+fib(n-2); end
+
+J= function N\(H\)\:Q B [:$1 \[ $2 $4 \]; ]
+?J
+function F(n):integer begin if n=0 then Result:=0; else if n=1 then Result:=1; else Result:=fib(n-1)+fib(n-2); end
+
+P= program N; J B.%e ["$1:"\$n $2 $3]
+*P
+program foo;
+
+function F(n):integer begin
+  if n<=0 then Result:=0;
+  else if n=1 then Result:=1;
+  else Result:=F(n-1)+F(n-2);
+end
+
+begin
+  var x: integer = 42;
+  var a: integer = 3;
+  var r: integer = F(a);
+  write("Fib( ");
+  write(a);
+  write(") = ");
+  writeln(r);
+end.
