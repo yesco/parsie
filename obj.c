@@ -142,10 +142,16 @@ int main(void) {
 
   printf("\n=== ATOMS?\n");
   Obj* x= obj();
-  printf("get foo before     : "); dprint(get(s, atom("foo"))); printf("\n");
+  printf("get foo before     : "); dprint(get(x, atom("foo"))); printf("\n");
   set(x, atom("foo"), 123);
-  printf("get foo after set  : "); dprint(get(s, atom("foo"))); printf("\n");
-  set(x, atom("bar"), 123);
+  printf("get foo after set  : "); dprint(get(x, atom("foo"))); printf("\n");
+  set(x, atom("bar"), 333);
   set(x, atom("foo"), 321);
-  printf("get foo after 2ndset: "); dprint(get(s, atom("foo"))); printf("\n");
+  printf("get foo after 2ndset: "); dprint(get(x, atom("foo"))); printf("\n");
+  probj(x);
+
+  dprint(undef); printf("\n");
+  dprint(nil); printf("\n");
+  dprint(atom("foo")); printf("\n");
+  dprint(atom("bar")); printf("\n");
 }
