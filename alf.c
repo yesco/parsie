@@ -112,31 +112,22 @@ Z'$': x=1;switch(*p++){ Z'.': prstack(); case'n': putchar('\n');
     // TODO: quotes?
   Z'"': e=H;while(*p&&*p!='"')*H++=*p++; *H++=0;if(*p)p++; U=e-M; U=H-e-1;
   Z'h': P("%lx\n", L POP);goto next; default: p--; // err
-  Z'D': for(int i=0; i<T;) { int n= S[sp-2]; printf("\n%04x ", n);
-      for(int j=0; j<8; j++) printf("%02x%*s", M[n+j], j==3, "");  printf("  ");
-      for(int j=0; j<8; j++) printf("%c", M[n+j]?(M[n+j]<32||M[n+j]>126? '?': M[n+j]):'.');
-      D d= *(D*)(M+n); x=TYP(d); if ((x&0x0ff8)==0x0ff8) { if (x>32*1024) x=-(x&7); else x= x&7; } else x=0;
-	printf(" %2ld:", x); dprint(d);
-      S[sp-2] += 8; i+= 8;
-    }
-  } printf("\n"); prstack(); break;
+  Z'D': for(int i=0; i<T;) { int n= S[sp-2]; printf("\n%04x ", n); // DEBUG
+      for(int j=0; j<8; j++) printf("%02x%*s", M[n+j], j==3, "");  printf("  "); // DEBUG
+      for(int j=0; j<8; j++) printf("%c", M[n+j]?(M[n+j]<32||M[n+j]>126? '?': M[n+j]):'.'); // DEBUG
+      D d= *(D*)(M+n); x=TYP(d); if ((x&0x0ff8)==0x0ff8) { // DEBUG
+	if (x>32*1024) x=-(x&7); else x= x&7; } else x=0; // DEBUG
+      printf(" %2ld:", x); dprint(d); S[sp-2] += 8; i+= 8; } } printf("\n"); prstack(); break; // DEBUG
 
 default: P("\n[%% Undefined op: '%s']\n", p-1);p++;exit(3);} goto next;
 }
 
 // fib 19-27% faster!
-char* opt(char* p) { char *s= p;
-  while(s&&s[0]&&s[1]&&s[2]){switch(s[0]){
-    case '"': while(*s && *++s!='"'){} break;
-    case '#': s++; parsename(&s); printf("\n>>>%s<<<\n", s); break;
-    case '`': break;//TODO: `4@ => $4
-    case '0'...'9': if (isdigit(s[2])) break;
-    default: if (!isspace(s[1])) break;
-      memmove(s+1, s+2, strlen(s+2)+1); continue;
-    } s++; }
-  DEBUG(printf("\n%s\n", p));
-  return p;
-}
+char* opt(char* p) { char *s= p; while(s&&s[0]&&s[1]&&s[2]){switch(s[0]){
+  case'"': while(*s && *++s!='"'){}break;  case '#': s++; parsename(&s);break;
+  case'`': break; /* TODO */ case'0'...'9': if(isdigit(s[2]))break;
+  default: if (!isspace(s[1])) break; memmove(s+1, s+2, strlen(s+2)+1);continue;
+  } s++; } DEBUG(printf("\n%s\n", p)); return p; }
 
 // ENDWCOUNT
 
