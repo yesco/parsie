@@ -10,16 +10,13 @@ int debug= 0; // DEBUG
 
 #define NPN 6 // => 6*2+4=>16*8B=128B
 
+// TODO: change pointers to D
 typedef struct Obj {
-  struct Obj* proto; // TODO: D
-  D arr;
-  D reserved;
-  struct Obj* next; // TODO: D
+  struct Obj* proto;
+  struct Obj* next;
+  D arr, reserved;
 
-  struct nameprop {
-    D name;
-    D val;
-  } np[NPN];
+  struct nameprop { D name, val; } np[NPN];
 } Obj;
 
 Obj* obj() {
@@ -29,14 +26,6 @@ Obj* obj() {
     o->np[i].name= undef;
     o->np[i].val= undef;
   }
-  return o;
-}
-
-Obj* probj(Obj* o) {
-  if (!o) return 0;
-  printf("\n---OBJ\n");
-  _probj(2, o);
-  printf("---END\n");
   return o;
 }
 
@@ -56,7 +45,6 @@ D set(Obj* o, D name, D val) {
     last= p; p= p->next;
   }
   // need one more chunk
-  printf("%% allocate chunk\n");
   return set((last->next=obj()), name, val);
 }
 
@@ -96,6 +84,14 @@ void _probj(int indent, Obj* o) {
   _probj(indent, o->next);
 }
        
+Obj* probj(Obj* o) {
+  if (!o) return 0;
+  printf("\n---OBJ\n");
+  _probj(2, o);
+  printf("---END\n");
+  return o;
+}
+
 int main(void) {
   inittypes(); initmem(1024);
   
@@ -115,15 +111,16 @@ int main(void) {
   dprint(get(0, 42)); printf("\n");
   probj(0);
 
-  printf("\n=== OOOOOOOOn");
+  printf("\n=== OOOOOOOO\n");
   Obj* o= obj();
   printf("get before set: "); dprint(get(o, 42)); printf("\n");
   printf("set           : "); dprint(set(o, 42, 99)); printf("\n");
   printf("get after set : "); dprint(get(o, 42)); printf("\n");
   probj(o);
 
-  for(int i=0; i<100; i++)
+  for(int i=0; i<10; i++)
     set(o, i, 100-i);
+
   set(o, nil, 666);
   set(o, undef, -666);
   probj(o);
@@ -140,4 +137,9 @@ int main(void) {
   set(s, 77, -777);
   printf("get 77 after set : "); dprint(get(s, 77)); printf("\n");
   probj(s);
+
+  printf("\n=== SET MANY\n");
+  for(int i=0; i<100; i++)
+    set(o, i, 100-i);
+  probj(o);
 }
