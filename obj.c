@@ -1,3 +1,24 @@
+// Obj.c
+//
+// Javascript prototype style objects
+
+// Implemented as chunk of NPN (6)
+// named properties, basically an
+// "assoc"-chunk. Overflows are found
+// by following next pointer.
+//
+// The proto property allows for
+// inheritence:
+//
+// Get: finds named propoerty in object
+//   or in proto object chain.
+// Set: sets/replaces the property
+//   binding in the local object.
+//
+// Property names are of type D so
+// can be typed objects, in JS keys are
+// converted to strings. We don't.
+
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -10,7 +31,7 @@ int debug= 0; // DEBUG
 
 #define NPN 6 // => 6*2+4=>16*8B=128B
 
-// TODO: change pointers to D
+// TODO: change pointers to D ?
 typedef struct Obj { struct Obj *proto, *next; D arr, reserved;
   struct np { D name, val; } np[NPN]; } Obj;
 
@@ -118,4 +139,13 @@ int main(void) {
   for(int i=0; i<100; i++)
     set(o, i, 100-i);
   probj(o);
+
+  printf("\n=== ATOMS?\n");
+  Obj* x= obj();
+  printf("get foo before     : "); dprint(get(s, atom("foo"))); printf("\n");
+  set(x, atom("foo"), 123);
+  printf("get foo after set  : "); dprint(get(s, atom("foo"))); printf("\n");
+  set(x, atom("bar"), 123);
+  set(x, atom("foo"), 321);
+  printf("get foo after 2ndset: "); dprint(get(s, atom("foo"))); printf("\n");
 }
