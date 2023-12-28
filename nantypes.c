@@ -23,7 +23,16 @@ unsigned long d2u(D d) { return *(long*)(&d); } D u2d(long u) { return *(D*)(&u)
 #define TYP(x) ((int)(d2u(x)>>48))
 
 // Typ:s constants
-const int TATM=0x8ff9 /*2*/, TSTR=0xfffb /*-3*/, TCONS=0xfff9 /*-1*/;
+//  0 reserved 0xfff8 plain nan
+//  2 = TATM   0x8ff9
+// -1 = TCONS  0xffff
+//  2 reserved 9xfffe
+// -3 = TSTR   0xfffd
+// -4 = TOBJ   9xfffc
+// -5 = TENV   0xfffb ?
+// -6          0xfffa
+// -7          0xfff9
+const int TATM=0x8ff9,TSTR=0xfffb,TCONS=0xfff9,TOBJ=0xfffa;
 
 #define HPSIZE 16*1024
 char hp[HPSIZE]= {0}; int nilo=0; D nil, undef;

@@ -72,7 +72,6 @@ Z'.': dprint(POP);Z'e':putchar(POP);Z't': P("%*s.",(int)T,M+L S[sp-2]);sp-=2;
 Z'\'': U= *p++; Z'"': while(*p&&*p!='"')putchar(*p++); p++;
 
 // -- define function ;
-// TODO: optimize by remove ' ' unless digit + digit... (and in string etc) can save 20% in fib...
 Z':': e=strchr(p,';'); if(e) F[*p-'A']=strndup(p+1,e-p),p=e+1;
 
 // Exit (Function) removes args
@@ -117,11 +116,18 @@ default: P("\n[%% Undefined op: '%s']\n", p-1);p++;exit(3);} goto next;
 }
 
 // fib 19-27% faster!
-char* opt(char* p) { char *s= p; while((*s)) { if (*s=='"') while(*++s!='"'){};
-  if (isspace(s[1])) {if(isdigit(s[0]) && isdigit(s[2])) ;// NOT
-  else memmove(s+1, s+2, strlen(s+2)+1); } else s++; }
-  return p; }
-
+char* opt(char* p) { char *s= p;
+  while(s&&s[0]&&s[1]&&s[2]){switch(s[0]){
+    case '"': while(*s && *++s!='"'){} break;
+    case '#': break;//TODO: #atom \128...
+    case '`': break;//TODO: `4@ => $4
+    case '0'...'9': if (isdigit(s[2])) break;
+    default: if (!isspace(s[1])) break;
+      memmove(s+1, s+2, strlen(s+2)+1); continue;
+    } s++; }
+  DEBUG(printf("\n%s\n", p));
+  return p;
+}
 
 // ENDWCOUNT
 

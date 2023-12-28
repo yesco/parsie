@@ -61,6 +61,10 @@ D get(Obj* o, D name) { if (!o) return undef; Obj* p= o;
   return get(o->proto, name);
 }
 
+Obj* dobj
+D obj2d(Obj* o) {
+}
+
 // ENDWCOUNT
 
 void _probj(int indent, Obj* o) {
