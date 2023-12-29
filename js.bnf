@@ -1,0 +1,135 @@
+# JS BNF -> ALF
+# (from pascal.bnf)
+#
+# This file contains the BNF-parse rules for a limited subset of JavaScript
+# For a legal and correct PASCAL program in the given subset, it will mostly
+# behave the same. Maybe ;-)
+
+# Capabilities
+# - integer/real/string/char "types" and "values"
+# - "strings" are used, should be 'foo'
+# - "var" declare of single variable/init single variable
+# - can define several functions/none
+# - function only be named A-Z...
+# - IF expr THEN stmts [ELSE stmt] supported
+# - function call (in expressions, too)
+# - setting var to expression a:=42+a;
+# - expression operators: +-/* ()
+# - logic: and not (TODO: or)
+# - comparisions: = <> <= < >= >
+# - global variables availble throught, can be shadowed by locals
+# - "prepared" for scoped inner functions (TODO: not working yet)
+# - recursive function calls
+# - Assign "Result:=42;" to set return value
+# - "Exit;" functionality
+
+# Limitations/Features:
+# - (only integer/string constants)
+# - no comments (TODO: preprocessing stage of parser?)
+# - C style ; in IF statements, LOL. TODO: fix
+# - (BUG: can have several VAR clauses, lol TODO: decl several vars)
+# - VAR can be inited by function call result (can pascal?)
+# - no type checking - use as scripting?
+# - function arguments types not parsed...
+# - non-existing functions == identity!
+# - no procedure yet
+# - setting an undeclared var creates a global
+# - string stuff untested except for printing static strings
+# - embryo for variable unlimited pascal strings includcing GC!
+
+# TODO:
+# - loops
+# - read readln
+# - label goto
+# - get put assign reset seek close
+# - new dispose (mark release)
+# (- high low)
+
+# Parsing Rules:
+#   (free rule chars: ) none? LOL
+
+
+# TODO: preprocess comments?
+
+# TODO: these are needed, shouldn't be?
+N=%n
+D=%i
+
+# TODO: pascal string is '...'
+K=%s
+
+# lowest level
+U= D [$1] | F [$1] | N [$:1@] | \( E \) [$1]
+
+# Multiplicative: * / div mod TODO: here? "and"
+T= U \* T [$1 $2 *] | U \/ T [$1 $2 /] | U [$1]
+
+# Additive: + - TODO: here? "or"
+E= K [c$1] | T \+ E [$1 $2 +] | T \- E [$1 $2 -] | T [$1]
+
+# Relational: == <> < > <= >= in
+# TODO: JS join with E
+Z= === [=] | == [=] | != [z] | <= [>z] | < | >= [<z] | >
+
+# Logical negation: not
+# TODO: E Z E may not work
+C= E Z E [$1 $3 $2] | !C [$1~] | C && C [$1 $2 &]
+
+# types...
+Q= integer :t=i8 | char :t=c1 | string :t=s | real :t=r
+
+# var...; var... ; lol TODO: only one, and many vars
+V= var N\:Q=E; ::$1 V [$3 $:1! $4] | var N\:Q; V ::$1 [$3] |
+
+# let
+L= N\=E :=$1 [$2 $:1!]
+
+I= if \(C\) S else S [$1?{$2}{$3}] | if \(C\) S [$1?{$2} ]
+
+M= console\.log\(K\) [$1] | console\.log\(E\) [$1.] |
+
+# formal arguments declaration
+#   TODO: add types
+W= ,H |
+H= N W ::$1
+
+# actual argument expression list
+R= ,A [$1] |
+A= E R [$1 $2] |
+
+# function calls
+#   TODO: long function call
+#F= N\(A\) [($2) `$1@x]
+#   BUG: calling non-existent fun
+#        == idenity!!!
+F= N\(A\) [$2$1]
+
+# statement is
+S= B [$1] | return E; [$1 ^] | M; [$1] | L; [$1] | I [$1] | do S while \(C\) [--DO-WHILE--] | while \(C\) S [--WHILE--] | for(S S S) [--FOR--] | F; [$1]
+
+# BLOCK grouping of statement
+G= S G [$1 $2] | ; |
+B= \{ V G \} [$1 $2]
+
+# single function!
+#   TODO: generalize
+J= function N\(:E H\) B [:$1$#\$\$$3^; ] :X J [$4] |
+
+P= J S%e [$1 $2]
+
+# Read rest as file inputs as one "chunk" and parse all as pascal!
+?I
+if (1==0) return 0;
+if (42==0) return 0; else if (55==1) return 1; else return F(42-1)+F(42-2);
+?B
+{ G(3); }
+?J
+function F(n) { G(3); } function G(n) { return 42; }
+function F(n) {  if (n==0) return 0;  else if (n==1) return 1;  else return F(n-1)+F(n-2); }
+?S
+console.log(F(42));
+*P
+function F(n) {  if (n==0) return 0;  else if (n==1) return 1;  else return F(n-1)+F(n-2); }
+console.log(F(35));
+
+

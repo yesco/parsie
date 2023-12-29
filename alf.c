@@ -75,7 +75,7 @@ Z'\'': U= *p++; Z'"': while(*p&&*p!='"')putchar(*p++); p++;
 Z':': e=strchr(p,';'); if(e) F[*p-'A']=strndup(p+1,e-p),p=e+1;
 
 // Exit (Function) removes args
-Z'^': S[args]= T; sp=args+1; return p;
+Z'^': S[args]= T; sp=args+1; return p-1;
 
 // TODO: only lisp need atoms? globals?
 Z'#': U= atom(parsename(&p));
