@@ -105,10 +105,9 @@ Z'`': switch(*p++) {
   
 // -- string ops
 Z'$': x=1;switch(*p++){ Z'.': prstack(); case'n': putchar('\n');
-  Z'0'...'9':U=S[args+n+p[-1]-'0'-n-1]; Z'd': S[sp]=sp;sp++;
-  Z'$': n=POP;args-=n;
+  Z'0'...'9':U=S[args+n+p[-1]-'0'-n-1];Z'd':S[sp]=sp;sp++;Z'$':n=POP;args-=n;
   Z'!': S[args+*p++-'0'-1]=POP; Z's':x=POP;case' ':while(x-->=0)putchar(' ');
-    // TODO: quotes?
+  // TODO: quotes?
   Z'"': e=H;while(*p&&*p!='"')*H++=*p++; *H++=0;if(*p)p++; U=e-M; U=H-e-1;
   Z'h': P("%lx\n", L POP);goto next; default: p--; // err
   Z'D': for(int i=0; i<T;) { int n= S[sp-2]; printf("\n%04x ", n); // DEBUG
