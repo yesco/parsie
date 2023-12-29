@@ -59,13 +59,21 @@ void prnames() { char* p= hp; printf("\n"); while(*p) { D* d= (D*)(p+1+strlen(p+
 // Return a data atom
 D atom(char* s){return u2d(BOX(TATM, nameadd(s)));}
 
-void inittypes() {nil=atom("nil");undef=atom("undef");
-  //assert(DAT(nil)==nilo);
+// TODO: "ERROR"
+void inittypes() {nil=atom("nil");undef=atom("undef");assert(DAT(nil)==nilo);
 }
+
+// eq???
+int deq(D a, D b) { return d2u(a)==d2u(b); }
 
 // TODO: it's not aligned
 // AtomValPTR is used as address to global var storage in M
+// TODO: remove: use svar.c and hibit encoded offsets!
 #define AVPTR(d) (TYP(d)!=2?NULL:(D*)&hp[DAT(d)+hp[DAT(d)]+2])
+
+// Get M pointer from offset TYP
+void* PTR(int t, D o) {
+  return TYP(o)==t?M+DAT(o):0;}
 
 // how many strings can we handle?
 // TODO: make dynamic?

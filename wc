@@ -1,13 +1,19 @@
 p=$(./wcode pars-nice.c)
 m=$(./wcode mem.c)
 t=$(./wcode nantypes.c)
-v=$(./wcode varz.c)
+v=$(./wcode svar.c)
+o=$(./wcode obj.c)
 #s=$(./wcode str.c)
 a=$(./wcode alf.c)
 
-tot=$(echo "$p+$m+$t+$v+$a"|bc -l)
+js=$(grep '^.=' js.bnf | wc -l)
+pas=$(grep '^.=' pascal.bnf | wc -l)
 
-printf "PARSE:\t$p\nMEM:\t$m\nTYPE:\t$t\nVAR:\t$v\nALF:\t$a\n=============\nTOTAL:\t$tot\n"
+tot=$(echo "$p+$m+$t+$v+$o+$a"|bc -l)
+
+printf "PARSE:\t$p\nMEM:\t$m\nTYPE:\t$t\nVAR:\t$v\nOBJ:\t$o\nALF:\t$a\n=============\nTOTAL:\t$tot\n"
 printf "STMTS:\t`./wc-statements`\n"
 printf "ALF#F:\t`clang -E alf.c | sed 's/case/\ncase/g' | grep -in '^case' | wc -l`\n"
 printf "full#F:\t`clang -E alf-full.c | sed 's/case/\ncase/g' | grep -in '^case' | wc -l`\n"
+
+printf "\nPASCAL:\t$pas\nJS:\t$js\n"

@@ -12,7 +12,6 @@ int debug= 0; // DEBUG
 
 // Variable Name Bindings on Stack
 #include "nantypes.c"
-#include "varz.c"
 
 // Parse from P a name
 // (P is pointer to char* and updated)

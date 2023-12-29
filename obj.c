@@ -32,49 +32,30 @@ int debug= 0; // DEBUG
 #define NPN 6 // => 6*2+4=>16*8B=128B
 
 // TODO: change pointers to D ?
-typedef struct Obj { D proto, next, arr, reserved;
-  struct np { D name, val; } np[NPN]; } Obj;
-
-void* PTR(D o) { return M+DAT(o); }
+typedef struct Obj{D proto,next,arr,reserved;struct np{D name,val;}np[NPN];}Obj;
 
 // TODO: use Memory/Stack
 D obj() { align(); Obj* o= (Obj*)H; H+= sizeof(Obj);
   for(int i=0; i<NPN; i++)  o->np[i]=(struct np){undef, undef};
-  unsigned long x= ((char*)o)-M;
-  return u2d(BOX(TOBJ, x)); }
-
-int deq(D a, D b) { return d2u(a)==d2u(b); }
+  unsigned long x= ((char*)o)-M; return u2d(BOX(TOBJ, x)); }
 
 // Set in direct obj
 // if val is undef, name is removed
-D set(D d, D name, D val) {
-  if (TYP(d)!=TOBJ) return undef;
-  Obj* o=PTR(d); if (!o) return undef; Obj *last= 0, *p= o;
-  while(p) { for(int i=0; i<NPN; i++) {
-      D n= p->np[i].name;
-      if (deq(n,name) || deq(n,undef)) {p->np[i]=(struct np){val==undef?undef:name,val};
-	return val; } } last= p; if(TYP(p->next)!=TOBJ) break;  p= PTR(p->next); }
-  // need one more chunk
-  return set((last->next=obj()), name, val);
-}
+D set(D d, D name, D val) {Obj*o=PTR(TOBJ,d),*last=0,*p=o;if(!o)return undef;
+  while(p){for(int i=0;i<NPN;i++){D n=p->np[i].name;if(deq(n,name)
+  ||deq(n,undef)){p->np[i]=(struct np){val==undef?undef:name,val}; return val;}}
+    last=p;p=PTR(TOBJ,p->next);}return set((last->next=obj()),name,val);}
 
 // Search obj first, then proto...
-D get(D d, D name) {
-  if (TYP(d)!=TOBJ) return undef;
-  Obj *o= PTR(d), *p=o;
-  // search obj specific props
+D get(D d, D name) { Obj *o= PTR(TOBJ, d), *p=o;
   while(p) {for(int i=0;i<NPN;i++) if(p->np[i].name==name) return p->np[i].val;
-    if (TYP(p->next)!=TOBJ) break; p= PTR(p->next); }
-  // Obj all the way up
-  // TODO: rename Obj to Turtle? :-D
-  return get(o->proto, name);
+    p= PTR(TOBJ,p->next); }  return o?get(o->proto, name):undef;
 }
 
 // ENDWCOUNT
 
 void _probj(int indent, D d) {
-  if (TYP(d)!=TOBJ) return;
-  Obj* o= PTR(d);
+  Obj* o= PTR(TOBJ,d); if(!o)return;
   printf("%*s---proto\n", indent, "");
   _probj(indent+2, o->proto);
   // TODO: arr - could have array
@@ -102,6 +83,7 @@ D probj(D d) {
   return d;
 }
 
+#ifdef objTEST
 int main(void) {
   inittypes(); initmem(1024);
   
@@ -139,7 +121,7 @@ int main(void) {
   probj(o);
 
   printf("\n=== INHERITED\n");
-  D s= obj(); Obj* sp= PTR(s); sp->proto= o;
+  D s= obj(); Obj* sp= PTR(TOBJ,s); sp->proto= o;
   probj(s);
   
   printf("\n=== SET INHERITED\n");
@@ -177,3 +159,5 @@ int main(void) {
   dprint(atom("foo")); printf("\n");
   dprint(atom("bar")); printf("\n");
 }
+#endif
+
