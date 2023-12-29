@@ -56,7 +56,7 @@ Z'%': S[sp-2]=L T % L S[sp-2]; sp--; Z'z': T= !T; Z'n': T= -L T;
 Z'h': U=H-M; Z'm':x=T;T=H-M;H+=x; Z'a':H+=L POP;
 Z'g': case ',': align(); if (p[-1]=='g') goto next; memcpy(H,&POP,SL); H+=SL;
 
-Z'@': T<0?S[args+n+L T]:*(D*)(M+8*L T);
+Z'@': x=L T;T= x<0?S[args+n+x]:*(D*)(M+8*x);
 Z'!': {x=L POP; if(x<0) S[args+x]=POP; else *(D*)(M+8*x)= POP,printf("FISH:"),dprint(*(D*)(M+8*x)); }
   
 // TODO: not good/aligned?
@@ -232,7 +232,7 @@ char* opt(char* p) { char *s= p; while(s&&s[0]&&s[1]&&s[2]){switch(s[0]){
     $D - dump from address
   ( $# - format? )
 
-    $" - counted string
+    $" - counted mem string
   ( $\ - interpret \n etc - counted? )
   ( $( - counted string) )
   ( $[ - another?] )
@@ -280,11 +280,11 @@ char* opt(char* p) { char *s= p; while(s&&s[0]&&s[1]&&s[2]){switch(s[0]){
   c - char ops prefix !@
     c" - managed null-terminated string
     cc - count=length of mngd/"ptr"/#atom
-    cr - carriage return $n already
+    cr - carriage return
   ( ca - append 2 mngd str->mngd )
   ( cm - cmove ? TODO: )
     c! - 
-    c@
+    c@ -
     c, - TODO
     ci - c++
     cd - c--

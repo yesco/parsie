@@ -32,43 +32,49 @@ int debug= 0; // DEBUG
 #define NPN 6 // => 6*2+4=>16*8B=128B
 
 // TODO: change pointers to D ?
-typedef struct Obj { struct Obj *proto, *next; D arr, reserved;
+typedef struct Obj { D proto, next, arr, reserved;
   struct np { D name, val; } np[NPN]; } Obj;
 
+void* PTR(D o) { return M+DAT(o); }
+
 // TODO: use Memory/Stack
-Obj* obj() { Obj* o= calloc(sizeof(Obj), 1);
-  for(int i=0; i<NPN; i++)  o->np[i]=(struct np){undef, undef};  return o; }
+D obj() { align(); Obj* o= (Obj*)H; H+= sizeof(Obj);
+  for(int i=0; i<NPN; i++)  o->np[i]=(struct np){undef, undef};
+  unsigned long x= ((char*)o)-M;
+  return u2d(BOX(TOBJ, x)); }
+
+int deq(D a, D b) { return d2u(a)==d2u(b); }
 
 // Set in direct obj
 // if val is undef, name is removed
-D set(Obj* o, D name, D val) { if (!o) return undef; Obj *last= 0, *p= o;
+D set(D d, D name, D val) {
+  if (TYP(d)!=TOBJ) return undef;
+  Obj* o=PTR(d); if (!o) return undef; Obj *last= 0, *p= o;
   while(p) { for(int i=0; i<NPN; i++) {
       D n= p->np[i].name;
-      if (n==name || n==undef) {p->np[i]=(struct np){val==undef?undef:name,val};
-	return val; } } last= p; p= p->next;
-  }
+      if (deq(n,name) || deq(n,undef)) {p->np[i]=(struct np){val==undef?undef:name,val};
+	return val; } } last= p; if(TYP(p->next)!=TOBJ) break;  p= PTR(p->next); }
   // need one more chunk
   return set((last->next=obj()), name, val);
 }
 
 // Search obj first, then proto...
-D get(Obj* o, D name) { if (!o) return undef; Obj* p= o;
+D get(D d, D name) {
+  if (TYP(d)!=TOBJ) return undef;
+  Obj *o= PTR(d), *p=o;
   // search obj specific props
-  while(p) { for(int i=0; i<NPN; i++)
-      if (p->np[i].name==name) return p->np[i].val;  p= p->next; }
+  while(p) {for(int i=0;i<NPN;i++) if(p->np[i].name==name) return p->np[i].val;
+    if (TYP(p->next)!=TOBJ) break; p= PTR(p->next); }
   // Obj all the way up
   // TODO: rename Obj to Turtle? :-D
   return get(o->proto, name);
 }
 
-Obj* dobj
-D obj2d(Obj* o) {
-}
-
 // ENDWCOUNT
 
-void _probj(int indent, Obj* o) {
-  if (!o) return;
+void _probj(int indent, D d) {
+  if (TYP(d)!=TOBJ) return;
+  Obj* o= PTR(d);
   printf("%*s---proto\n", indent, "");
   _probj(indent+2, o->proto);
   // TODO: arr - could have array
@@ -88,21 +94,21 @@ void _probj(int indent, Obj* o) {
   _probj(indent, o->next);
 }
        
-Obj* probj(Obj* o) {
-  if (!o) return 0;
+D probj(D d) {
+  if (TYP(d)!=TOBJ) { printf("---NOT TOBJ: "); dprint(d); putchar('\n'); return d; }
   printf("\n---OBJ\n");
-  _probj(2, o);
-  printf("---END\n");
-  return o;
+  _probj(2, d);
+  printf("---END OBJ\n");
+  return d;
 }
 
 int main(void) {
   inittypes(); initmem(1024);
   
   /// TODO: this is wrong!!!
-  if (nil!=nil) printf("nil doesn't eq\n");
-  if (undef!=undef) printf("undef doesn't eq\n");
-  if (undef==nil) printf("undef and nil eq\n");
+  if (!deq(nil,nil)) printf("nil doesn't eq\n");
+  if (!deq(undef,undef)) printf("undef doesn't eq\n");
+  if (deq(undef,nil)) printf("undef and nil eq\n");
 
   printf("\n=== PRINTF %%g\n");
   printf("%.7g\n", nil);
@@ -116,21 +122,24 @@ int main(void) {
   probj(0);
 
   printf("\n=== OOOOOOOO\n");
-  Obj* o= obj();
+  D o= obj();
+  probj(o);
   printf("get before set: "); dprint(get(o, 42)); printf("\n");
   printf("set           : "); dprint(set(o, 42, 99)); printf("\n");
   printf("get after set : "); dprint(get(o, 42)); printf("\n");
   probj(o);
 
+  printf("=== SETTING 10\n");
   for(int i=0; i<10; i++)
     set(o, i, 100-i);
 
+  printf("=== SETTING nil/undef\n");
   set(o, nil, 666);
   set(o, undef, -666);
   probj(o);
 
   printf("\n=== INHERITED\n");
-  Obj* s= obj(); s->proto= o;
+  D s= obj(); Obj* sp= PTR(s); sp->proto= o;
   probj(s);
   
   printf("\n=== SET INHERITED\n");
@@ -148,7 +157,7 @@ int main(void) {
   probj(o);
 
   printf("\n=== ATOMS?\n");
-  Obj* x= obj();
+  D x= obj();
   printf("get foo before     : "); dprint(get(x, atom("foo"))); printf("\n");
   set(x, atom("foo"), 123);
   printf("get foo after set  : "); dprint(get(x, atom("foo"))); printf("\n");

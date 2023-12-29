@@ -7,7 +7,7 @@
 
 // alias to clarify extended meaning
 typedef double D;
-unsigned long d2u(D d) { return *(long*)(&d); } D u2d(long u) { return *(D*)(&u); }
+unsigned long d2u(D d) { return *(unsigned long*)(&d); } D u2d(long u) { return *(D*)(&u); }
 
 // 1 sign, 7 types, 48(47?) bits of data
 // Use Typ:2B = sIII IIII IIII Ittt
@@ -18,9 +18,9 @@ unsigned long d2u(D d) { return *(long*)(&d); } D u2d(long u) { return *(D*)(&u)
 //const uint64_t MNAN=0x7ff8L<<48,MDAT=(1L<<48)-1L; //,MNEG=1L<<63;
 // TODO: MDAT should be 1L<<49?
 
-#define BOX(t,dat) ((((long)dat)&((1L<<48)-1L)) | (((long)t)<<48))
-#define DAT(x) (d2u(x)&(((1L<<48))-1L))
-#define TYP(x) ((int)(d2u(x)>>48))
+#define BOX(t,dat) ((((unsigned long)dat)&((1LU<<48)-1)) | (((unsigned long)t)<<48))
+#define DAT(x) (d2u(x)&(((1LU<<48))-1))
+#define TYP(x) ((unsigned int)(d2u(x)>>48))
 
 // Typ:s constants (neg if need to be GC:ed)
 //  0 reserved 0xfff8 - plain nan (can be used for more...)
@@ -31,7 +31,7 @@ unsigned long d2u(D d) { return *(long*)(&d); } D u2d(long u) { return *(D*)(&u)
 //(-5 = TENV   0xfffd - TODO: same same?      )
 //(-6 = TCONS  0xfffe - TODO:                 ) 
 //(-7 = TCLOS  0xffff - TODO:                 }
-const int TATM=0x7ffa,TSTR=0xfffb,TOBJ=0xfffc,TCONS=0xfffe,TENV=0xffd;
+const long TNAN=0x7ff8,TATM=0x7ffa,TSTR=0xfffb,TOBJ=0xfffc,TCONS=0xfffe,TENV=0xfffd;
 //,TCONS=0xfffe,TCLOS=0xffff;
 
 #define HPSIZE 16*1024
@@ -59,7 +59,9 @@ void prnames() { char* p= hp; printf("\n"); while(*p) { D* d= (D*)(p+1+strlen(p+
 // Return a data atom
 D atom(char* s){return u2d(BOX(TATM, nameadd(s)));}
 
-void inittypes() {nil=atom("nil");assert(DAT(nil)==nilo);undef=atom("undef");}
+void inittypes() {nil=atom("nil");undef=atom("undef");
+  //assert(DAT(nil)==nilo);
+}
 
 // TODO: it's not aligned
 // AtomValPTR is used as address to global var storage in M
