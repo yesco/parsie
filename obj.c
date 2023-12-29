@@ -23,11 +23,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-int debug= 0; // DEBUG
-#define DEBUG(D) if (debug) do{D;}while(0);
+#ifdef objTEST // DEBUG
+  int debug= 0; // DEBUG
+  #define DEBUG(D) if (debug) do{D;}while(0);
 
-#include "mem.c"
-#include "nantypes.c"
+  #include "mem.c"
+  #include "nantypes.c"
+#endif // DEBUG
 
 #define NPN 6 // => 6*2+4=>16*8B=128B
 
@@ -36,6 +38,7 @@ typedef struct Obj{D proto,next,arr,reserved;struct np{D name,val;}np[NPN];}Obj;
 
 // TODO: use Memory/Stack
 D obj() { align(); Obj* o= (Obj*)H; H+= sizeof(Obj);
+  memset(o, 0, sizeof(Obj));
   for(int i=0; i<NPN; i++)  o->np[i]=(struct np){undef, undef};
   unsigned long x= ((char*)o)-M; return u2d(BOX(TOBJ, x)); }
 
@@ -48,7 +51,7 @@ D set(D d, D name, D val) {Obj*o=PTR(TOBJ,d),*last=0,*p=o;if(!o)return undef;
 
 // Search obj first, then proto...
 D get(D d, D name) { Obj *o= PTR(TOBJ, d), *p=o;
-  while(p) {for(int i=0;i<NPN;i++) if(p->np[i].name==name) return p->np[i].val;
+  while(p) {for(int i=0;i<NPN;i++) if(deq(p->np[i].name,name)) return p->np[i].val;
     p= PTR(TOBJ,p->next); }  return o?get(o->proto, name):undef;
 }
 
@@ -56,8 +59,10 @@ D get(D d, D name) { Obj *o= PTR(TOBJ, d), *p=o;
 
 void _probj(int indent, D d) {
   Obj* o= PTR(TOBJ,d); if(!o)return;
-  printf("%*s---proto\n", indent, "");
-  _probj(indent+2, o->proto);
+  printf("%*s---OBJ %ld %p\n", indent-2, "", DAT(d), o);
+  printf("%*s---proto ", indent, ""); dprint(o->proto); printf("\n");
+  //_probj(indent+2, o->proto);
+  _probj(indent+2, 0);
   // TODO: arr - could have array
   //   array usage is very slow
   //   keys would also be unordered
@@ -77,7 +82,6 @@ void _probj(int indent, D d) {
        
 D probj(D d) {
   if (TYP(d)!=TOBJ) { printf("---NOT TOBJ: "); dprint(d); putchar('\n'); return d; }
-  printf("\n---OBJ\n");
   _probj(2, d);
   printf("---END OBJ\n");
   return d;

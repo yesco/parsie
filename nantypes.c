@@ -72,8 +72,7 @@ int deq(D a, D b) { return d2u(a)==d2u(b); }
 #define AVPTR(d) (TYP(d)!=2?NULL:(D*)&hp[DAT(d)+hp[DAT(d)]+2])
 
 // Get M pointer from offset TYP
-void* PTR(int t, D o) {
-  return TYP(o)==t?M+DAT(o):0;}
+void* PTR(int t, D o) { return TYP(o)==t?M+DAT(o):0;}
 
 // how many strings can we handle?
 // TODO: make dynamic?

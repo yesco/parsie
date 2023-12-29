@@ -13,6 +13,9 @@ int debug= 0; // DEBUG
 // Variable Name Bindings on Stack
 #include "nantypes.c"
 
+#include "obj.c"
+
+
 // Parse from P a name
 // (P is pointer to char* and updated)
 //
@@ -56,7 +59,7 @@ Z'h': U=H-M; Z'm':x=T;T=H-M;H+=x; Z'a':H+=L POP;
 Z'g': case ',': align(); if (p[-1]=='g') goto next; memcpy(H,&POP,SL); H+=SL;
 
 Z'@': x=L T;T= x<0?S[args+n+x]:*(D*)(M+8*x);
-Z'!': {x=L POP; if(x<0) S[args+x]=POP; else *(D*)(M+8*x)= POP,printf("FISH:"),dprint(*(D*)(M+8*x)); }
+Z'!': {x=L POP; if(x<0) S[args+x]=POP; else *(D*)(M+8*x)= POP;}
   
 // TODO: not good/aligned?
 //Z'l':case'!':case'@':x+=4;case'w':x+=3;case'c':x++;d=(char*)&T;e=T<0?(char*)S+L-T-1:M+8*L T;
@@ -77,7 +80,10 @@ Z':': e=strchr(p,';'); if(e) F[*p-'A']=strndup(p+1,e-p),p=e+1;
 Z'^': S[args]= T; sp=args+1; return p-1;
 
 // TODO: only lisp need atoms? globals?
-Z'#': U= atom(parsename(&p));
+Z'#': switch(*p++) { Z'a'...'z':case'A'...'Z':case'_': p--; U= atom(parsename(&p));
+  Z'@': {D o=POP,n=POP;U=get(o,n);}Z'!': {D o=POP,n=POP,v=POP;set(o,n,v);probj(o);}
+  Z'^': U=probj(obj()); goto next; default: ;/* goto error? */
+}
 
 // control/IF/FOR/WHILE - ? { }
 Z'}': return iff?p:NULL; Z'{': while(!((e=alf(p, args, n, 0)))){}; p= e;
@@ -218,7 +224,11 @@ char* opt(char* p) { char *s= p; while(s&&s[0]&&s[1]&&s[2]){switch(s[0]){
   <spc> - delimiter
   ! - store (& prefix by c/w/l)
   " - print string
-( # - formatting? or printf? )
+  # - atom/hash stuff
+    #abc - make atom
+    #@ - get property value of object
+    #! - add value property to object
+    #^ - new object
   $ - string functions
     $1 - $9 - get frame parameter N
     $!1 - $!9 - set frame parameter N
