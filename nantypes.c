@@ -60,12 +60,17 @@ void prnames() { char* p= hp; printf("\n"); while(*p) { D* d= (D*)(p+1+strlen(p+
 D atom(char* s){return u2d(BOX(TATM, nameadd(s)));}
 
 // TODO: "ERROR"
-void inittypes() {nil=atom("nil");undef=atom("undef");*S=*K=error=atom("*ERROR*");
+void inittypes() {nil=atom("nil");undef=atom("undef");K[SMAX]=*S=*K=error=atom("*ERROR*");
   assert(DAT(nil)==nilo);
 }
 
 // eq???
 int deq(D a, D b) { return d2u(a)==d2u(b); }
+
+char typ(D d) { int t= TYP(d); return !isnan(d)?(d==L d?'i':'f'):deq(t,nil)?
+  'N':deq(t,undef)?'U':deq(d,error)?'E':t==TATM?'A':t==TSTR?'S':t==TOBJ?'O':
+  t==TCONS?'C':t==TNAN?'n':t==TENV?'E':0; }
+
 
 // TODO: it's not aligned
 // AtomValPTR is used as address to global var storage in M

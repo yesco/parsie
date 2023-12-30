@@ -38,6 +38,7 @@ typedef struct Obj{D proto,next,arr,reserved;struct np{D name,val;}np[NPN];}Obj;
 
 // TODO: use Memory/Stack
 D obj() { align(); Obj* o= (Obj*)H; H+= sizeof(Obj);
+  // TODO: use m() and K() etc...
   memset(o, 0, sizeof(Obj));
   for(int i=0; i<NPN; i++)  o->np[i]=(struct np){undef, undef};
   unsigned long x= ((char*)o)-M; return u2d(BOX(TOBJ, x)); }
