@@ -153,6 +153,8 @@ Comparing with various interpreters and compilers these are rough numbers:
 | python	|  5.72s | used to be slower? |
 | gforth	|  2.25s | quite ok |
 | ecl (lisp)	| 27.05s | worst in test! |
+| tinylisp opt 99 loc | 21.79s | fib 35 |
+
 
 The winner is of course optimized C. Nodejs is a decent second hand. I though it would have been a bit faster. Perl is just supergood at text and regular expressions, but as a generic language and doing recursion is just sucky funny. Guile is doing very well, it uses a simplistic (?) template JIT. picolisp is just a VM, similarly to alf.
 

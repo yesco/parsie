@@ -18,7 +18,7 @@ unsigned long d2u(D d) { return *(unsigned long*)(&d); } D u2d(long u) { return 
 //const uint64_t MNAN=0x7ff8L<<48,MDAT=(1L<<48)-1L; //,MNEG=1L<<63;
 // TODO: MDAT should be 1L<<49?
 
-#define BOX(t,dat) ((((unsigned long)dat)&((1LU<<48)-1)) | (((unsigned long)t)<<48))
+#define BOX(t,dat) ((((unsigned long)(dat))&((1LU<<48)-1)) | (((unsigned long)t)<<48))
 #define DAT(x) (d2u(x)&(((1LU<<48))-1))
 #define TYP(x) ((unsigned int)(d2u(x)>>48))
 

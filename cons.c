@@ -14,7 +14,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#ifdef objTEST // DEBUG
+#ifdef consTEST // DEBUG
   int debug= 0; // DEBUG
   #define DEBUG(D) if (debug) do{D;}while(0);
 
@@ -29,22 +29,31 @@ D cons(D car, D cdr) {
   return r;
 }
 
-D car(D c) { D* p= PTR(TCONS, c); return p?*p:error; }
-D cdr(D c) { D* p= PTR(TCONS, c); return p?*p[1]:error; }
+D car(D c) { D* p= PTR(TCONS, c); return p?p[0]:error; }
+D cdr(D c) { D* p= PTR(TCONS, c); return p?p[1]:error; }
   
 // Set in direct obj
 // if val is undef, name is removed
-D set(D d, D name, D val) {Obj*o=PTR(TOBJ,d),*last=0,*p=o;if(!o)return undef;
-  while(p){for(int i=0;i<NPN;i++){D n=p->np[i].name;if(deq(n,name)
-  ||deq(n,undef)){p->np[i]=(struct np){val==undef?undef:name,val}; return val;}}
-    last=p;p=PTR(TOBJ,p->next);}return set((last->next=obj()),name,val);}
+D set(D d, D name, D val) {
+  D* c= PTR(TCONS,d),*last=0,*p=c;
+  if(!c)return undef; // HMMM
+  while(p){
+    if(deq(*p,name)) {
+      p[0]= val==undef?undef:name;
+      p[1]= val;
+      return val;
+    }
+    last=p; p=PTR(TCONS,cdr(*p));
+  }
+  // insert new one?
+  // TODO:
+}
 
 // Search obj first, then proto...
 D get(D d, D name) {
   D *c= PTR(TOBJ, d), *p=o;
   while(p) {
-    for(int i=0;i<NPN;i++)
-      if(deq(p->np[i].name,name)) return p->np[i].val;
+    if(deq(car(p),name)) return p->np[i].val;
     p= PTR(TOBJ,p->next);
   }
   return o?get(o->proto, name):undef;
@@ -132,10 +141,7 @@ int main () {
   
 }
 
-
-
-
-#ifdef objTEST
+#ifdef consTEST
 int main(void) {
   initmem(16*1024); inittypes(); 
   
