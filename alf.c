@@ -15,6 +15,24 @@ int debug= 0; // DEBUG
 
 #include "obj.c"
 
+// Interpreation of memory ref
+inline void* m(double d) {
+  long x, t= TYP(d);
+  if (t) {
+    // TODO: types
+    x= DAT(d);
+    switch(t){
+    case TATM: case TSTR: return dchars(d);
+    case TOBJ: case TCONS: case TENV: //TCLOS:
+    case TNAN: default: return 0;
+    }
+  }
+  x=L d;
+  if (x<0) return S-x;
+  if (x>MLIM) return M+x-MLIM;
+  assert(x<VMAX);
+  return K+SMAX+x;
+}
 
 // Parse from P a name
 // (P is pointer to char* and updated)
@@ -362,7 +380,7 @@ int main(int argc, char** argv) {
     if (0==strcmp("-d", argv++[0])) debug++;
   } while(--argc);
 
-  inittypes(); initmem(16*1024);
+  initmem(16*1024); inittypes(); 
 
 if(0){
   alf("3d.4d.+. 44444d. 1111111d. + . 3 3=. 4 3=. 1 0|. 7 3|. 1 0&. 1 3&.", 0, 0, 0);
