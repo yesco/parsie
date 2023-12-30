@@ -120,7 +120,7 @@ void gc() { memset(sr, 0, sizeof(sr));
   // --- MARK: sr[x]++ for each ref
   // stack
   // TODO: what if stack was upper part of heap and grew down?
-  for(int i=0; i<SMAX; i++) { D d= S[i]; if (TYP(d)==TSTR) sr[DAT(d)]++; }
+  for(int i=0; i<SMAX; i++) { D d= K[i]; if (TYP(d)==TSTR) sr[DAT(d)]++; }
   // memory (and globals)
   char* p= M; while(p<H) { D d= *(D*)p; if (TYP(d)==TSTR) sr[DAT(d)]++; }
 
