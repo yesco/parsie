@@ -127,20 +127,6 @@ NOTE: Currently, nested functions ala JavaScript/PASCAL/ADA/ALGOL/GCC are not ge
 
 NOTE: Currently, also because of this, there is no function for closures. This is somewhat more complicated, as it requires a dynamic/GC approach; either using a copying closure generator, or usage of dynamic function scope for functions containing captured variables.
    
-# Name of this project
-
-small parser+interpreter:
-
-grokie - to grok a little -ie
-  this might be better as it also implies understanding. As it can interpret generated code once the input program is parsed - it "groks", at least a little bit.
-
-parsie - small parser?
-
-parslet - a tiny parser
-
-pars - forth like 4th letters, lol
-
-
 ## Speed
 
 Compared to plain C-implementation, at first this alphabetical byte-code VM-interpreter may feel slow.
@@ -153,6 +139,7 @@ Comparing with various interpreters and compilers these are rough numbers:
 
 
 | implementation| time s | comment |
+| -------------	| -----: | -------- |
 | ./alf raw	|  5.04s | hand-coded |
 | ./pas (alf)	|  7.79s | compiled from pascal |
 | ./pas (opt)   |  6.80s | `1@ => $1 |
@@ -176,3 +163,17 @@ Most overhead is relating to parameter passing and manipulation.
 That the parsi-alf compiled JS is faster than PASCAL is interesting; it's an artifact of that there is an explicit "return" statement in JS. One could add "Exit;" and that would give similar speedup. This is because of the textual interpretation of the alf-code of if blocks taking time to process.
 
 This performance figures are set to be updated and improved over time.
+
+# Name of this project
+
+small parser+interpreter:
+
+grokie - to grok a little -ie
+  this might be better as it also implies understanding. As it can interpret generated code once the input program is parsed - it "groks", at least a little bit.
+
+parsie - small parser?
+
+parslet - a tiny parser
+
+pars - forth like 4th letters, lol
+
