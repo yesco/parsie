@@ -16,19 +16,20 @@ int debug= 0; // DEBUG
 #include "obj.c"
 
 // Interpreation of memory ref
-inline void* m(double d) {
-  long x, t= TYP(d);
-  if (t) {
+//inline void* m(double d, int args, int n) {
+void* m(double d, int args, int n) {
+  if (isnan(d)) {
+    printf(" TYP=%x\n", TYP(d));
     // TODO: types
-    x= DAT(d);
-    switch(t){
+    long x= DAT(d);
+    switch(TYP(d)){
     case TATM: case TSTR: return dchars(d);
     case TOBJ: case TCONS: case TENV: //TCLOS:
     case TNAN: default: return 0;
     }
   }
-  x=L d;
-  if (x<0) return S-x;
+  long x=L d;
+  if (x<0) return K+args+n;
   if (x>MLIM) return M+x-MLIM;
   assert(x<VMAX);
   return K+SMAX+x;
@@ -76,8 +77,8 @@ Z'%': S--; *S=L *S % L S[1]; Z'z': *S= !*S; Z'n': *S= -L *S;
 Z'h': U=H-M; Z'm':x=*S;*S=H-M;H+=x; Z'a':H+=L POP;
 Z'g': case ',': align(); if (p[-1]=='g') goto next; memcpy(H,&POP,SL); H+=SL;
 
-Z'@': x=L *S;*S= x<0?K[args+n+x+1]:*(D*)(M+8*x);
-Z'!': {x=L POP; if(x<0) K[args+n+x+1]=POP; else *(D*)(M+8*x)= POP;}
+Z'@': *S= *(D*)m(*S,args,n);
+Z'!': *(D*)m(*S,args,n)= S[-1]; S-=2;
   
 // TODO: not good/aligned?
 //Z'l':case'!':case'@':x+=4;case'w':x+=3;case'c':x++;d=(char*)&T;e=T<0?(char*)S+L-T-1:M+8*L T;
@@ -380,7 +381,7 @@ int main(int argc, char** argv) {
     if (0==strcmp("-d", argv++[0])) debug++;
   } while(--argc);
 
-  initmem(16*1024); inittypes(); 
+  initmem(16*1024); inittypes();
 
 if(0){
   alf("3d.4d.+. 44444d. 1111111d. + . 3 3=. 4 3=. 1 0|. 7 3|. 1 0&. 1 3&.", 0, 0, 0);
@@ -408,8 +409,8 @@ if(0){
 
   // read-eval
   char* ln= NULL; size_t sz= 0;
-  while(getline(&ln, &sz, stdin)>=0)
+  while(getline(&ln, &sz, stdin)>=0) {
     alf(opt(ln), 0, 0, 0);
-
-  if (S<K) { printf("\n%%STACK underflow %ld\n", S-K); exit(1); }
+    if (S<=K) { printf("\n%%STACK underflow %ld\n", S-K); } // TODO: exit?
+  }
 }

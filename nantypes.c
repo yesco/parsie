@@ -60,7 +60,7 @@ void prnames() { char* p= hp; printf("\n"); while(*p) { D* d= (D*)(p+1+strlen(p+
 D atom(char* s){return u2d(BOX(TATM, nameadd(s)));}
 
 // TODO: "ERROR"
-void inittypes() {nil=atom("nil");undef=atom("undef");*K=error=atom("*ERROR*");
+void inittypes() {nil=atom("nil");undef=atom("undef");*S=*K=error=atom("*ERROR*");
   assert(DAT(nil)==nilo);
 }
 
