@@ -17,22 +17,12 @@ int debug= 0; // DEBUG
 
 // Interpreation of memory ref
 //inline void* m(double d, int args, int n) {
-void* m(double d, int args, int n) {
-  if (isnan(d)) {
-    printf(" TYP=%x\n", TYP(d));
-    // TODO: types
-    long x= DAT(d);
-    switch(TYP(d)){
-    case TATM: case TSTR: return dchars(d);
-    case TOBJ: case TCONS: case TENV: //TCLOS:
-    case TNAN: default: return 0;
-    }
-  }
-  long x=L d;
-  if (x<0) return K+args+n;
-  if (x>MLIM) return M+x-MLIM;
-  assert(x<VMAX);
-  return K+SMAX+x;
+void* m(double d, int args, int n) { if (isnan(d)) { long x= DAT(d);
+    DEBUG(printf(" TYP=%x\n", TYP(d)));
+    switch(TYP(d)){ case TATM: case TSTR: return dchars(d);
+    case TOBJ: case TCONS: case TENV: case TNAN: default: return 0; //TCLOS:
+    }}
+  long x=L d;return x<0?K+args+n:(x>MLIM?M+x-MLIM:x<VMAX?(void*)(K+SMAX+x):0);
 }
 
 // Parse from P a name
@@ -65,7 +55,6 @@ Z'o': S[1]= S[-1]; S++; Z's': {D d=*S; *S= S[-1]; S[-1]= d;}
 
 Z'0'...'9':{D v=0;p--;while(isdigit(*p))v=v*10+*p++-'0';U=v;}
 Z'A'...'Z': alf(F[p[-1]-'A'],S-K,0,0); Z'x':{char x[]={POP,0};alf(x,0,0,0); }
-    //Z'A'...'Z':alf(F[p[-1]-'A'],args,n,0); Z'x':{char x[]={POP,0};alf(x,0,0,0); }
 
 // -- math stuff
 #define OP(op,e) Z #op[0]: S--;*S=*S op##e S[1];
@@ -77,18 +66,16 @@ Z'%': S--; *S=L *S % L S[1]; Z'z': *S= !*S; Z'n': *S= -L *S;
 Z'h': U=H-M; Z'm':x=*S;*S=H-M;H+=x; Z'a':H+=L POP;
 Z'g': case ',': align(); if (p[-1]=='g') goto next; memcpy(H,&POP,SL); H+=SL;
 
-Z'@': *S= *(D*)m(*S,args,n);
-Z'!': *(D*)m(*S,args,n)= S[-1]; S-=2;
+Z'@': *S= *(D*)m(*S,args,n); Z'!': *(D*)m(*S,args,n)= S[-1]; S-=2;
   
 // TODO: not good/aligned?
 //Z'l':case'!':case'@':x+=4;case'w':x+=3;case'c':x++;d=(char*)&T;e=T<0?(char*)S+L-T-1:M+8*L T;
 // LOL: some "overlap"
-Z'c':
-  switch(*p++){ Z'!': S--; Z'@': memcpy(d, e, x); Z'r':putchar('\n');
+Z'c': switch(*p++){ Z'!': S--; Z'@': memcpy(d, e, x); Z'r':putchar('\n');
   Z'"': e=p; while(*p&&*p!='"')p++; U=newstr(e, p++-e); Z'c': *S=dlen(*S);
 }
  // -- printers (see also $...)
-Z'.': dprint(POP);Z'e':putchar(POP);Z't': P("%*s.",(int)*S,M+L S[-1]);S-=2;
+Z'.': dprint(POP); Z'e':putchar(POP); Z't': P("%*s.",(int)*S,M+L S[-1]);S-=2;
 
 Z'\'': U= *p++; Z'"': while(*p&&*p!='"')putchar(*p++); p++;
 
@@ -117,15 +104,11 @@ Z'?': if (POP) { switch(*p++){ Z'}': return p; Z']': return 0;
   if (*p=='{') { p=skip(p+1); } if (p) p= alf(p+1, args, n, 1); else return 0; }
 
 // -- bit ops
-Z'b': switch(*p++){
 #define LOP(op,e) Z#op[0]: S--; *S=(L S[1]) op##e L *S;
-  LOP(&,);LOP(|,);LOP(^,); Z'~': *S= ~L *S;
-}
+Z'b': switch(*p++){ LOP(&,);LOP(|,);LOP(^,); Z'~': *S= ~L *S; }
 
-Z'`': switch(*p++) {
-  Z'#': U=n;
-  Z'0'...'9': U=p[-1]-'0'-n-1;
-  // TODO: outer frame scope/closures?
+Z'`': switch(*p++) { Z'#': U=n; Z'0'...'9': U=p[-1]-'0'-n-1;
+  // TODO: outer frame closures
 }
   
 // -- string ops
@@ -136,13 +119,12 @@ Z'$': x=1;switch(*p++){ Z'.': prstack(); case'n': putchar('\n');
   Z'"': e=H;while(*p&&*p!='"')*H++=*p++; *H++=0;if(*p)p++; U=e-M; U=H-e-1;
   Z'h': P("%lx\n", L POP);goto next; default: p--; // err
   Z'D': for(int i=0; i<*S;) { int n= S[-1]; printf("\n%04x ", n); // DEBUG
-      for(int j=0; j<8; j++) printf("%02x%*s", M[n+j], j==3, "");  printf("  "); // DEBUG
-      for(int j=0; j<8; j++) printf("%c", M[n+j]?(M[n+j]<32||M[n+j]>126? '?': M[n+j]):'.'); // DEBUG
-      D d= *(D*)(M+n); x=TYP(d); if ((x&0x0ff8)==0x0ff8) { // DEBUG
-	if (x>32*1024) x=-(x&7); else x= x&7; } else x=0; // DEBUG
-      printf(" %2ld:", x); dprint(d); S[-1] += 8; i+= 8; } } printf("\n"); prstack(); break; // DEBUG
-
-default: P("\n[%% Undefined op: '%s']\n", p-1);p++;exit(3);} goto next;
+    for(int j=0; j<8; j++) printf("%02x%*s", M[n+j], j==3, "");  printf("  "); // DEBUG
+    for(int j=0; j<8; j++) printf("%c", M[n+j]?(M[n+j]<32||M[n+j]>126? '?': M[n+j]):'.'); // DEBUG
+    D d= *(D*)(M+n); x=TYP(d); if ((x&0x0ff8)==0x0ff8) { // DEBUG
+      if (x>32*1024) x=-(x&7); else x= x&7; } else x=0; // DEBUG
+    printf(" %2ld:", x);dprint(d);S[-1]+=8;i+=8;}}printf("\n");prstack();break; // DEBUG
+  default: P("\n[%% Undefined op: '%s']\n", p-1);p++;exit(3);} goto next;
 }
 
 // fib 19-27% faster!
@@ -192,7 +174,7 @@ char* opt(char* p) { char *s= p; while(s&&s[0]&&s[1]&&s[2]){switch(s[0]){
 // c@ c! ci cd c+ c- c* c/ c< c> c& c| c^
 // w@ w! wi wd w+ w- w* w/ w< w> w& w| w^
 //
-// FREE:    f ijkl pqr uv y ~
+// FREE:    () [] _ f ijkl pqr uv y ~
 // PREFIX:  $ ? b c w ? c
 //             128-255
 //    planned: f...
@@ -266,8 +248,8 @@ char* opt(char* p) { char *s= p; while(s&&s[0]&&s[1]&&s[2]){switch(s[0]){
   % - mod
   & - and
   ' - char
-  ( - param start
-  ) - param end
+  ( 
+  ) 
   * - mul
   + - add
   , - ret aligned here, write word
@@ -286,15 +268,15 @@ char* opt(char* p) { char *s= p; while(s&&s[0]&&s[1]&&s[2]){switch(s[0]){
   @ - read (& prefix by c/w/l)
 
   ABCDEFGHIJKLMNOPQRSTUVWXYZ - UDF
-  [ - enter parameter frame
+  [
   \ - drop
-  ] - exit param frame
-( ^ - break  b~ for xor )
-  _ - stack name define
+  ]
+  ^ - exit/return (TODO: ??? break)
+  _
   ` - prefix: addresses?
     `1-`9 - address of N;th parameter
     `@    - number of args
-    $1-$9 - see this
+    ( $1-$9 - see this )
   a - allot (inc here, from arena)
   b - bit ops:
     b& - bit & (64 bit)
@@ -364,10 +346,9 @@ char* opt(char* p) { char *s= p; while(s&&s[0]&&s[1]&&s[2]){switch(s[0]){
   { - loop begin
   | - or
   } - loop end
-  ~
+( ~ - ??? label/goto/continue/break? )
 ( <del> )
-( 128-255 - longname slots? )
-  
+( 128-255 - optimized atomnames/addr )
 */
 
 int main(int argc, char** argv) {
