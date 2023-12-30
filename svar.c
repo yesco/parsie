@@ -7,7 +7,7 @@
 // int returned:
 // -n: means n:th in current frame
 //  0: not found
-// +n: means n:th 8B value (double)
+// +n: means n:th D value offset
 
 // 10 lines==svar
 // +8 gives atomix...
@@ -17,16 +17,20 @@
 #include <string.h> // DEBUG
 #include <strings.h> // DEBUG
 
-// Reads a "Base 128 Varint"
+// Reads a "Base 128 Varint" from *S
+// *S is advance till after.
+// 
 // (same Google Protocol Buffers)
 // High bit is continuation flag
-
 int rdint(char**s){int i=0,l=0;while(**s>127)i+=(*(*s)++&127)<<l,l+=7;return i;}
 
 void pr(char* s) { while(s && *s) if (*s<128) putchar(*s++); else printf("=%d ", rdint(&s)); } // DEBUG
 
 char globals[16*1024]={0}, vars[sizeof(globals)]={0}; int frame=0, gn=0, ln=0;
 
+// In VarString arena insert Name at *NN+1 position
+//
+// Number should be positive, it's Base 128 VarInt Encoded
 int _newvar(char* vs, int* nn, char* n) { int l= strlen(n); char s[l+16];
   memcpy(s, n, l); int i= ++*nn; while(i) {s[l++]= 0x80+(i&0x7f);i>>=7;}
   memmove(vs+l, vs, sizeof(globals)-l); memmove(vs, s, l); return *nn; }
