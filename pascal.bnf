@@ -15,7 +15,7 @@
 # - setting var to expression a:=42+a;
 # - expression operators: +-/* ()
 # - logic: and not (TODO: or)
-# - comparisions: = <> <= < >= >
+# - comparisions: = <> <= < >= > (num)
 # - global variables availble throught, can be shadowed by locals
 # - "prepared" for scoped inner functions (TODO: not working yet)
 # - write/writeln of single argument: constant string/expression
@@ -68,6 +68,7 @@ T= U \* T [$1 $2 *] | U \/ T [$1 $2 /] | U [$1]
 E= K [c$1] | T \+ E [$1 $2 +] | T \- E [$1 $2 -] | T [$1]
 
 # Relational: = <> < > <= >= in
+# TODO: strings?
 Z= = | <> [z] | <= [>z] | < | >= [<z] | >
 
 # Logical negation: not

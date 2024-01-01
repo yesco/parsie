@@ -46,7 +46,7 @@
 # (- high low)
 
 # Parsing Rules:
-#   (free rule chars: F L M ) none? LOL
+#   (free rule chars: B F L M ) none? LOL
 
 
 # TODO: preprocess comments?
@@ -70,6 +70,7 @@ E= K [c$1] | T \+ E [$1 $2 +] | T \- E [$1 $2 -] | T [$1]
 # Relational: == <> < > <= >= in
 # TODO: JS join with E
 # TODO: add assignment
+# TODO: == conversions? equal
 Z= === [=] | == [=] | != [z] | <= [>z] | < | >= [<z] | >
 
 # Logical negation: not
@@ -96,15 +97,14 @@ A= E R [$1 $2] |
 
 # statement is
 #   TODO: a=b change to E?
-S= B [$1] | return E; [$1 ^] | console\.log\(K\); [$1] | console\.log\(E\); [$1.] | N\=E :=$1 [$2 $:1!] | I [$1] | do S while \(C\) [--DO-WHILE--] | while \(C\) S [--WHILE--] | for(S S S) [--FOR--] | N\(A\); [$2$1]
+S= \{ V G \} [$1 $2] | return E; [$1 ^] | console\.log\(K\); [$1] | console\.log\(E\); [$1.] | N\=E :=$1 [$2 $:1!] | I [$1] | do S while \(C\) [--DO-WHILE--] | while \(C\) S [--WHILE--] | for(S S S) [--FOR--] | N\(A\); [$2$1]
 
 # BLOCK grouping of statement
 G= S G [$1 $2] | ; |
-B= \{ V G \} [$1 $2]
 
 # single function!
 #   TODO: generalize
-J= function N\(:E H\) B [:$1$#\$\$$3^; ] :X J [$4] |
+J= function N\(:E H\) \{ V G \} [:$1 $#\$\$ $3 $4^; ] :X J [$5] |
 
 P= J S%e [$1 $2]
 
@@ -112,8 +112,6 @@ P= J S%e [$1 $2]
 ?I
 if (1==0) return 0;
 if (42==0) return 0; else if (55==1) return 1; else return F(42-1)+F(42-2);
-?B
-{ G(3); }
 ?J
 function F(n) { G(3); } function G(n) { return 42; }
 function F(n) {  if (n==0) return 0;  else if (n==1) return 1;  else return F(n-1)+F(n-2); }
