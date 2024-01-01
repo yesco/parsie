@@ -99,3 +99,83 @@ L apply(L a, L b, L e) {
     }
   }
 
+/*
+   ' ' space skipped
+    !set
+    "string
+    #number?
+    $string?
+    %mod
+    &and
+    'quote
+    (list
+    )
+    *mul
+    +plus
+
+    , (cons for list, or just space?)
+
+    -minus
+
+    .atom?
+
+    /div
+    0-9number
+    :define
+    ;end
+    <less
+    =eq
+    >gt
+    ?if
+
+Missing:
+  abs
+  max
+  min
+  sin
+  cos
+  asin
+  acos
+  
+    @assoc
+   cAr
+ memBer
+    Cons
+   dDr
+    Eval
+  ( Format )
+    Gassoc
+    Happend
+    If
+    J ??? prog1
+    K ??? progn
+    Length
+    Nth
+    Pair?
+   eQual
+    R
+    Setq
+    Terpri
+   nUll
+  reVerse
+    Write/Princ ?
+    X/Princ1 ?
+    Yread ?
+    Zapply
+    [
+    \lambda
+    ]
+    ^
+    _floor
+    ` back?
+    a-z variables
+    {
+    |or
+    }
+    ~not
+
+    :_fac nI<n00I=n11+_fac-n1_fac-n2;
+    !_fac\nI<n00I=n11+_fac-n1_fac-n2
+    
+*/
+ 
