@@ -110,9 +110,12 @@ D newstr(char* s,int n){ ss[sn]=sncat(0,s?s:"",n); return u2d(BOX(TSTR,sn++)); }
 char* dchars(D d) { int t=TYP(d), x=DAT(d);
   return t==TATM? x+hp+1: t==TSTR? (char*)ss[x]: 0;}
 
-int dlen(D f) { char* r= dchars(f); return r?strlen(r):0; }
+// TODO: move part to olen?
+int dlen(D f) { char* r= dchars(f); return r?strlen(r):TYP(f)==TOBJ?((D*)PTR(TOBJ,f))[3]:0;}
 
-int dprint(D f) {char* s= dchars(f);return s?printf("%s",s):printf("%.7g ",f);}
+int pobj(D); // FORWARD
+
+int dprint(D f){char*s=dchars(f);int l=pobj(f);return l?l:s?printf("%s",s):printf("%.7g",f);}
 
 // Concatenate D + S as new str
 // from Index in S take N chars.

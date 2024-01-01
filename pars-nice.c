@@ -4,15 +4,16 @@
 #include <ctype.h>
 #include <assert.h>
 
+int debug= 0; // DEBUG
+#define DEBUG(D) if (debug) do{D;}while(0);
+
+#define pc putchar // FORWARD
 #include "svar.c"
 
 char* parsename(char** p) { static char s[64], i; i=0; while((isalnum(**p) // DEBUG
   ||**p=='_') && i<sizeof(s)-1) s[i++]=*(*p)++; s[i]= 0; return s;} // DEBUG
 
 
-
-int debug= 0; // DEBUG
-#define DEBUG(D) if (debug) do{D;}while(0);
 
 // Results and Attributes
 #define NV 256

@@ -34,7 +34,7 @@
 #define NPN 6 // => 6*2+4=>16*8B=128B
 
 // TODO: change pointers to D ?
-typedef struct Obj{D proto,next,arr,reserved;struct np{D name,val;}np[NPN];}Obj;
+typedef struct Obj{D proto,next,arr,n;struct np{D name,val;}np[NPN];}Obj;
 
 // TODO: use Memory/Stack
 D obj() { align(); Obj* o= (Obj*)H; H+= sizeof(Obj);
@@ -46,15 +46,23 @@ D obj() { align(); Obj* o= (Obj*)H; H+= sizeof(Obj);
 // Set in direct obj
 // if val is undef, name is removed
 D set(D d, D name, D val) {Obj*o=PTR(TOBJ,d),*last=0,*p=o;if(!o)return undef;
-  while(p){for(int i=0;i<NPN;i++){D n=p->np[i].name;if(deq(n,name)
-  ||deq(n,undef)){p->np[i]=(struct np){val==undef?undef:name,val}; return val;}}
-    last=p;p=PTR(TOBJ,p->next);}return set((last->next=obj()),name,val);}
+  while(1){for(int i=0;i<NPN;i++){D n=p->np[i].name;if(deq(n,name)||deq(n,undef)&&++(o->n)){p->np[i]=(struct np){val==undef?undef:name,val}; return val;}}
+    last=p;p=PTR(TOBJ,p->next);
+    if (!p) {p=PTR(TOBJ, last->next=obj());} } }
+
 
 // Search obj first, then proto...
 D get(D d, D name) { Obj *o= PTR(TOBJ, d), *p=o;
   while(p) {for(int i=0;i<NPN;i++) if(deq(p->np[i].name,name)) return p->np[i].val;
     p= PTR(TOBJ,p->next); }  return o?get(o->proto, name):undef;
 }
+
+D probj(D); // FORWARD
+
+int pobj(D d) {Obj*o=PTR(TOBJ,d),*p=o;if(!o)return 0;int l=2,i=0;pc('{');
+  while(p){i=0;for(D*x;x=&(p->np[i].name),i<NPN;i++) if (!deq(*x,undef)) {
+  l+=dprint(*x);pc(':');l+=dprint(x[1]);pc(' ');l+=2;} p=PTR(TOBJ,p->next);}
+  printf("}  ");return l; }
 
 // ENDWCOUNT
 
@@ -69,6 +77,7 @@ void _probj(int indent, D d) {
   //   keys would also be unordered
   // TODO: reserved
   //   potentially variable NPN ?
+  printf("%*s---n=%g\n", indent, "", o->n);
   printf("%*s---props\n", indent, "");
   for(int i=0; i<NPN; i++) {
     printf("%*s[%d] ", indent, "", i);
@@ -82,7 +91,7 @@ void _probj(int indent, D d) {
 }
        
 D probj(D d) {
-  if (TYP(d)!=TOBJ) { printf("---NOT TOBJ: "); dprint(d); putchar('\n'); return d; }
+  if (TYP(d)!=TOBJ) { printf("---NOT TOBJ: "); dprint(d); pc('\n'); return d; }
   _probj(2, d);
   printf("---END OBJ\n");
   return d;

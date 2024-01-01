@@ -24,7 +24,7 @@
 // High bit is continuation flag
 int rdint(char**s){int i=0,l=0;while(**s>127)i+=(*(*s)++&127)<<l,l+=7;return i;}
 
-void pr(char* s) { while(s && *s) if (*s<128) putchar(*s++); else printf("=%d ", rdint(&s)); } // DEBUG
+void pr(char* s) { while(s && *s) if (*s<128) pc(*s++); else printf("=%d ", rdint(&s)); } // DEBUG
 
 char globals[16*1024]={0}, vars[sizeof(globals)]={0}; int frame=0, gn=0, ln=0;
 
@@ -55,10 +55,10 @@ int setvar(char* n) { int i= findvar(n); return i?i:_newvar(globals, &gn, n);}
 // TODO: restore?
 void exitframe() { frame--; ln=-10000;
   char* n= __findvar(vars,"--");
-  printf("EXIT>>>: v='%s'\n", vars);
-  printf("EXIT>>>: n='%s'\n", n);
+  DEBUG(if (debug>2) printf("EXIT>>>: v='%s'\n", vars));
+  DEBUG(if (debug>2) printf("EXIT>>>: n='%s'\n", n));
   memmove(vars, n, strlen(n)+1);
-  printf("EXIT<<<: v='%s'\n", vars);
+  DEBUG(if (debug>2) printf("EXIT<<<: v='%s'\n", vars));
 }
 
 int atomix(char* n){char*p=__findvar(globals,n);if(!p){_newvar(globals,&gn,n);

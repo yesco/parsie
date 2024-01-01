@@ -36,7 +36,7 @@ char* parsename(char** p) { static char s[64], i; i=0; while((isalnum(**p)
 //   TODO: must skip STRINGs!!! lol
 char* skip(char* p){ int n=1;while(n&&*p)if(*p=='?'&&p[1]!='{')p+=2;else n+=(*p=='{')-(*p=='}'),p++;return p;}
 
-void prstack(){P("\t:");for(D* s= K+1; s<=S; s++){dprint(*s);putchar(' ');}} // DEBUG
+void prstack(){P("\t:");for(D* s= K+1; s<=S; s++){dprint(*s);pc(' ');}} // DEBUG
 
 #define Z goto next; case
 
@@ -48,7 +48,7 @@ void prstack(){P("\t:");for(D* s= K+1; s<=S; s++){dprint(*s);putchar(' ');}} // 
 //   NULL if done/fail (loop/if)
 char* alf(char*p,int args,int n,int iff) {long x;char*e=NULL,*d;if(!p)return 0;
 DEBUG(P("\n===ALF >>>%s<<<\n", p))
-next: DEBUG(prstack();putchar('\n');P("\t  '%c'\n",*p))
+next: DEBUG(prstack();pc('\n');P("\t  '%c'\n",*p))
 x=0;switch(*p++){ case 0:case';':case')':return p; Z' ':Z'\n':Z'\t':Z'\r':
 Z'd': S[1]= *S; S++; Z'\\': S--; // TODO: more?
 Z'o': S[1]= S[-1]; S++; Z's': {D d=*S; *S= S[-1]; S[-1]= d;}
@@ -60,15 +60,17 @@ Z'%': S--; *S=L *S % L S[1]; Z'z': *S= !*S; Z'n': *S= -L *S;
 Z'h': U=H-M; Z'm':x=*S;*S=H-M;H+=x; Z'a':H+=L POP;
 Z'g': case ',': align(); if (p[-1]=='g') goto next; memcpy(H,&POP,SL); H+=SL;
 Z'@': *S= *(D*)m(*S,args,n); Z'!': *(D*)m(*S,args,n)= S[-1]; S-=2;
-Z'c': switch(*p++){ Z'!': S--; Z'@': memcpy(d, e, x); Z'r':putchar('\n');
+Z'c': switch(*p++){ Z'!': S--; Z'@': memcpy(d, e, x); Z'r':pc('\n');
   Z'"': e=p; while(*p&&*p!='"')p++; U=newstr(e, p++-e); Z'c': *S=dlen(*S); }
-Z'.': dprint(POP); Z'e':putchar(POP); Z't': P("%*s.",(int)*S,M+L S[-1]);S-=2;
-Z'\'': U= *p++; Z'"': while(*p&&*p!='"')putchar(*p++); p++;
+Z'.': dprint(POP);pc(' '); Z'e':pc(POP); Z'p': dprint(POP);
+Z't': P("%*s.",(int)*S,M+L S[-1]);S-=2;
+  Z'\'': U= *p++; Z'"': while(*p&&*p!='"')pc(*p++); p++;
 Z':': e=strchr(p,';'); if(e) F[*p-'A']=strndup(p+1,e-p),p=e+1;
 Z'^': K[++args]= *S; S=K+args; return p-1;
-Z'#': switch(*p++) { Z'a'...'z':case'A'...'Z':case'_': p--; U= atom(parsename(&p));
-  Z'@': {D o=POP,n=POP;U=get(o,n);}Z'!': {D o=POP,n=POP,v=POP;set(o,n,v);probj(o);}
-  Z'?': *S=typ(*S); Z'^': U=probj(obj()); goto next; default: goto error;
+Z'#': switch(*p++){ Z'a'...'z':case'A'...'Z':case'_':p--;U=atom(parsename(&p));
+  Z'<': S--;set(*S,dlen(*S),S[1]); Z':': S-=2;set(*S,S[1],S[2]);
+  Z'@': S--;*S=get(S[1],*S); Z'!': S-=3;set(S[3],S[2],S[1]);
+  Z'?': *S=typ(*S); Z'^': U=obj(); goto next; default: goto error;
 }
 Z'}': return iff?p:NULL; Z'{': while(!((e=alf(p, args, n, 0)))){}; p= e;
 Z'?': if (POP) { switch(*p++){ Z'}': return p; Z']': return 0;
@@ -78,9 +80,9 @@ Z'?': if (POP) { switch(*p++){ Z'}': return p; Z']': return 0;
 #define LOP(op,e) Z#op[0]: S--; *S=(L S[1]) op##e L *S;
 Z'b': switch(*p++){ LOP(&,);LOP(|,);LOP(^,); Z'~': *S= ~L *S; }
 Z'`': switch(*p++) { Z'#': U=n; Z'0'...'9': U=p[-1]-'0'-n-1;}
-Z'$': x=1;switch(*p++){ Z'.': prstack(); case'n': putchar('\n');
+Z'$': x=1;switch(*p++){ Z'.': prstack(); case'n': pc('\n');
   Z'0'...'9':S++;*S=K[args+p[-1]-'0']; Z'$':n=POP;args-=n; Z'd': x=S-K; U=x; 
-  Z'!': K[args+*p++-'0'-1]=POP; Z's':x=POP;case' ':while(x-->=0)putchar(' ');
+  Z'!': K[args+*p++-'0'-1]=POP; Z's':x=POP;case' ':while(x-->=0)pc(' ');
   Z'"': e=H;while(*p&&*p!='"')*H++=*p++; *H++=0;if(*p)p++; U=e-M; U=H-e-1;
   Z'h': P("%lx\n", L POP);goto next; default: p--; // err
   Z'D': for(int i=0; i<*S;) { int n= S[-1]; printf("\n%04x ", n); // DEBUG
@@ -139,7 +141,7 @@ char* opt(char* p) { char *s= p; while(s&&s[0]&&s[1]&&s[2]){switch(s[0]){
 // c@ c! ci cd c+ c- c* c/ c< c> c& c| c^
 // w@ w! wi wd w+ w- w* w/ w< w> w& w| w^
 //
-// FREE:    () [] _ f ijkl pqr uv y ~
+// FREE:    () [] _ f ijkl qr uv y ~
 // PREFIX:  $ ? b c w ? c
 //             128-255
 //    planned: f...
@@ -190,10 +192,22 @@ char* opt(char* p) { char *s= p; while(s&&s[0]&&s[1]&&s[2]){switch(s[0]){
   # - atom/hash stuff
     #abc - make atom (alnum)
 
-    #@ - obj: get property value
-    #! - obj: add alue property
-    #^ - obj: new
+    #? - type? -> i)nt f)float n)nan N)il A)tom S)tring O)bj C)ons U)ndef
+         lowercase ( >- 'A' is  "num" )
 
+    #@ - obj: get prop value (N O - V)
+    #! - obj: add value,name (V N O -)
+    #^ - obj: new (- O)
+    (-these work on reverse order args)
+    #: - obj: set Value Name (O N V - O)
+    #< - push on array/obj (O V - O)
+  ( #, - alias? )
+  ( #> - pop )
+  ( #{ - unshift )
+  ( #} - shift )
+    cc - returns "len" of obj
+  ( ## - use instead? )
+  
   ( #" - make atom fr string? )
   ( ## - hash a value? lol )
   ( #$ - ? )
@@ -208,17 +222,15 @@ char* opt(char* p) { char *s= p; while(s&&s[0]&&s[1]&&s[2]){switch(s[0]){
   ( #- - remove? )
   ( #. - print N values? )
   ( #/ - truncate )
+
     #:
     #;
-    #<
     #=
-    #>
-    #? - type? -> i)nt f)float n)nan N)il A)tom S)tring O)bj C)ons U)ndef
-         lowercase ( >- 'A' is  "num" )
     #[
     #]
   ( #\ - drop N items )
   ( #^ - exit N '}' ? )
+
   $ - string functions
     $1 - $9 - get frame parameter N
     $!1 - $!9 - set frame parameter N
@@ -247,7 +259,7 @@ char* opt(char* p) { char *s= p; while(s&&s[0]&&s[1]&&s[2]){switch(s[0]){
   + - add
   , - ret aligned here, write word
   - - minus
-  . - print data (D/atom)
+  . - print data w space (see . e t p q)
   / - div
   0123456789 - number
   : - define
@@ -301,7 +313,7 @@ char* opt(char* p) { char *s= p; while(s&&s[0]&&s[1]&&s[2]){switch(s[0]){
   cdr  - cd c1 pd p1
 
   d - dup
-  e - emit
+  e - emit (see . e t p q )
 ( f - free for malloced ptr??? )
     fi - f++
     fd - f--
@@ -321,11 +333,11 @@ char* opt(char* p) { char *s= p; while(s&&s[0]&&s[1]&&s[2]){switch(s[0]){
   m - here swap malloc (TODO:use heap)
   n - negate value
   o - over
-  p
-( q - quit )
+  p - dprint w/o space (see . e t p q )
+  q - quote print (print so can read)
   r
   s - swap
-  t - type counted string from M
+  t - type counted string from M (see .etpq)
   uv
   w - word/long ops prefix !@
     w! - long!

@@ -11,6 +11,7 @@ double *K,*S,*C; long mmax=0; char *M=0, *H=0, *F['Z'-'A'+1]={0};
 
 #define POP *S--
 #define U *++S
+#define pc putchar
 
 #define L (long)
 #define SL (sizeof L)
