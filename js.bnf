@@ -69,21 +69,21 @@ E= K [c$1] | T \+ E [$1 $2 +] | T \- E [$1 $2 -] | T [$1]
 
 # Relational: == <> < > <= >= in
 # TODO: JS join with E
+# TODO: add assignment
 Z= === [=] | == [=] | != [z] | <= [>z] | < | >= [<z] | >
 
 # Logical negation: not
 # TODO: E Z E may not work
+# TODO: js no C just E...
 C= E Z E [$1 $3 $2] | !C [$1~] | C && C [$1 $2 &]
 
 # types...
-Q= integer :t=i8 | char :t=c1 | string :t=s | real :t=r
+Q= long :t=i8 | int :t=i8 | char :t=c1 | string :t=s | float :t=r | double :t=r
 
 # var...; var... ; lol TODO: only one, and many vars
 V= var N\:Q=E; ::$1 V [$3 $:1! $4] | var N\:Q; V ::$1 [$3] |
 
 I= if \(C\) S else S [$1?{$2}{$3}] | if \(C\) S [$1?{$2} ]
-
-#M= console\.log\(K\) [$1] | console\.log\(E\) [$1.] |
 
 # formal arguments declaration
 #   TODO: add types
