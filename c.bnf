@@ -18,6 +18,12 @@
 #   Assignment:  = += -= *= /= %= <<= >>= &= ^= |=
 #   Comma operator: ,
 
+# types...
+Q= long :t=i8 | int :t=i8 | char :t=c1 | string :t=s | float :t=r | double :t=r
+
+# from tiny-c?
+# TODO: make more similar to JS and PASCAL
+
 O= ++ | --
 X= I|*N[$1]|N.N|N->N|N $?O|$?O N
 T= -X|+X|X
