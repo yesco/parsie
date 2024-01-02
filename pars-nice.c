@@ -21,9 +21,11 @@ int debug= 0; // DEBUG
 char *V[NV]= {0}, *R[128]= {0}, *A[NV]= {0}; int nv= 0;
 
 // TODO: nv++ and nr? hmmm
-void newV(int nr) { nv++; free(V[nr]); V[nr]=0; free(A[nr]); A[nr]= 0; }
+void newV(int nr) { nv++; assert(nv<NV); free(V[nr]); V[nr]=0; free(A[nr]); A[nr]= 0; }
 
-int eor(char* r) { return !r || !*r || *r=='\n' || *r=='|' && r[-1]!='\\'; }
+//int eor(char* r) { return !r || !*r || *r=='\n' || *r=='\r' || *r=='|' && r[-1]!='\\'; }
+
+int eor(char* r) { return !r || !*r || *r=='|' && r[-1]!='\\'; }
 
 // find start of attr val string
 char* attrval(int nr, char a) { for(int i=nr+1;i<NV;i++){ char* s= A[i];
@@ -89,12 +91,9 @@ char* parse(char* r,char* s,int n, int nr){char *p=0, *os=s, *t, *m;
   // copy of global/vars ???
   DEBUG(if (debug>2) printf("    parse '%s' '%s' %d\n", r, s, n));
   // TODO: move while below next?
-  while(n-- && r && s) {next: while(isspace(*r))r++;
-    // don't include in match
-    if(*r)while(isspace(*s))s++;
+  while(n-- && r && s) {next: while(isspace(*r))r++;if(*r)while(isspace(*s))s++;
 DEBUG(if (debug>3)printf("     next '%s' (%d)\n\t   of '%s' left=%d\n",r,*r,s,n));
-
-switch(*r){ case 0: case '\n': case '\r': case '|': return s; // end
+switch(*r){case 0: case '|': return s; //Z' ':Z'\n':Z'\r':Z'\t':
 Z'(': Z'{': assert(!"TODO: implement"); // DEBUG
 Z'[': r+= 1+gen(V+nr, r, ']', nr);
 Z':': switch(x=r[1]) {
@@ -124,7 +123,10 @@ newV(nr);r++;  while(*++s&&*s!=*p){if(*s=='\\')s++;
 Z'A'...'Z': if ((p=pR(r++, s, -1))) s= p; else goto fail;
 Z'\\': r++; default: if (*s==*r++) s++; /* matched */ else fail: {
   DEBUG(if (debug>2) printf("     FAIL '%s' '%s'\n", r-1, s));
-  while(*r&&!eor(r++)){};if(eor(r)&&r[-1]!='|')return 0; s=os; n=on; nv=onr;
+  while(*r&&!eor(r++)){};
+  if (r[-1]!='|') return 0; // FAIL
+  // OR
+  s=os; n=on; nv=onr;
   DEBUG(if (debug>2) printf("     |OR  '%s' '%s'\n", r-1, s));
   } // fail
 } // switch
@@ -228,21 +230,31 @@ char* test(char r, char* s){ nv=0; char* e=parseR(r,s,-1); if(!e||*e)printf(
   alfie(V[nv+1]);
   return e;}
 
-char rule=0; int dlm= '\n';
+char rule=0,last=0; int dlm= '\n';
 
 void readparser(FILE* f); // FORWARD
 
-void oneline(char* ln, int n) {
-  if (ln && ln[n-1]=='\n') ln[n-1]= 0;
-  DEBUG(printf("> %s\n", ln));
-  if (!ln || !*ln || *ln=='#') return;
-  if (ln[1]=='=') R[ln[0]]=strdup(ln+2); else switch(*ln){
-    case '@': alfie(ln+1); break;
-    case '<': readparser(fopen(ln+1, "r")); break;
-    case '*': dlm=0; case '?': rule=ln[1]; break; default: test(rule, comments(ln)); }}
+void oneline(char* ln, int n) { if (!ln) return;
+  // TODO: why cannot keep \n when concat?
+  // remove here and add if append?
+  // maybe rule cannot end with \n???
+  if (ln[n-1]=='\n') ln[n-1]= 0;
+  DEBUG(printf("%c> %s\n", rule?rule:'?',ln));
+  if (*ln && ln[1]=='=') {R[last=ln[0]]=strdup(ln+2); return;}
+  switch(*ln){
+  case 0:case'#':case'\n':case'\r':return;
+  case '@': alfie(ln+1); return;
+  case '<': readparser(fopen(ln+1, "r")); return;
+  case ' ': if (ln[1]!='|') break;
+  case '|': R[last]= sncat(sncat(R[last], "\n", -1), ln, -1); return;
+  case '=': for(char c='A'; c<='Z'; c++) if (!R[c]) printf("\tFREE: %c\n", c); return;
+  case '*': if (ln[1]) dlm=0; case '?': rule=ln[1]; if (!rule) for(char c='A'; c<='Z'; c++) if (R[c]) printf("%c=%s\n", c, R[c]); return;
+  }
+  printf("TEST>%s<\n", ln);
+  test(rule, comments(ln)); }
 
 void readparser(FILE* f) { char *ln= 0; size_t z= 0; int n; if (!f) return;
-  while( (f!=stdin || fprintf(stderr,"> ")) && (n=getdelim(&ln, &z, dlm, f))>0)
+  while( (f!=stdin || fprintf(stderr,"%c> ", rule?rule:'?')) && (n=getdelim(&ln, &z, dlm, f))>0)
     oneline(ln, n);
   free(ln);
 }
@@ -259,10 +271,8 @@ int main(int argc, char** argv) {
   initmem(16*1024); inittypes();
 
   // init shortnames
-  for(char*s="dawin\"'({[<"; *s; s++) {
-    char x[]={'%',*s,0};
-    R[*s]=strdup(x);
-  }
+  for(char*s="dawin\"'({[<"; *s; s++) { char x[]={'%',*s,0}; R[*s]=strdup(x); }
+  for(char*s=".,:;-_"; *s; s++) { char x[]={'\\',*s,0}; R[*s]=strdup(x); }
 
   // parse arguments
   while(--argc && *++argv) {
