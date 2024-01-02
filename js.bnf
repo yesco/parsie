@@ -61,11 +61,12 @@ K=%s
 # TODO: BUG: [,,] cannot??
 Q= E [$1] | [#undef ]
 F= , L [$1] |
-L= Q F [d $1 s #> $2] | F
+L= Q F [d $1 s #< $2] | F
 M= \[ L \] [#^ $1]
 
 # Object construction
-B= \N\:\E [d $2s$1s #!]
+# TODO: , ,
+B= N\:E B [#$1 $2 #: $3] |
 O= \{ B \} [#^ $1]
 
 # lowest level
@@ -142,8 +143,3 @@ console.log(F(42));
 [,2,3]
 [1,2,,]
 [,2,,4,]
-
-# Read rest as file inputs as one "chunk" and parse all as pascal!
-*P
-function F(n) {  if (n==0) return 0;  else if (n==1) return 1;  else return F(n-1)+F(n-2); }
-console.log(F(35));

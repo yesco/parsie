@@ -1,0 +1,14 @@
+var a= {d: 42};
+var b= Object.create(a);
+b.d=99;
+console.log("-- own prop");
+console.log("a.d=", a.d);
+console.log("b.d=", b.d);
+delete b.d;
+console.log("-- deleted b.d");
+console.log("a.d=", a.d);
+console.log("b.d=", b.d);
+console.log("-- undef b.d");
+b.d= undefined; 
+console.log("a.d=", a.d);
+console.log("b.d=", b.d);

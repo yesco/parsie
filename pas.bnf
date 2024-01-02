@@ -122,6 +122,3 @@ J= function N\(:E H\)\:Q B [:$1$#\$\$$4^; ] :X J [$5] |
 #P= program N; B.%e ["$1:"cr$2]
 
 P= program N; J B.%e ["PROGRAM $1 running:"crcr$2 $3]
-
-# Read rest as file inputs as one "chunk" and parse all as pascal!
-*P

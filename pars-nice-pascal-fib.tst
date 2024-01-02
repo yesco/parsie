@@ -1,4 +1,4 @@
-<pascal.bnf
+<pas.bnf
 (* Fibonacci program *)
 program foo;
 
