@@ -6,8 +6,7 @@
 fil=$1
 bnf=${1/*./}.bnf
 #echo "BNF $bnf"
-(cat $bnf ; echo "*P" ; cat $fil) | ./parse | tail -1 > .alf
-./alf <.alf
+./parse $bnf -e "*P" $fil
 
 
 

@@ -52,7 +52,7 @@ while(*r && *++r!=end && *r) { switch(*r){
   case'$': r++;
     if (*r=='#') { char e[]={ ln+'0', 0 }; *g=sncat(*g,e,-1); break; }
     else if (*r==':') { char s[10]= {0}; r++; v= V[*r-'0'+nr+1]; n= findvar(v);
-      if (!n) {	printf("GEN: name='%s' is undefined\n", v); exit(1); }
+      //if (!n) {	printf("GEN: name='%s' is undefined\n", v); exit(1); }
       if (n>0) sprintf(s, "%d", n); else sprintf(s, "`%d", ln+n+1);
       *g=sncat(*g,s,-1); break;
     } else if(isdigit(*r)){ v=V[*r-'0'+nr+1]; l=-1; } else if (isalpha(*r)) {
@@ -229,16 +229,23 @@ char* test(char r, char* s){ nv=0; char* e=parseR(r,s,-1); if(!e||*e)printf(
   return e;}
 
 char rule=0; int dlm= '\n';
-void readparser(FILE* f) { char *ln= 0; size_t z= 0; int n;
-  while( fprintf(stderr, "> ") && 
-(n=getdelim(&ln, &z, dlm, f))>0) { if (ln && ln[n-1]=='\n') ln[n-1]= 0;
-    DEBUG(printf("> %s\n", ln))
-    if (!ln) break; if (!*ln || *ln=='#') continue;
-    if (ln[1]=='=') R[ln[0]]=strdup(ln+2); else switch(*ln){
-      case '@': alfie(ln+1); break;
-      case '<': readparser(fopen(ln+1, "r")); break;
-      case '*': dlm=0; case '?': rule=ln[1]; break; default: test(rule, comments(ln));
-    } } free(ln); }
+
+void readparser(FILE* f); // FORWARD
+
+void oneline(char* ln, int n) {
+  if (ln && ln[n-1]=='\n') ln[n-1]= 0;
+  DEBUG(printf("> %s\n", ln));
+  if (!ln || !*ln || *ln=='#') return;
+  if (ln[1]=='=') R[ln[0]]=strdup(ln+2); else switch(*ln){
+    case '@': alfie(ln+1); break;
+    case '<': readparser(fopen(ln+1, "r")); break;
+    case '*': dlm=0; case '?': rule=ln[1]; break; default: test(rule, comments(ln)); }}
+
+void readparser(FILE* f) { char *ln= 0; size_t z= 0; int n; if (!f) return;
+  while( (f!=stdin || fprintf(stderr,"> ")) && (n=getdelim(&ln, &z, dlm, f))>0)
+    oneline(ln, n);
+  free(ln);
+}
 
 // ENDWCOUNT
 
@@ -247,11 +254,6 @@ int main(int argc, char** argv) {
   assert(sizeof(void*)==sizeof(double));
   assert(sizeof(void*)==sizeof(long));
   assert(sizeof(void*)==sizeof(long));
-
-  // parse arguments
-  do{
-    if (0==strcmp("-d", argv++[0])) debug++;
-  } while(--argc);
 
   // alf
   initmem(16*1024); inittypes();
@@ -262,5 +264,15 @@ int main(int argc, char** argv) {
     R[*s]=strdup(x);
   }
 
-  readparser(stdin);
+  // parse arguments
+  while(--argc && *++argv) {
+    DEBUG(printf("\n--ARG: %s\n", *argv));
+    if (0==strcmp("-d", *argv)) debug++;
+    else if (0==strcmp("-e", *argv)) {argv++;argc--;oneline(*argv,strlen(*argv));}
+    else if (0==strcmp("-", *argv)) readparser(stdin);
+    else if (**argv=='-') { fprintf(stderr, "%% Unknown option %s\n", *argv); exit(1); }
+    else {DEBUG(printf("\n%%FILE: %s\n", *argv));readparser(fopen(*argv, "r"));}
+  }
+
+  //readparser(stdin);
 }
