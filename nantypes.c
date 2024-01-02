@@ -35,7 +35,7 @@ const long TNAN=0x7ff8,TATM=0x7ffa,TSTR=0xfffb,TOBJ=0xfffc,TCONS=0xfffe,TENV=0xf
 //,TCONS=0xfffe,TCLOS=0xffff;
 
 #define HPSIZE 16*1024
-char hp[HPSIZE]= {0}; int nilo=0; D nil, undef, error;
+char hp[HPSIZE]= {0}; int nilo=0; D nil, undef, error, proto;
 
 // Add a String to HP limited by SIZE
 //
@@ -60,7 +60,8 @@ void prnames() { char* p= hp; printf("\n"); while(*p) { D* d= (D*)(p+1+strlen(p+
 D atom(char* s){return u2d(BOX(TATM, nameadd(s)));}
 
 // TODO: "ERROR"
-void inittypes() {nil=atom("nil");undef=atom("undef");K[SMAX]=*S=*K=error=atom("*ERROR*");
+void inittypes() {nil=atom("nil");undef=atom("undef");proto=atom("__proto__");
+  K[SMAX]=*S=*K=error=atom("*ERROR*");
   assert(DAT(nil)==nilo);
 }
 

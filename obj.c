@@ -46,13 +46,14 @@ D obj() { align(); Obj* o= (Obj*)H; H+= sizeof(Obj);
 // Set in direct obj
 // if val is undef, name is removed
 D set(D d, D name, D val) {Obj*o=PTR(TOBJ,d),*last=0,*p=o;if(!o)return undef;
+  if (deq(name,proto)) return p->proto=val;
   while(1){for(int i=0;i<NPN;i++){D n=p->np[i].name;if(deq(n,name)||deq(n,undef)&&++(o->n)){p->np[i]=(struct np){val==undef?undef:name,val}; return val;}}
     last=p;p=PTR(TOBJ,p->next);
     if (!p) {p=PTR(TOBJ, last->next=obj());} } }
 
 
 // Search obj first, then proto...
-D get(D d, D name) { Obj *o= PTR(TOBJ, d), *p=o;
+D get(D d, D name) {Obj *o=PTR(TOBJ,d),*p=o; if(deq(name,proto))return p->proto;
   while(p) {for(int i=0;i<NPN;i++) if(deq(p->np[i].name,name)) return p->np[i].val;
     p= PTR(TOBJ,p->next); }  return o?get(o->proto, name):undef;
 }

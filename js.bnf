@@ -6,8 +6,10 @@
 # behave the same. Maybe ;-)
 
 # Capabilities
-# - integer/real/string/char "values"
-# - "strings" are used, should be 'foo'
+# - comments ^#cc ..// ../*cc*/.. ..(*cc*)..
+# - integer/double/string/char "values"
+# - {} objects w __proto__ and [] array!
+# - "strings" are used, should be 'foo' or "foo"
 # - "var" declare of single variable/init single variable
 # - can define several functions/none
 # - function only be named A-Z...
@@ -20,14 +22,10 @@
 # - comparisions: === == <> <= < >= >
 # - global variables and locals
 # - "prepared" for scoped inner functions (TODO: not working yet)
-# - recursive function calls
-# - Assign "Result:=42;" to set return value
+# - recursive function calls - no problem
 
 # Limitations/Features:
-# - (only integer/string constants)
-# - no comments (TODO: preprocessing stage of parser?)
-# - C style ; in IF statements, LOL. TODO: fix
-# - (BUG: can have several VAR clauses, lol TODO: decl several vars)
+# - ,, in arrays not working at end?
 # - non-existing functions == identity!
 # - string stuff untested except for printing static strings
 # - embryo for variable unlimited pascal/js strings includcing GC!
@@ -39,9 +37,6 @@
 
 # Parsing Rules:
 #   (free rule chars: )
-
-
-# TODO: preprocess comments?
 
 # TODO: these are needed, shouldn't be?
 N=%n
@@ -62,12 +57,12 @@ K=%s
 Q= E [$1] | [#undef ]
 F= , L [$1] |
 L= Q F [d $1 s #< $2] | F
-M= \[ L \] [#^ $1]
+#M= \[ L \] [#^ $1]
 
 # Object construction
 # TODO: , ,
 B= N\:E B [#$1 $2 #: $3] |
-O= \{ B \} [#^ $1]
+#O= \{ B \} [#^ $1]
 
 # lowest level
 U= D [$1] | N\(A\) [$2$1] | N [$:1@] | \( E \) [$1]
@@ -76,7 +71,7 @@ U= D [$1] | N\(A\) [$2$1] | N [$:1@] | \( E \) [$1]
 T= U \* T [$1 $2 *] | U \/ T [$1 $2 /] | U [$1]
 
 # Additive: + - TODO: here? "or"
-E= K [c$1] | T \+ E [$1 $2 +] | T \- E [$1 $2 -] | T [$1]
+E= K [c$1] | T \+ E [$1 $2 +] | T \- E [$1 $2 -] | T [$1] | \{ B \} [#^ $1] | \[ L \] [#^ $1]
 
 # Relational: == <> < > <= >= in
 # TODO: JS join with E
