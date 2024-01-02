@@ -9,11 +9,12 @@ int debug= 0; // DEBUG
 
 #define pc putchar // FORWARD
 #include "svar.c"
+#undef pc
+//char* parsename(char** p) { static char s[64], i; i=0; while((isalnum(**p) // DEBUG
+//  ||**p=='_') && i<sizeof(s)-1) s[i++]=*(*p)++; s[i]= 0; return s;} // DEBUG
 
-char* parsename(char** p) { static char s[64], i; i=0; while((isalnum(**p) // DEBUG
-  ||**p=='_') && i<sizeof(s)-1) s[i++]=*(*p)++; s[i]= 0; return s;} // DEBUG
-
-
+#define alfNOMAIN
+#include "alf.c"
 
 // Results and Attributes
 #define NV 256
@@ -39,10 +40,10 @@ char* pR(char* r, char* s, int n) { nv++; return parseR(*r, s, n); }
 
 //#include "nantypes.c"
 // TODO: remove
-char* sncat(char* s, char* x, int n) { int i= s?strlen(s):0, l= x?strlen(x):0; // DEBUG
-  if (n<0 || n>l) n= l; s= realloc(s, 1024*((i+n+1024)/1024)); s[i+n]= 0; // DEBUG
-  return strncpy(s+i, x?x:"", n), s; // DEBUG
-}
+//char* sncat(char* s, char* x, int n) { int i= s?strlen(s):0, l= x?strlen(x):0; // DEBUG
+//  if (n<0 || n>l) n= l; s= realloc(s, 1024*((i+n+1024)/1024)); s[i+n]= 0; // DEBUG
+//  return strncpy(s+i, x?x:"", n), s; // DEBUG
+//}
 
 // Generate (add to *G) from [Rule] stop at ENDchar nr being $0 V[NR]
 int gen(char** g, char* r, char end, int nr) { int n, l; char *or=r, *v, *e;
@@ -216,17 +217,26 @@ char* comments(char* os) { int c= 0; char *e= 0, *s= os; if (!s) return os;
   return os;
 }
 
+void alfie(char* a) { if (!a) return;
+  printf("\t(alf: %s)\n", a);
+  alf(opt(a), 0, 0, 0);
+  printf("\n\tstack "); prstack(); pc('\n');
+}
+
 char* test(char r, char* s){ nv=0; char* e=parseR(r,s,-1); if(!e||*e)printf(
     "%%%s %c->'%s'\n",e?(*e?"MORE":"OK!"):"FAIL",r,e);
-  printf("%s\n",V[nv+1]);return e;}
+  alfie(V[nv+1]);
+  return e;}
 
 char rule=0; int dlm= '\n';
 void readparser(FILE* f) { char *ln= 0; size_t z= 0; int n;
-  while((n=getdelim(&ln, &z, dlm, f))>0) { if (ln && ln[n-1]=='\n') ln[n-1]= 0;
+  while( fprintf(stderr, "> ") && 
+(n=getdelim(&ln, &z, dlm, f))>0) { if (ln && ln[n-1]=='\n') ln[n-1]= 0;
     DEBUG(printf("> %s\n", ln))
     if (!ln) break; if (!*ln || *ln=='#') continue;
-    if (*ln=='<') readparser(fopen(ln+1, "r")); else
     if (ln[1]=='=') R[ln[0]]=strdup(ln+2); else switch(*ln){
+      case '@': alfie(ln+1); break;
+      case '<': readparser(fopen(ln+1, "r")); break;
       case '*': dlm=0; case '?': rule=ln[1]; break; default: test(rule, comments(ln));
     } } free(ln); }
 
@@ -242,6 +252,9 @@ int main(int argc, char** argv) {
   do{
     if (0==strcmp("-d", argv++[0])) debug++;
   } while(--argc);
+
+  // alf
+  initmem(16*1024); inittypes();
 
   // init shortnames
   for(char*s="dawin\"'({[<"; *s; s++) {

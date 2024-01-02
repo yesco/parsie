@@ -5,8 +5,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#ifndef DEBUG
 int debug= 0; // DEBUG
 #define DEBUG(D) if (debug) do{D;}while(0);
+#endif
 
 #include "mem.c"
 
@@ -36,7 +38,7 @@ char* parsename(char** p) { static char s[64], i; i=0; while((isalnum(**p)
 //   TODO: must skip STRINGs!!! lol
 char* skip(char* p){ int n=1;while(n&&*p)if(*p=='?'&&p[1]!='{')p+=2;else n+=(*p=='{')-(*p=='}'),p++;return p;}
 
-void prstack(){P("\t:");for(D* s= K+1; s<=S; s++){dprint(*s);pc(' ');}} // DEBUG
+void prstack(){P("\t:");for(D* s= K+2; s<=S; s++){dprint(*s);pc(' ');}} // DEBUG
 
 #define Z goto next; case
 
@@ -84,7 +86,7 @@ Z'$': x=1;switch(*p++){ Z'.': prstack(); case'n': pc('\n');
   Z'0'...'9':S++;*S=K[args+p[-1]-'0']; Z'$':n=POP;args-=n; Z'd': x=S-K; U=x; 
   Z'!': K[args+*p++-'0'-1]=POP; Z's':x=POP;case' ':while(x-->=0)pc(' ');
   Z'"': e=H;while(*p&&*p!='"')*H++=*p++; *H++=0;if(*p)p++; U=e-M; U=H-e-1;
-  Z'h': P("%lx\n", L POP);goto next; default: p--; // err
+ Z'h': P("%lx\n", L POP);goto next; default: p--; /* err */ Z'q': S=1+K;
   Z'D': for(int i=0; i<*S;) { int n= S[-1]; printf("\n%04x ", n); // DEBUG
     for(int j=0; j<8; j++) printf("%02x%*s", M[n+j], j==3, "");  printf("  "); // DEBUG
     for(int j=0; j<8; j++) printf("%c", M[n+j]?(M[n+j]<32||M[n+j]>126? '?': M[n+j]):'.'); // DEBUG
@@ -242,6 +244,7 @@ char* opt(char* p) { char *s= p; while(s&&s[0]&&s[1]&&s[2]){switch(s[0]){
   ( $p - printf? )
     $D - dump from address / DEBUG
   ( $# - format number? tra forth? )
+    $q - quit/reset stacks
 
     $" - counted mem string
   ( $\ - interpret \n etc - counted? )
@@ -363,6 +366,8 @@ char* opt(char* p) { char *s= p; while(s&&s[0]&&s[1]&&s[2]){switch(s[0]){
 ( 128-255 - optimized atomnames/addr )
 */
 
+#ifndef alfNOMAIN
+
 int main(int argc, char** argv) {
   assert(sizeof(long)==8);
   assert(sizeof(void*)==sizeof(D));
@@ -415,3 +420,4 @@ if(0){
     if (!deq(K[SMAX],error)) { printf("\n%%STACK corrupted/overrun to cons/var storage\n"); } // DEBUG
   }
 }
+#endif
