@@ -226,7 +226,7 @@ void alfie(char* a) { if (!a) return;
 }
 
 char* test(char r, char* s){ nv=0; char* e=parseR(r,s,-1); if(!e||*e)printf(
-    "\n\t%%%s %c->'%s'",e?(*e?"MORE":"OK!"):"FAIL",r,e);
+    "\n\t%%%s %c->'%s'",e?(*e?"UNPARSED":"OK!"):"FAIL",r,e);
   int d=debug--;if(debug<0)debug=0;alfie(V[nv+1]);pc('\n');debug=d; return e;}
 
 char rule=0,last=0; int dlm= '\n';
@@ -247,8 +247,7 @@ void oneline(char* ln, int n) { if (!ln) return;
   case ' ': if (ln[1]!='|') break;
   case '|': R[last]= sncat(sncat(R[last], "\n", -1), ln, -1); return;
   case '=': for(char c='A'; c<='Z'; c++) if (!R[c]) printf("\tFREE: %c\n", c); return;
-  case '*': if (ln[1]) dlm=0; case '?': rule=ln[1]; if (!rule) for(char c='A'; c<='Z'; c++) if (R[c]) printf("%c=%s\n", c, R[c]); return;
-  }
+  case '*': if (ln[1]) dlm=0; case '?': rule=ln[1]; if (!rule) { for(char c='A'; c<='Z'; c++) if (R[c]) printf("%c=%s\n", c, R[c]);   printf("\n\nUsage:\n\tR=...|foo|bar|\n\t |...\t- define rule\n\t?R \t- use rule\n\t*R\t- match rest to rule\n\t?\t- list rules\n\t=\t-list free rules\n\t<file\t- include file\n\t-d\t- inc debug level\n\t@ 3 4+.\t- run alf\n\t# comment\n"); } return; }
   DEBUG(if (debug>1) printf("\tTEST>%s<\n", ln));
   test(rule, comments(ln)); }
 
