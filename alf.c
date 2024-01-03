@@ -55,15 +55,16 @@ x=0;switch(*p++){ case 0:case';':case')':return p; Z' ':Z'\n':Z'\t':Z'\r':
 Z'd': S[1]= *S; S++; Z'\\': S--; // TODO: more?
 Z'o': S[1]= S[-1]; S++; Z's': {D d=*S; *S= S[-1]; S[-1]= d;}
 Z'0'...'9':{D v=0;p--;while(isdigit(*p))v=v*10+*p++-'0';U=v;}
-Z'A'...'Z': alf(F[p[-1]-'A'],S-K,0,0); Z'x':{char x[]={POP,0};alf(x,0,0,0); }
+Z'A'...'Z': alf(F[p[-1]-'A'],S-K,0,0);
+Z'x':{D d=POP;if(TYP(d)==TSTR)alf(dchars(d),0,0,0);else{char x[]={d,0};alf(x,0,0,0);}}
 #define OP(op,e) Z #op[0]: S--;*S=*S op##e S[1];
 OP(+,);OP(-,);OP(*,);OP(/,);OP(<,);OP(>,);OP(=,=);OP(|,|);OP(&,&);
 Z'%': S--; *S=L *S % L S[1]; Z'z': *S= !*S; Z'n': *S= -L *S;
 Z'h': U=H-M; Z'm':x=*S;*S=H-M;H+=x; Z'a':H+=L POP;
 Z'g': case ',': align(); if (p[-1]=='g') goto next; memcpy(H,&POP,SL); H+=SL;
 Z'@': *S= *(D*)m(*S,args,n); Z'!': *(D*)m(*S,args,n)= S[-1]; S-=2;
-Z'c': switch(*p++){ Z'!': S--; Z'@': memcpy(d, e, x); Z'r':pc('\n');
-  Z'"': e=p; while(*p&&*p!='"')p++; U=newstr(e, p++-e); Z'c': *S=dlen(*S); }
+Z'c': switch(*p++){ Z'r': pc('\n');
+ Z'"': e=p; while(*p&&*p!='"')p++; U=newstr(e, p++-e); Z'c': *S=dlen(*S); }
 Z'.': dprint(POP);pc(' '); Z'e':pc(POP); Z'p': dprint(POP);
 Z't': P("%*s.",(int)*S,M+L S[-1]);S-=2;
   Z'\'': U= *p++; Z'"': while(*p&&*p!='"')pc(*p++); p++;
@@ -74,6 +75,26 @@ Z'#': switch(*p++){ Z'a'...'z':case'A'...'Z':case'_':p--;U=atom(parsename(&p));
   Z'@': S--;*S=get(S[1],*S); Z'!': S-=3;set(S[3],S[2],S[1]);
   Z'?': *S=typ(*S); Z'^': U=obj(); goto next; default: goto error;
 }
+
+// TODO: force create
+Z'[': {
+  // TODO: same as c"
+  e=p; while(*p&&*p!=']')p++;U=newstr(e, p++-e);
+  {D f=POP; D c=obj(); Obj* o= PTR(TOBJ, c);
+    //o->proto=OCLOS;
+    // Can store 12 values/frame!
+    D* pars=&(o->np[0].name);
+    // TODO: copy from current frame
+    // For each frame UP
+    // - coppy to new obj()
+    // - change frameptr stack values
+    // - chain up each frame as next
+    // (not using proto)
+    // alt: use actual names in closure!
+  }
+  
+ }
+ 
 Z'}': return iff?p:NULL; Z'{': while(!((e=alf(p, args, n, 0)))){}; p= e;
 Z'?': if (POP) { switch(*p++){ Z'}': return p; Z']': return 0;
   Z'{': p=alf(p,args,n,1);if(*p=='{')p=skip(p+1); default:p=alf(p,args,n,1);
