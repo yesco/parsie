@@ -7,7 +7,7 @@ o=$(./wcode obj.c)
 a=$(./wcode alf.c)
 
 js=$(grep '^.=' js.bnf | wc -l)
-pas=$(grep '^.=' pascal.bnf | wc -l)
+pas=$(grep '^.=' pas.bnf | wc -l)
 
 tot=$(echo "$p+$m+$t+$v+$o+$a"|bc -l)
 

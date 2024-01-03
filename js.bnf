@@ -42,7 +42,8 @@
 N=%n
 D=%i
 
-# TODO: pascal string is '...'
+# TODO: js string is '...' or "..."
+# this matches [] etc...?
 K=%s
 
 # TODO: [] - Array(1,2,3)  how to do!
@@ -56,13 +57,16 @@ K=%s
 # TODO: BUG: [,,] cannot??
 Q= E [$1] | [#undef ]
 F= , L [$1] |
-L= Q F [d $1 s #< $2] | F
-#M= \[ L \] [#^ $1]
+L= Q F [$1 #< $2] | F [$1]
+
+# overflow
+#L= Q ?, L [$1 #< #3] |
+
 
 # Object construction
 # TODO: , ,
-B= N\:E B [#$1 $2 #: $3] |
-#O= \{ B \} [#^ $1]
+#B= N\:E ?, B [#$1 $2 #: $4] | L [$1] |
+B= N\:E ?, B [#$1 $2 #: $4] |
 
 # lowest level
 U= D [$1]
@@ -76,12 +80,12 @@ T= U \* T [$1 $2 *]
  | U [$1]
 
 # Additive: + - TODO: here? "or"
-E= K [c$1]
+E= \{ B \} [#^ $1]
+ | \[ L \] [#^ $1]
+ | K [c$1]
  | T \+ E [$1 $2 +]
  | T \- E [$1 $2 -]
  | T [$1]
- | \{ B \} [#^ $1]
- | \[ L \] [#^ $1]
 
 # Relational: == <> < > <= >= in
 # TODO: JS join with E
@@ -124,7 +128,8 @@ S= \{ V G \} [$1 $2]
  | while \(C\) S [--WHILE--]
  | for(S S S) [--FOR--]
  | N\(A\); [$2$1]
-
+ | E [$1]
+ 
 # BLOCK grouping of statement
 G= S G [$1 $2] | ; |
 

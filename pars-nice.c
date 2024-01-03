@@ -220,15 +220,14 @@ char* comments(char* os) { int c= 0; char *e= 0, *s= os; if (!s) return os;
 }
 
 void alfie(char* a) { if (!a) return;
-  printf("\t(alf: %s)\n", a);
+  DEBUG(if (debug>1) printf("\t(alf: %s)\n", a));
   alf(opt(a), 0, 0, 0);
-  printf("\n\tstack "); prstack(); pc('\n');
+  DEBUG(printf("\n\tstack "); prstack(); pc('\n'););
 }
 
 char* test(char r, char* s){ nv=0; char* e=parseR(r,s,-1); if(!e||*e)printf(
-    "%%%s %c->'%s'\n",e?(*e?"MORE":"OK!"):"FAIL",r,e);
-  alfie(V[nv+1]);
-  return e;}
+    "\n\t%%%s %c->'%s'",e?(*e?"MORE":"OK!"):"FAIL",r,e);
+  int d=debug--;if(debug<0)debug=0;alfie(V[nv+1]);pc('\n');debug=d; return e;}
 
 char rule=0,last=0; int dlm= '\n';
 
@@ -250,7 +249,7 @@ void oneline(char* ln, int n) { if (!ln) return;
   case '=': for(char c='A'; c<='Z'; c++) if (!R[c]) printf("\tFREE: %c\n", c); return;
   case '*': if (ln[1]) dlm=0; case '?': rule=ln[1]; if (!rule) for(char c='A'; c<='Z'; c++) if (R[c]) printf("%c=%s\n", c, R[c]); return;
   }
-  printf("TEST>%s<\n", ln);
+  DEBUG(if (debug>1) printf("\tTEST>%s<\n", ln));
   test(rule, comments(ln)); }
 
 void readparser(FILE* f) { char *ln= 0; size_t z= 0; int n; if (!f) return;
@@ -281,7 +280,7 @@ int main(int argc, char** argv) {
     else if (0==strcmp("-e", *argv)) {argv++;argc--;oneline(*argv,strlen(*argv));}
     else if (0==strcmp("-", *argv)) readparser(stdin);
     else if (**argv=='-') { fprintf(stderr, "%% Unknown option %s\n", *argv); exit(1); }
-    else {DEBUG(printf("\n%%FILE: %s\n", *argv));readparser(fopen(*argv, "r"));}
+    else {DEBUG(if (debug>1) printf("\n%%FILE: %s\n", *argv));readparser(fopen(*argv, "r"));}
   }
 
   //readparser(stdin);
