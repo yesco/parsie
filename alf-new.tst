@@ -13,8 +13,15 @@ cr"-- o.add= function F(a,b) {"cr
 :M 4$$ cr"args=" `2@d.  `3@d. cr + d #sum `1@ #@ + #sum `1@ #! ^;
 cr9e"TODO: remove 4$$, caller can remove!"cr
 :M 4$$cr"args=" `2@d.  `3@d. cr + d #sum `1@ #@ + #sum `1@ #! ^;
+:N 3$$cr"args=" `2@d. cr d #sum `1@ #@ + #sum `1@ #! ^;
+cre9"TODO: currently you need to say 2 more than needed"
+:Q 6$$cr"args=" `2@d. cr d #sum `1@ #@ + #sum `1@ #! ^;
+:R 4$$cr"args=" `2@d. cr d #sum `1@ #@ + #sum `1@ #! ^;
 
 64@ #add c"M" #:
+64@ #plus c"N" #:
+64@ #test c"Q" #:
+64@ #test2 c"R" #:
 
 cr9e"-- console.log(o);"
 64@.cr
@@ -33,7 +40,7 @@ $q
 42 (64@ 330000 440000 )add "AFTER=" $. 44 cr
 
 cr9e"TODO: new ops"cr
-cr93"42 (64@ 11 22 )add cr"cr
+cr9e"42 (64@ 11 22 )add cr"cr
 
 .cr
 9e.cr
@@ -45,7 +52,20 @@ cr9e"-- console.log(o.add(1100, 2200));"cr
 cr.cr9e.
 
 cr9e"-- console.log(o.sum);"cr
-#sum 64@ #@.cr
+#sum 64@ #@ .cr
+
+cr"------------------------------------"cr
+42 (64@ 1)plus . 64@. cr
+42 (64@ 10)plus . 64@. cr
+42 (64@ 100)plus . 64@. cr
+42 (64@ 1000)plus . 64@. cr
+42 (64@ 10000)plus . 64@. cr
+42 (64@ 100000)plus . 64@. cr
+
+cr"===================================="cr
+42 (64@ 11111 22222 33333 44444)test . 64@. cr
+42 (64@ 11111 22222)test2 . 64@. cr
+
 
 
 
