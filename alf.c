@@ -24,7 +24,7 @@ int debug= 0; // DEBUG
 //   ...
 //  MLIM ..      = is general M char heap
 void* m(double d, int args, int n) { long x=L d; if (isnan(d)) return dchars(d);
-  //DEBUG(printf(" TYP=%x\n", TYP(d)));
+  //DEBUG(P(" TYP=%x\n", TYP(d)));
   // TODO: TOBJ,TCONS,TENV
   return x<0?K+args+n+x+1:(x>MLIM?M+x-MLIM:x<VMAX?(void*)(K+SMAX+x):0);
 }
@@ -65,8 +65,8 @@ Z'%': S--; *S=L *S % L S[1]; Z'z': *S= !*S; Z'n': *S= -L *S;
 Z'h': U=H-M; Z'm':x=*S;*S=H-M;H+=x; Z'a':H+=L POP;
 Z'g': case ',': align(); if (p[-1]=='g') goto next; memcpy(H,&POP,SL); H+=SL;
 Z'@': *S= *(D*)m(*S,args,n); Z'!': *(D*)m(*S,args,n)= S[-1]; S-=2;
-Z'c': switch(*p++){ Z'r': pc('\n');
-  Z'"':x=p[-1];e=p;while(*p&&*p!=x)p++;U=newstr(e,p++-e); Z'c': *S=dlen(*S); }
+Z'c': switch(*p++){ Z'r': pc('\n');Z'c': *S=dlen(*S);
+  Z'"':case'\'':x=p[-1];e=p;while(*p&&*p!=x)p++;U=newstr(e,p++-e); }
 Z'.': dprint(POP);pc(' '); Z'e':pc(POP); Z'p': dprint(POP);
 Z't': P("%*s.",(int)*S,M+L S[-1]);S-=2;
   Z'\'': U= *p++; Z'"': while(*p&&*p!='"')pc(*p++); p++;
@@ -80,8 +80,24 @@ Z'#': switch(*p++){ Z'a'...'z':case'A'...'Z':case'_':p--;U=atom(parsename(&p));
 
 // stackframe: ... (@)prev 1 2 3 @ this) F
 // stackframe: ... (@)prev obj 1 2 3 @) obj #method #@ x
-Z'(': U=args; x= S-K; p= alf(p, args, n, 1); U= x; // ')' will return
+  Z'(': { x= S-K; U=args; D* s= S; p= alf(p, args, n, 1); U= x; // ')' will return
+  // *s== prev frame
+  D o= s[1];
+  D n= atom(parsename(&p));
+  D m= get(o, n);
+  P("\nCALL: o="); dprint(o); P(" n="); dprint(n); P(" m="); dprint(m); pc('\n');;
+  //*s= *S;
+  //S= s;
+  D prev= *S;
+  printf("\nBEFORE>>>>>>>");
+  alf(dchars(m),args,0,0);
+  printf("\n<<<<<<AFTER\n");
+  P("\nRETURN: "); dprint(*S); pc('\n');
+  *s= *S;
+  S=s;
+ }
  
+
 // TODO: force create
 Z'[': {
   // TODO: same as c"
@@ -114,21 +130,21 @@ Z'$': x=1;switch(*p++){ Z'.': prstack(); case'n': pc('\n');
   Z'!': K[args+*p++-'0'-1]=POP; Z's':x=POP;case' ':while(x-->=0)pc(' ');
   Z'"': e=H;while(*p&&*p!='"')*H++=*p++; *H++=0;if(*p)p++; U=e-M; U=H-e-1;
  Z'h': P("%lx\n", L POP);goto next; default: p--; /* err */ Z'q': S=1+K;
-  Z'D': for(int i=0; i<*S;) { int n= S[-1]; printf("\n%04x ", n); // DEBUG
-    for(int j=0; j<8; j++) printf("%02x%*s", M[n+j], j==3, "");  printf("  "); // DEBUG
-    for(int j=0; j<8; j++) printf("%c", M[n+j]?(M[n+j]<32||M[n+j]>126? '?': M[n+j]):'.'); // DEBUG
+  Z'D': for(int i=0; i<*S;) { int n= S[-1]; P("\n%04x ", n); // DEBUG
+    for(int j=0; j<8; j++) P("%02x%*s", M[n+j], j==3, "");  P("  "); // DEBUG
+    for(int j=0; j<8; j++) P("%c", M[n+j]?(M[n+j]<32||M[n+j]>126? '?': M[n+j]):'.'); // DEBUG
     D d= *(D*)(M+n); x=TYP(d); if ((x&0x0ff8)==0x0ff8) { // DEBUG
       if (x>32*1024) x=-(x&7); else x= x&7; } else x=0; // DEBUG
-    printf(" %2ld:", x);dprint(d);S[-1]+=8;i+=8;}}printf("\n");prstack();break; // DEBUG
+    P(" %2ld:", x);dprint(d);S[-1]+=8;i+=8;}}P("\n");prstack();break; // DEBUG
   default: error: P("\n[%% Undefined op: '%s']\n", p-1);p++;} goto next;
 }
 
 // fib 19-27% faster!
 char* opt(char* p) { char *s= p; while(s&&s[0]&&s[1]&&s[2]){switch(s[0]){
-  case'"': while(*s && *++s!='"'){}break;  case '#': s++; parsename(&s);break;
+    case'"': while(*s && *++s!='"'){}break;  case '#': case ')': s++; parsename(&s);break;
   case'`': break; /* TODO */ case'0'...'9': if(isdigit(s[2]))break;
   default: if (!isspace(s[1])) break; memmove(s+1, s+2, strlen(s+2)+1);continue;
-  } s++; } DEBUG(printf("\n%s\n", p)); return p; }
+  } s++; } DEBUG(P("\n%s\n", p)); return p; }
 
 // ENDWCOUNT
 
@@ -268,7 +284,7 @@ char* opt(char* p) { char *s= p; while(s&&s[0]&&s[1]&&s[2]){switch(s[0]){
     $h - print hex
     $. - print stack (.S normally)
     $d - depth of stack
-  ( $p - printf? )
+  ( $p - P? )
     $D - dump from address / DEBUG
   ( $# - format number? tra forth? )
     $q - quit/reset stacks
@@ -429,12 +445,12 @@ if(0){
 //  alf("0d.?{2d.}{3d.}.4.", 0, 0, 0);
 
   if (0) {
-    printf("1 %s\n", skip("foo}OK"));
-    printf("2 %s\n", skip("f?]oo}OK"));
-    printf("3 %s\n", skip("f?}oo}OK"));
-    printf("4 %s\n", skip("f?{oo}OK"));
-    printf("5 %s\n", skip("f{o}o}OK"));
-    printf("6 %s\n", skip("1}{OK}"));
+    P("1 %s\n", skip("foo}OK"));
+    P("2 %s\n", skip("f?]oo}OK"));
+    P("3 %s\n", skip("f?}oo}OK"));
+    P("4 %s\n", skip("f?{oo}OK"));
+    P("5 %s\n", skip("f{o}o}OK"));
+    P("6 %s\n", skip("1}{OK}"));
     exit(3);
   }
 
@@ -442,9 +458,9 @@ if(0){
   char* ln= NULL; size_t sz= 0;
   while(getline(&ln, &sz, stdin)>=0) {
     alf(opt(ln), 0, 0, 0);
-    if (S<=K) { printf("\n%%STACK underflow %ld\n", S-K); } // DEBUG
-    if (S>=K+SMAX) { printf("\n%%STACK overrun\n"); } // DEBUG
-    if (!deq(K[SMAX],error)) { printf("\n%%STACK corrupted/overrun to cons/var storage\n"); } // DEBUG
+    if (S<=K) { P("\n%%STACK underflow %ld\n", S-K); } // DEBUG
+    if (S>=K+SMAX) { P("\n%%STACK overrun\n"); } // DEBUG
+    if (!deq(K[SMAX],error)) { P("\n%%STACK corrupted/overrun to cons/var storage\n"); } // DEBUG
   }
 }
 #endif
