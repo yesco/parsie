@@ -1,3 +1,3 @@
-./parse js.bnf -e "*P" fib.js
+./parse $* js.bnf -e "*P" fib.js
 
 

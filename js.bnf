@@ -42,9 +42,8 @@
 N=%n
 D=%i
 
-# TODO: js string is '...' or "..."
 # this matches [] etc...?
-K=%s
+K=%"|%'
 
 # TODO: [] - Array(1,2,3)  how to do!
 # TODO:
@@ -82,10 +81,10 @@ T= U \* T [$1 $2 *]
 E= \{ B \} [#^ $1]
  | \[ \] [#^]
  | \[ L B \] [#^ $1 $2]
- | K [c$1]
  | T \+ E [$1 $2 +]
  | T \- E [$1 $2 -]
  | T [$1]
+ | K [c$1]
 
 # Relational: == <> < > <= >= in
 # TODO: JS join with E

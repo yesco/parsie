@@ -18,13 +18,15 @@ int debug= 0; // DEBUG
 #include "obj.c"
 
 // Interpreation of memory ref
-//inline void* m(double d, int args, int n) {
-void* m(double d, int args, int n) { if (isnan(d)) { long x= DAT(d);
-    DEBUG(printf(" TYP=%x\n", TYP(d)));
-    switch(TYP(d)){ case TATM: case TSTR: return dchars(d);
-    case TOBJ: case TCONS: case TENV: case TNAN: default: return 0; //TCLOS:
-    }}
-  long x=L d;return x<0?K+args+n:(x>MLIM?M+x-MLIM:x<VMAX?(void*)(K+SMAX+x):0);
+//  -SMAX ..  0  = is stack frame ref
+//  0 .. VMAX-1  = D globals
+//  DLIM .. +=DSZ= D heap // TODO:
+//   ...
+//  MLIM ..      = is general M char heap
+void* m(double d, int args, int n) { long x=L d; if (isnan(d)) return dchars(d);
+  //DEBUG(printf(" TYP=%x\n", TYP(d)));
+  // TODO: TOBJ,TCONS,TENV
+  return x<0?K+args+n+x+1:(x>MLIM?M+x-MLIM:x<VMAX?(void*)(K+SMAX+x):0);
 }
 
 // Parse from P a name
@@ -64,7 +66,7 @@ Z'h': U=H-M; Z'm':x=*S;*S=H-M;H+=x; Z'a':H+=L POP;
 Z'g': case ',': align(); if (p[-1]=='g') goto next; memcpy(H,&POP,SL); H+=SL;
 Z'@': *S= *(D*)m(*S,args,n); Z'!': *(D*)m(*S,args,n)= S[-1]; S-=2;
 Z'c': switch(*p++){ Z'r': pc('\n');
- Z'"': e=p; while(*p&&*p!='"')p++; U=newstr(e, p++-e); Z'c': *S=dlen(*S); }
+  Z'"':x=p[-1];e=p;while(*p&&*p!=x)p++;U=newstr(e,p++-e); Z'c': *S=dlen(*S); }
 Z'.': dprint(POP);pc(' '); Z'e':pc(POP); Z'p': dprint(POP);
 Z't': P("%*s.",(int)*S,M+L S[-1]);S-=2;
   Z'\'': U= *p++; Z'"': while(*p&&*p!='"')pc(*p++); p++;
@@ -76,6 +78,10 @@ Z'#': switch(*p++){ Z'a'...'z':case'A'...'Z':case'_':p--;U=atom(parsename(&p));
   Z'?': *S=typ(*S); Z'^': U=obj(); goto next; default: goto error;
 }
 
+// stackframe: ... (@)prev 1 2 3 @ this) F
+// stackframe: ... (@)prev obj 1 2 3 @) obj #method #@ x
+Z'(': U=args; x= S-K; p= alf(p, args, n, 1); U= x; // ')' will return
+ 
 // TODO: force create
 Z'[': {
   // TODO: same as c"
