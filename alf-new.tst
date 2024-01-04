@@ -1,34 +1,35 @@
-"-- var o= {sum: 0};"
+cr9e"-- var o= {sum: 0};"
 #^ 64!@
 64@ #sum 0 #:
 
-"-- o.add= function F(a,b) {"cr
+cr"-- o.add= function F(a,b) {"cr
 "--    var r= a+b;"cr
 "--    this.sum += a+b;"cr
 "--    return r;"cr
 "-- }"cr
 
-:F 3$$ $2 $3 + d #sum $1 #@ + #sum $1 #! 
-^ ;
+:F 3$$ 9e"args:" `2d. @ d. `3d.@d. cr + d #sum `1d.@d. #@ + #sum `1@ #! ^;
+:F 3$$ `2 @  `3@ cr + d #sum `1@ #@ + #sum `1@ #! ^;
 
-"-- console.log(o);"
+64@ #add c"F" #:
+
+cr9e"-- console.log(o);"
 64@.cr
 
-"-- console.log(o.add(11, 22));"cr
+cr9e"-- console.log(o.add(11, 22));"cr
 
-42 64@ 11 22 F"-->result:".cr
-.
+42 64@ 11 22 Fcr
+.cr
+9e.cr
 
-64@d.
+9e64@d.cr
 
-"sum:" 64@ #sum #@. cr
+cr9e"-- console.log(o.add(1100, 2200));"cr
+42 9e"funcall:" 64@ 1100 2200 F
+cr.cr9e.
 
-"-- console.log(o.add(1100, 2200));"cr
-42 "funcall:" 64@ 1100 2200 F"-->result:".cr.
-
-"-- console.log(o.sum);"
-64@.
-
+cr9e"-- console.log(o.sum);"cr
+#sum 64@ #@.cr
 
 
 
