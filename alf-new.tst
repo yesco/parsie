@@ -10,13 +10,15 @@ cr"-- o.add= function F(a,b) {"cr
 
 :F 3$$ 9e"args:" `2d. @ d. `3d.@d. cr + d #sum `1d.@d. #@ + #sum `1@ #! ^;
 :F 3$$ `2 @  `3@ cr + d #sum `1@ #@ + #sum `1@ #! ^;
-:M 4$$ cr"args=" `2@d.  `3@d. cr + d #sum `1@ #@ + #sum `1@ #! ^;
+
+cr"--obj methods"cr
+:M cr"args=" `1@d.  `2@d. cr + d #sum `0@ #@ + #sum `0@ #! ^;
 cr9e"TODO: remove 4$$, caller can remove!"cr
-:M 4$$cr"args=" `2@d.  `3@d. cr + d #sum `1@ #@ + #sum `1@ #! ^;
-:N 3$$cr"args=" `2@d. cr d #sum `1@ #@ + #sum `1@ #! ^;
+:M cr"args=" `1@d.  `2@d. cr + d #sum `0@ #@ + #sum `0@ #! ^;
+:N cr"args=" `1@d. cr d #sum `0@ #@ + #sum `0@ #! ^;
 cre9"TODO: currently you need to say 2 more than needed"
-:Q 6$$cr"args=" `2@d. cr d #sum `1@ #@ + #sum `1@ #! ^;
-:R 6$$ cr"stack:"$.cr cr"args=" `2@d. cr d #sum `1@ #@ + #sum `1@ #! ^;
+:Q cr"args=" `1@d. cr d #sum `0@ #@ + #sum `0@ #! ^;
+:R cr"args=" `1@d. cr d #sum `0@ #@ + #sum `0@ #! ^;
 
 64@ #add c"M" #:
 64@ #plus c"N" #:
@@ -64,12 +66,5 @@ cr"------------------------------------"cr
 
 cr"===================================="cr
 42 (64@ 111111 222222 33333 44444)test . 64@. cr
-
-cr"%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%"cr
-42 [64@ 111111 22222 33333 444444 55555 666]test2 . 64@. cr
-
-cr
-
-
 
 

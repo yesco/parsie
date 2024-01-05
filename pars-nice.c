@@ -265,6 +265,8 @@ int main(int argc, char** argv) {
   assert(sizeof(void*)==sizeof(long));
   assert(sizeof(void*)==sizeof(long));
 
+  // TODO: should we could main in LOC?
+  
   // alf
   initmem(16*1024); inittypes();
 

@@ -23,20 +23,11 @@ int debug= 0; // DEBUG
 //  DLIM .. +=DSZ= D heap // TODO:
 //   ...
 //  MLIM ..      = is general M char heap
-void* m2(double d, D* A, int n) { long x=L d; if (isnan(d)) return dchars(d);
+void* m(double d, D* A, int n) { long x=L d; if (isnan(d)) return dchars(d);
   //DEBUG(P(" TYP=%x\n", TYP(d)));
   // TODO: TOBJ,TCONS,TENV
-  return x<0?A-x:(x>MLIM?M+x-MLIM:x<VMAX?(void*)(K+SMAX+x):0);
+  return x<0?A-x-1:(x>MLIM?M+x-MLIM:x<VMAX?(void*)(K+SMAX+x):0);
 }
-
-void prstack(); // FORWARD
-
-void* m(double d, D* A, int n) { // DEBUG
-  void* r= m2(d, A, n); // DEBUG
-  //  pc('\n');prstack();pc('\n');
-  //printf("  [m: %.7g diff=%ld *S=%.7g, *m=%.7g S=%ld A=%ld] ", d, ((D*)r)-K, *S, *(D*)r, S-K, A-K);
-  return r; // DEBUG
-} // DEBUG
 
 // Parse from P a name
 // (P is pointer to char* and updated)
@@ -94,21 +85,17 @@ Z'#': switch(*p++){ Z'a'...'z':case'A'...'Z':case'_':p--;U=atom(parsename(&p));
   // *s== prev frame
   D o= s[1];
   char* nm= parsename(&p);
-  P("\nNAME=>%s<\n", nm);
+  DEBUG(P("\n\tNAME=>%s<\n", nm));
   D nom= atom(nm);
   D m= get(o, nom);
-  P("\nCALL: o="); dprint(o); P(" nom="); dprint(nom); P(" m="); dprint(m); pc('\n');
-  //*s= *S;
-  //S= s;
+  DEBUG(P("\n\tCALL: o="); dprint(o); P(" nom="); dprint(nom); P(" m="); dprint(m); pc('\n'););
   D prev= *S;
-  printf("\nBEFORE>>>>>>>");
-  dprint(S[-2]);
-  printf("<DIFF s S %ld>", S-s);
-  alf(dchars(m),s-3,4,0);
-  printf("\n<<<<<<AFTER\n");
-  P("\nRETURN: "); dprint(*S); pc('\n');
-  ///s[1]= *S;
-  //S=s+1;
+  //alf(dchars(m), s+1, S-s, 0);
+  // TODO: hmmm...
+  alf(F[*dchars(m)-'A'], s+1, S-s, 0);
+  //P("\n\tRETURN: "); dprint(*S); pc('\n');
+  *s= *S;
+  S=s;
  }
 
 
@@ -140,7 +127,7 @@ Z'?': if (POP) { switch(*p++){ Z'}': return p; Z']': return 0;
   if (*p=='{') { p=skip(p+1); } if (p) p= alf(p+1, A, n, 1); else return 0; }
 #define LOP(op,e) Z#op[0]: S--; *S=(L S[1]) op##e L *S;
 Z'b': switch(*p++){ LOP(&,);LOP(|,);LOP(^,); Z'~': *S= ~L *S; }
-Z'`': switch(*p++) { Z'#': U=n; Z'0'...'9': U='0'-p[-1]; }
+Z'`': switch(*p++) { Z'#': U=n; Z'0'...'9': U='0'-p[-1]-1; }
 Z'$': x=1;switch(c=*p++){ Z'.': prstack(); case'n': pc('\n');
   // TODO: why 3?
  Z'0'...'9': U=A[p[-1]-'0'];
@@ -157,7 +144,10 @@ Z'$': x=1;switch(c=*p++){ Z'.': prstack(); case'n': pc('\n');
   default: error: P("\n[%% Undefined op: '%s']\n", p-1);p++;} goto next;
 }
 
-// fib 19-27% faster!
+// Simple peep-hole optimization
+//
+// Removes extra spaces-fib 19-27% faster!
+// 
 char* opt(char* p) { char *s= p; while(s&&s[0]&&s[1]&&s[2]){switch(s[0]){
     case'"': while(*s && *++s!='"'){}break;  case '#': case ')': s++; parsename(&s);break;
   case'`': break; /* TODO */ case'0'...'9': if(isdigit(s[2]))break;
@@ -261,8 +251,8 @@ char* opt(char* p) { char *s= p; while(s&&s[0]&&s[1]&&s[2]){switch(s[0]){
     #@ - obj: get prop value (N O - V)
     #! - obj: add value,name (V N O -)
     #^ - obj: new (- O)
-    (obj 1 2)foo - call obj.foo(1, 2)
-      obj becomes $o
+    (obj 11 22)foo - call obj.foo(11, 22)
+      obj becomes $0 $1==1 $2==2 use ^=ret
   ( #.bar - get o.bar property (- x) )
   ( #=bar - set o.bar property (x -) )
 
