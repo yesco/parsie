@@ -78,24 +78,10 @@ Z'#': switch(*p++){ Z'a'...'z':case'A'...'Z':case'_':p--;U=atom(parsename(&p));
   Z'@': S--;*S=get(S[1],*S); Z'!': S-=3;set(S[3],S[2],S[1]);
   Z'?': *S=typ(*S); Z'^': U=obj(); goto next; default: goto error;
 }
-
-// stackframe: ... (@)prev 1 2 3 @ this) F
-// stackframe: ... (@)prev obj 1 2 3 @) obj #method #@ x
-  Z'(': { x= S-K; int z= S[1]=A-S; S++; D* s= S; p=alf(p, A, n, 1); U= x; // ')' will return
-  // *s== prev frame
-  D o= s[1];
-  char* nm= parsename(&p);
-  DEBUG(P("\n\tNAME=>%s<\n", nm));
-  D nom= atom(nm);
-  D m= get(o, nom);
-  DEBUG(P("\n\tCALL: o="); dprint(o); P(" nom="); dprint(nom); P(" m="); dprint(m); pc('\n'););
-  D prev= *S;
-  //alf(dchars(m), s+1, S-s, 0);
-  // TODO: hmmm...
-  alf(F[*dchars(m)-'A'], s+1, S-s, 0);
-  //P("\n\tRETURN: "); dprint(*S); pc('\n');
-  *s= *S;
-  S=s;
+Z'(': { x= S-K; int z= S[1]=A-S; S++; D* s= S; p=alf(p, A, n, 1); U= x; // ')' will return
+ D nom= atom(parsename(&p)), m= get(s[1], nom);
+  DEBUG(P("\n\tCALL: o="); dprint(s[1]); P(" nom="); dprint(nom); P(" m="); dprint(m); pc('\n'););
+  e=dchars(m); alf(e?dchars(m):F[L m-'A'], s+1, S-s, 0); *s= *S; S=s;
  }
 
 
