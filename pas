@@ -1,4 +1,4 @@
-./parse pas.bnf -e "*P" fib.pas
+./parse pas.bnf -e "*P" $* fib.pas
 
 
 

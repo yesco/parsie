@@ -134,6 +134,9 @@ Z'$': x=1;switch(c=*p++){ Z'.': prstack(); case'n': pc('\n');
 //
 // Removes extra spaces-fib 19-27% faster!
 // 
+// TODO: doesn't rem spc in >c"fooo" 35<
+// TODO: `1@ == $1
+// TODO: #foo => base 128 number
 char* opt(char* p) { char *s= p; while(s&&s[0]&&s[1]&&s[2]){switch(s[0]){
     case'"': while(*s && *++s!='"'){}break;  case '#': case ')': s++; parsename(&s);break;
   case'`': break; /* TODO */ case'0'...'9': if(isdigit(s[2]))break;
