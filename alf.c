@@ -23,11 +23,20 @@ int debug= 0; // DEBUG
 //  DLIM .. +=DSZ= D heap // TODO:
 //   ...
 //  MLIM ..      = is general M char heap
-void* m(double d, int args, int n) { long x=L d; if (isnan(d)) return dchars(d);
+void* m2(double d, D* A, int n) { long x=L d; if (isnan(d)) return dchars(d);
   //DEBUG(P(" TYP=%x\n", TYP(d)));
   // TODO: TOBJ,TCONS,TENV
-  return x<0?K+args+n+x+1:(x>MLIM?M+x-MLIM:x<VMAX?(void*)(K+SMAX+x):0);
+  return x<0?A-x:(x>MLIM?M+x-MLIM:x<VMAX?(void*)(K+SMAX+x):0);
 }
+
+void prstack(); // FORWARD
+
+void* m(double d, D* A, int n) { // DEBUG
+  void* r= m2(d, A, n); // DEBUG
+  //  pc('\n');prstack();pc('\n');
+  //printf("  [m: %.7g diff=%ld *S=%.7g, *m=%.7g S=%ld A=%ld] ", d, ((D*)r)-K, *S, *(D*)r, S-K, A-K);
+  return r; // DEBUG
+} // DEBUG
 
 // Parse from P a name
 // (P is pointer to char* and updated)
@@ -50,55 +59,61 @@ void prstack(){P("\t:");for(D* s= K+2; s<=S; s++){dprint(*s);pc(' ');}} // DEBUG
 //
 // Returns next position to parse from
 //   NULL if done/fail (loop/if)
-char* alf(char*p,int args,int n,int iff) {long x;char*e=NULL,*d;if(!p)return 0;
+char* alf(char*p, D* A,int n,int iff) {long x,c;char*e=NULL,*d;if(!p)return 0;
+  //printf("\nALF: S=%p A=%p %ld\n", S, A, S-A);
 DEBUG(P("\n===ALF >>>%s<<<\n", p))
 next: DEBUG(prstack();pc('\n');P("\t  '%c'\n",*p))
-x=0;switch(*p++){ case 0:case';':case')':return p; Z' ':Z'\n':Z'\t':Z'\r':
+x=0;switch(*p++){ case 0:case';':case')':case']':return p; Z' ':Z'\n':Z'\t':Z'\r':
 Z'd': S[1]= *S; S++; Z'\\': S--; // TODO: more?
 Z'o': S[1]= S[-1]; S++; Z's': {D d=*S; *S= S[-1]; S[-1]= d;}
 Z'0'...'9':{D v=0;p--;while(isdigit(*p))v=v*10+*p++-'0';U=v;}
-Z'A'...'Z': alf(F[p[-1]-'A'],S-K,0,0);
-Z'x':{D d=POP;if(TYP(d)==TSTR)alf(dchars(d),0,0,0);else{char x[]={d,0};alf(x,0,0,0);}}
+Z'A'...'Z': alf(F[p[-1]-'A'],S,0,0);
+Z'x':{D d=POP;if(TYP(d)==TSTR)alf(dchars(d),A,n,0);else{char x[]={d,0};alf(x,A,n,0);}}
 #define OP(op,e) Z #op[0]: S--;*S=*S op##e S[1];
 OP(+,);OP(-,);OP(*,);OP(/,);OP(<,);OP(>,);OP(=,=);OP(|,|);OP(&,&);
 Z'%': S--; *S=L *S % L S[1]; Z'z': *S= !*S; Z'n': *S= -L *S;
 Z'h': U=H-M; Z'm':x=*S;*S=H-M;H+=x; Z'a':H+=L POP;
 Z'g': case ',': align(); if (p[-1]=='g') goto next; memcpy(H,&POP,SL); H+=SL;
-Z'@': *S= *(D*)m(*S,args,n); Z'!': *(D*)m(*S,args,n)= S[-1]; S-=2;
+Z'@': *S= *(D*)m(*S,A,n); Z'!': *(D*)m(*S,A,n)= S[-1]; S-=2;
 Z'c': switch(*p++){ Z'r': pc('\n');Z'c': *S=dlen(*S);
   Z'"':case'\'':x=p[-1];e=p;while(*p&&*p!=x)p++;U=newstr(e,p++-e); }
 Z'.': dprint(POP);pc(' '); Z'e':pc(POP); Z'p': dprint(POP);
 Z't': P("%*s.",(int)*S,M+L S[-1]);S-=2;
   Z'\'': U= *p++; Z'"': while(*p&&*p!='"')pc(*p++); p++;
 Z':': e=strchr(p,';'); if(e) F[*p-'A']=strndup(p+1,e-p),p=e+1;
-Z'^': K[++args]= *S; S=K+args; return p-1;
+Z'^': A[1]= *S; S=A+1; return p-1;
 Z'#': switch(*p++){ Z'a'...'z':case'A'...'Z':case'_':p--;U=atom(parsename(&p));
-  Z'<': S--;set(*S,dlen(*S),S[1]); Z':': S-=2;set(*S,S[1],S[2]);
+  Z',': S--;set(*S,dlen(*S),S[1]); Z':': S-=2;set(*S,S[1],S[2]);
   Z'@': S--;*S=get(S[1],*S); Z'!': S-=3;set(S[3],S[2],S[1]);
   Z'?': *S=typ(*S); Z'^': U=obj(); goto next; default: goto error;
 }
 
 // stackframe: ... (@)prev 1 2 3 @ this) F
 // stackframe: ... (@)prev obj 1 2 3 @) obj #method #@ x
-  Z'(': { x= S-K; U=args; D* s= S; p= alf(p, args, n, 1); U= x; // ')' will return
+  Z'(': { x= S-K; int z= S[1]=A-S; S++; D* s= S; p=alf(p, A, n, 1); U= x; // ')' will return
   // *s== prev frame
   D o= s[1];
-  D n= atom(parsename(&p));
-  D m= get(o, n);
-  P("\nCALL: o="); dprint(o); P(" n="); dprint(n); P(" m="); dprint(m); pc('\n');;
+  char* nm= parsename(&p);
+  P("\nNAME=>%s<\n", nm);
+  D nom= atom(nm);
+  D m= get(o, nom);
+  P("\nCALL: o="); dprint(o); P(" nom="); dprint(nom); P(" m="); dprint(m); pc('\n');
   //*s= *S;
   //S= s;
   D prev= *S;
   printf("\nBEFORE>>>>>>>");
-  alf(dchars(m),args,0,0);
+  dprint(S[-2]);
+  printf("<DIFF s S %ld>", S-s);
+  alf(dchars(m),s-3,4,0);
   printf("\n<<<<<<AFTER\n");
   P("\nRETURN: "); dprint(*S); pc('\n');
-  *s= *S;
-  S=s;
+  ///s[1]= *S;
+  //S=s+1;
  }
- 
+
 
 // TODO: force create
+#ifdef NOT
 Z'[': {
   // TODO: same as c"
   e=p; while(*p&&*p!=']')p++;U=newstr(e, p++-e);
@@ -116,19 +131,22 @@ Z'[': {
   }
   
  }
+#endif
  
-Z'}': return iff?p:NULL; Z'{': while(!((e=alf(p, args, n, 0)))){}; p= e;
+Z'}': return iff?p:NULL; Z'{': while(!((e=alf(p, A, n, 0)))){}; p= e;
 Z'?': if (POP) { switch(*p++){ Z'}': return p; Z']': return 0;
-  Z'{': p=alf(p,args,n,1);if(*p=='{')p=skip(p+1); default:p=alf(p,args,n,1);
+  Z'{': p=alf(p,A,n,1);if(*p=='{')p=skip(p+1); default:p=alf(p,A,n,1);
  }} else { // IF==false
-  if (*p=='{') { p=skip(p+1); } if (p) p= alf(p+1, args, n, 1); else return 0; }
+  if (*p=='{') { p=skip(p+1); } if (p) p= alf(p+1, A, n, 1); else return 0; }
 #define LOP(op,e) Z#op[0]: S--; *S=(L S[1]) op##e L *S;
 Z'b': switch(*p++){ LOP(&,);LOP(|,);LOP(^,); Z'~': *S= ~L *S; }
-Z'`': switch(*p++) { Z'#': U=n; Z'0'...'9': U=p[-1]-'0'-n-1;}
-Z'$': x=1;switch(*p++){ Z'.': prstack(); case'n': pc('\n');
-  Z'0'...'9':S++;*S=K[args+p[-1]-'0']; Z'$':n=POP;args-=n; Z'd': x=S-K; U=x; 
-  Z'!': K[args+*p++-'0'-1]=POP; Z's':x=POP;case' ':while(x-->=0)pc(' ');
-  Z'"': e=H;while(*p&&*p!='"')*H++=*p++; *H++=0;if(*p)p++; U=e-M; U=H-e-1;
+Z'`': switch(*p++) { Z'#': U=n; Z'0'...'9': U='0'-p[-1]; }
+Z'$': x=1;switch(c=*p++){ Z'.': prstack(); case'n': pc('\n');
+  // TODO: why 3?
+ Z'0'...'9': U=A[p[-1]-'0'];
+ Z'$': n=POP; A-=n; Z'd': x=S-K; U=x; 
+  Z'!': A[*p++-'0']=POP; Z's':x=POP;case' ':while(x-->=0)pc(' ');
+  Z'"':case'\'':e=H;while(*p&&*p!=c)*H++=*p++;*H++=0;if(*p)p++;U=e-M;U=H-e-1;
  Z'h': P("%lx\n", L POP);goto next; default: p--; /* err */ Z'q': S=1+K;
   Z'D': for(int i=0; i<*S;) { int n= S[-1]; P("\n%04x ", n); // DEBUG
     for(int j=0; j<8; j++) P("%02x%*s", M[n+j], j==3, "");  P("  "); // DEBUG
@@ -234,7 +252,7 @@ char* opt(char* p) { char *s= p; while(s&&s[0]&&s[1]&&s[2]){switch(s[0]){
   <spc> - delimiter
   ! - store (& prefix by c/w/l)
   " - print string
-  # - atom/hash stuff
+  # - atom/obj (hash/dict) stuff
     #abc - make atom (alnum)
 
     #? - type? -> i)nt f)float n)nan N)il A)tom S)tring O)bj C)ons U)ndef
@@ -243,10 +261,15 @@ char* opt(char* p) { char *s= p; while(s&&s[0]&&s[1]&&s[2]){switch(s[0]){
     #@ - obj: get prop value (N O - V)
     #! - obj: add value,name (V N O -)
     #^ - obj: new (- O)
-    (-these work on reverse order args)
+    (obj 1 2)foo - call obj.foo(1, 2)
+      obj becomes $o
+  ( #.bar - get o.bar property (- x) )
+  ( #=bar - set o.bar property (x -) )
+
+    (- builder funcs/reverse order)
     #: - obj: set Value Name (O N V - O)
-    #< - push on array/obj (O V - O)
-  ( #, - alias? )
+    #, - append to array (O V - O)
+  ( #< - push on array/obj )
   ( #> - pop )
   ( #{ - unshift )
   ( #} - shift )
@@ -276,26 +299,36 @@ char* opt(char* p) { char *s= p; while(s&&s[0]&&s[1]&&s[2]){switch(s[0]){
   ( #\ - drop N items )
   ( #^ - exit N '}' ? )
 
-  $ - string functions
-    $1 - $9 - get frame parameter N
-    $!1 - $!9 - set frame parameter N
+  $ - rgs/string functions/aux funs
+    (- function args and return)
+    $$ - set number of args (legacy)
+    $# - number of args
+    $1 - $9 - get frame arg N (see `1)
+    $!1 - $!9 - set frame arg N
+    ( see ^ for return )
+    
    '$ '- print space
     $s - print N spaces
+
     $h - print hex
     $. - print stack (.S normally)
     $d - depth of stack
+
   ( $p - P? )
     $D - dump from address / DEBUG
-  ( $# - format number? tra forth? )
+  ( $F - format number? tra forth? )
     $q - quit/reset stacks
 
+
     $" - counted mem string
-  ( $\ - interpret \n etc - counted? )
+  ( $c - copy )
+  ( $m - move )
+  ( $\" - ... " parse quoted )
+  ( $sC ... C - parse using C as delim )
   ( $( - counted string) )
   ( $[ - another?] )
   ( $l - strlen - see cc ? )
-  ( $c - copy )
-  ( $m - move )
+
   % - mod
   & - and
   ' - char
@@ -457,7 +490,7 @@ if(0){
   // read-eval
   char* ln= NULL; size_t sz= 0;
   while(getline(&ln, &sz, stdin)>=0) {
-    alf(opt(ln), 0, 0, 0);
+    alf(opt(ln), S, 0, 0);
     if (S<=K) { P("\n%%STACK underflow %ld\n", S-K); } // DEBUG
     if (S>=K+SMAX) { P("\n%%STACK overrun\n"); } // DEBUG
     if (!deq(K[SMAX],error)) { P("\n%%STACK corrupted/overrun to cons/var storage\n"); } // DEBUG

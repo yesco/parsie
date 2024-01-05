@@ -16,7 +16,7 @@ cr9e"TODO: remove 4$$, caller can remove!"cr
 :N 3$$cr"args=" `2@d. cr d #sum `1@ #@ + #sum `1@ #! ^;
 cre9"TODO: currently you need to say 2 more than needed"
 :Q 6$$cr"args=" `2@d. cr d #sum `1@ #@ + #sum `1@ #! ^;
-:R 4$$cr"args=" `2@d. cr d #sum `1@ #@ + #sum `1@ #! ^;
+:R 6$$ cr"stack:"$.cr cr"args=" `2@d. cr d #sum `1@ #@ + #sum `1@ #! ^;
 
 64@ #add c"M" #:
 64@ #plus c"N" #:
@@ -63,16 +63,10 @@ cr"------------------------------------"cr
 42 (64@ 100000)plus . 64@. cr
 
 cr"===================================="cr
-42 (64@ 11111 22222 33333 44444)test . 64@. cr
-42 (64@ 11111 22222)test2 . 64@. cr
+42 (64@ 111111 222222 33333 44444)test . 64@. cr
 
-
-
-
-
-
-
-
+cr"%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%"cr
+42 [64@ 111111 22222 33333 444444 55555 666]test2 . 64@. cr
 
 cr
 
