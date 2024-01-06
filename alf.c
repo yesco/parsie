@@ -87,6 +87,7 @@ Z'#': switch(*p++){ Z'a'...'z':case'A'...'Z':case'_':p--;U=atom(parsename(&p));
 Z'(': { x= S-K; int z= S[1]=A-S; S++; D* s= S; p=alf(p, A, n, 1); U= x; // ')' will return
  D nom= atom(parsename(&p)), m= get(s[1], nom);
   DEBUG(P("\n\tCALL: o="); dprint(s[1]); P(" nom="); dprint(nom); P(" m="); dprint(m); pc('\n'););
+  // TODO: error if no function?
   e=dchars(m); alf(e?dchars(m):F[L m-'A'], s+1, S-s, 0); *s= *S; S=s;
  }
 
