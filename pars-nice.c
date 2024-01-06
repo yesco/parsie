@@ -202,8 +202,8 @@ char* parseR(char r, char* s, int n){ int nr=++nv; nv--; newV(nr); char *x;
 // Blank out comments
 // ... // c/c++ comment
 // ^# script comment
-// ... /* comm \n ent */
-// ... (* comm \n ent *)
+// ... /* comm- \n pascal -ent */
+// ... (* comm- \n lisp   -ent *)
 
 // TODO: parametrice/config/input 9 loc
 char* comments(char* os) { int c= 0; char *e= 0, *s= os; if (!s) return os;
