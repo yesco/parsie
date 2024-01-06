@@ -1,6 +1,6 @@
 #include <math.h>
 
-const long SMAX=1024L,VMAX=1024*1024L,MLIM=1E9L,KSZ=SMAX+VMAX;
+const long SMAX=16*1024L,VMAX=1024*1024L,CMAX=VMAX*3,MLIM=1E9L,KSZ=SMAX+VMAX+CMAX;
 
 // -- Memory
 // We use 3 different memory regiops:
@@ -53,6 +53,6 @@ extern char* dchars(double); // FORWARD
 //   ...
 //  MLIM ..      = is general M char heap
 void* m(double d, double* A, int n) {long x=L d;if(isnan(d))return dchars(d);
-  return x<0?A-x-1:(x>MLIM?M+x-MLIM:x<VMAX?(void*)(K+SMAX+x):0); }
+  return x<0?A-x-1:(x>MLIM?M+x-MLIM:x<KSZ-SMAX?(void*)(K+SMAX+x):0); }
 
 void initmem(size_t sz) { S=1+(K=calloc(KSZ, SL)); C=K+SMAX+2; H=1024+(M=calloc(mmax= sz, 1)); }
