@@ -47,6 +47,9 @@ void prstack(){P("\t:");for(D* s= K+2; s<=S; s++){dprint(*s);pc(' ');}} // DEBUG
 
 #define Z goto next; case
 
+// total tokens processed
+long nn=0;
+
 // run ALF code Program with ARGS
 // starting that stack position with
 // N items, IFF=1 if running ?{}{}
@@ -57,7 +60,7 @@ char* alf(char*p, D* A,int n,int iff) {long x,c;char*e=NULL,*d;if(!p)return 0;
   //printf("\nALF: S=%p A=%p %ld\n", S, A, S-A);
 DEBUG(P("\n===ALF >>>%s<<<\n", p))
 next: DEBUG(prstack();pc('\n');P("\t  '%c'\n",*p))
-x=0;switch(*p++){ case 0:case';':case')':case']':return p; Z' ':Z'\n':Z'\t':Z'\r':
+x=0;nn++;switch(*p++){case 0:case';':case')':case']':return p;Z' ':Z'\n':Z'\t':Z'\r':
 Z'd': S[1]= *S; S++; Z'\\': S--; // TODO: more?
 Z'o': S[1]= S[-1]; S++; Z's': {D d=*S; *S= S[-1]; S[-1]= d;}
 Z'0'...'9':{D v=0;p--;while(isdigit(*p))v=v*10+*p++-'0';U=v;}
@@ -494,6 +497,7 @@ if(0){
   char* ln= NULL; size_t sz= 0;
   while(getline(&ln, &sz, stdin)>=0) {
     alf(opt(ln), S, 0, 0);
+    printf("%% %ld ops\n", nn); nn=0;
     if (S<=K) { P("\n%%STACK underflow %ld\n", S-K); } // DEBUG
     if (S>=K+SMAX) { P("\n%%STACK overrun\n"); } // DEBUG
     if (!deq(K[SMAX],error)) { P("\n%%STACK corrupted/overrun to cons/var storage\n"); } // DEBUG
