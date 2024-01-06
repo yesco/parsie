@@ -1,4 +1,5 @@
-p=$(./wcode pars-nice.c)
+p=$(./wcode parse.c)
+d=$(./wcode driver.c)
 m=$(./wcode mem.c)
 t=$(./wcode nantypes.c)
 v=$(./wcode svar.c)
@@ -9,9 +10,9 @@ a=$(./wcode alf.c)
 js=$(grep '^.=' js.bnf | wc -l)
 pas=$(grep '^.=' pas.bnf | wc -l)
 
-tot=$(echo "$p+$m+$t+$v+$o+$a"|bc -l)
+tot=$(echo "$p+$d+$m+$t+$v+$o+$a"|bc -l)
 
-printf "PARSE:\t$p\nMEM:\t$m\nTYPE:\t$t\nVAR:\t$v\nOBJ:\t$o\nALF:\t$a\n=============\nTOTAL:\t$tot\n"
+printf "PARSE:\t$p\nDRIVER:\t$d\nMEM:\t$m\nTYPE:\t$t\nVAR:\t$v\nOBJ:\t$o\nALF:\t$a\n=============\nTOTAL:\t$tot\n"
 printf "STMTS:\t`./wc-statements`\n"
 printf "ALF#F:\t`clang -E alf.c | sed 's/case/\ncase/g' | grep -in '^case' | wc -l`\n"
 printf "full#F:\t`clang -E alf-full.c | sed 's/case/\ncase/g' | grep -in '^case' | wc -l`\n"

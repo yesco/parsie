@@ -1,0 +1,8 @@
+echo "PARSE: lines `./wcode parse.c`"
+echo "ALF:   lines `./wcode alf.c`"; echo
+
+# debug
+#gcc -g driver.c && ((echo "run $*" ; cat - )| time -p gdb ./a.out)
+
+# normal
+gcc -Ofast driver.c && time -p ./a.out $*

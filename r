@@ -6,7 +6,10 @@
 fil=$1
 bnf=${1/*./}.bnf
 #echo "BNF $bnf"
-./parse $bnf -e "*P" $fil
+echo "./puc $bnf -e '*P' $*"
+./puc $bnf -e "*P" $*
+
+
 
 
 

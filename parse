@@ -1,4 +1,0 @@
-echo "PARSE: lines `./wcode parse.c`"
-# debug
-#gcc -g pars-nice.c && ((echo "run $*" ; cat - )| time -p gdb ./a.out)
-gcc -Ofast pars-nice.c && time -p ./a.out $*

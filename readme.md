@@ -2,6 +2,12 @@
 
 A Minimalist Parser and Compiler/code Generator with built-in VM Interpeter.
 
+## How to use
+
+    ./r 
+    ./repl js
+    ./puc
+
 ## Parser
 
 The Parser uses a simple BNF-described grammar. It employes a recursive descent BNF-interpreter. Each rule use a single Capital character as it's name. If you want to match a capital it needs to be backquoted
