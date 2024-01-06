@@ -54,7 +54,7 @@ while(*r && *++r!=end && *r) { switch(*r){
   case'$': r++;
     if (*r=='#') { char e[]={ ln+'0', 0 }; *g=sncat(*g,e,-1); break; }
     else if (*r==':') { char s[10]= {0}; r++; v= V[*r-'0'+nr+1]; n= findvar(v);
-      //if (!n) {	printf("GEN: name='%s' is undefined\n", v); exit(1); }
+      if (!n) {	printf("\nReferenceError: %s is not defined\n", v); return 0; } //exit(1); } // TODOL: longjmp(err);
       if (n>0) sprintf(s, "%d", n); else sprintf(s, "`%d", ln+n+1);
       *g=sncat(*g,s,-1); break;
     } else if(isdigit(*r)){ v=V[*r-'0'+nr+1]; l=-1; } else if (isalpha(*r)) {
@@ -84,14 +84,16 @@ while(*r && *++r!=end && *r) { switch(*r){
 ///  NULL=fail
 //   rest of string (unparsed)
 
-char* parse(char* r,char* s,int n, int nr){char *p=0, *os=s, *t, *m;
+char *toparse=0, *prog=0;
+
+char* parse(char* r,char* s,int n, int nr,char cur){char *p=0, *os=s, *t, *m;
   int on=n, onr=nv, x, oln=ln;
   // TODO: need to undo actions of
   // :E ::var :=var :X ...
   // copy of global/vars ???
   DEBUG(if (debug>2) printf("    parse '%s' '%s' %d\n", r, s, n));
   // TODO: move while below next?
-  while(n-- && r && s) {next: while(isspace(*r))r++;if(*r)while(isspace(*s))s++;
+  while(n-- && r && s) {while(isspace(*r))r++;if(*r)while(isspace(*s))s++;
 DEBUG(if (debug>3)printf("     next '%s' (%d)\n\t   of '%s' left=%d\n",r,*r,s,n));
 switch(*r){case 0: case '|': return s; //Z' ':Z'\n':Z'\r':Z'\t':
 Z'(': Z'{': assert(!"TODO: implement"); // DEBUG
@@ -103,7 +105,7 @@ Z':': switch(x=r[1]) {
   goto next; default: A[nr]= sncat(A[nr], " ", 1); r+= 1+gen(A+nr, r, ' ', nr);
 }
   
-Z'?':case'+':case'*':x=*r++;newV(nr);while(s&&*s){p=s;s=parse(R[*r],s,-1,nr);
+Z'?':case'+':case'*':x=*r++;newV(nr);while(s&&*s){p=s;s=parse(R[*r],s,-1,nr, *r);
   if(x=='?'){r++;s=s?s:p;goto next;}if(x=='+'&&!s)goto fail;}  r++;s=s?s:p;
 
 // % qoting/charclass
@@ -121,15 +123,19 @@ newV(nr);r++;  while(*++s&&*s!=*p){if(*s=='\\')s++;
   } while(*++s && m && m-t<2);  s-=!m; r++;
 
 Z'A'...'Z': if ((p=pR(r++, s, -1))) s= p; else goto fail;
-Z'\\': r++; default: if (*s==*r++) s++; /* matched */ else fail: {
+Z'\\': r++; default: if (*s==*r++) {s++; goto next;} else fail: {
   DEBUG(if (debug>2) printf("     FAIL '%s' '%s'\n", r-1, s));
   while(*r&&!eor(r++)){};
   if (r[-1]!='|') return 0; // FAIL
   // OR
+  if (s-os>=0) prog[s-toparse+1]=tolower(cur);
   s=os; n=on; nv=onr;
   DEBUG(if (debug>2) printf("     |OR  '%s' '%s'\n", r-1, s));
   } // fail
 } // switch
+  next:;
+if (s-os>=0) if (prog[s-toparse+1]!='\n')  prog[s-toparse+1]=cur;
+ 
 } // while
   return s;
 }
@@ -196,9 +202,8 @@ Z'\\': r++; default: if (*s==*r++) s++; /* matched */ else fail: {
 //
 //
 
-
 char* parseR(char r, char* s, int n){ int nr=++nv; nv--; newV(nr); char *x;
-  x=parse(R[r],s,n,nr); if(!V[nr])V[nr]=x?strndup(s,x-s):x; nv=nr-1;return x;}
+  x=parse(R[r],s,n,nr,r); if(!V[nr])V[nr]=x?strndup(s,x-s):x; nv=nr-1;return x;}
 
 // Blank out comments
 // ... // c/c++ comment
@@ -208,26 +213,32 @@ char* parseR(char r, char* s, int n){ int nr=++nv; nv--; newV(nr); char *x;
 
 // TODO: parametrice/config/input 9 loc
 char* comments(char* os) { int c= 0; char *e= 0, *s= os; if (!s) return os;
-  while(*s) switch(*s++) {
+  while(*s) { c=0; e=0; switch(*s++) {
     case'\'':case'"': c=s[-1]; while(*s!=c){if(*s=='\\')s++; s++;break;c=0;}
     case'(': if (*s!='*') break;  c=1; e="*)";
     case'/': if(!c){if(*s!='/'){if(*s!='*')break;e="*/";}else e="\n";}  c=1;
     case'\n': if (!c){ if(*s!='#') break; e="\n"; }
       if (!e) break; s--; while(*s&&e&&strncmp(s, e, strlen(e))) *s++= ' '; c=0;
       for(int i=0;i<strlen(e);i++){if(*s&&!isspace(*s))*s++=' ';else s++;} e=0;
-  }
+    } }
   return os;
 }
 
 void alfie(char* a) { if (!a) return;
   DEBUG(if (debug>1) printf("\t(alf: %s)\n", a));
+  D* s= S;
   alf(opt(a), 0, 0, 0);
+  if (s!=S) { P("\nResult: "); for(s++;s<=S;s++) dprint(*s); pc('\n'); }
   DEBUG(printf("\n\tstack "); prstack(); pc('\n'););
 }
 
-char* test(char r, char* s){ nv=0; char* e=parseR(r,s,-1); if(!e||*e)printf(
-    "\n\t%%%s %c->'%s'",e?(*e?"UNPARSED":"OK!"):"FAIL",r,e);
-  int d=debug--;if(debug<0)debug=0;alfie(V[nv+1]);pc('\n');debug=d; return e;}
+char* test(char r, char* s) { nv=0;
+  prog= calloc(strlen(toparse=s)+5,1);
+  strcat(prog+1, s); *prog=' ';
+  char*e=parseR(r,s,-1);
+  if(!e||*e)printf("\n\t%%%s %c->'%s'",e?(*e?"UNPARSED":"OK!"):"FAIL",r,e);
+  int d=debug--;if(debug<0)debug=0;alfie(V[nv+1]);pc('\n');debug=d;
+  printf("\n>>> %s\n>>>%s\n", s, prog); return e;}
 
 char rule=0,last=0; int dlm= '\n';
 
@@ -239,7 +250,7 @@ void oneline(char* ln, int n) { if (!ln) return;
   // maybe rule cannot end with \n???
   if (ln[n-1]=='\n') ln[n-1]= 0;
   DEBUG(printf("%c> %s\n", rule?rule:'?',ln));
-  if (*ln && ln[1]=='=') {R[last=ln[0]]=strdup(ln+2); return;}
+  if (isupper(*ln) && ln[1]=='=') {R[last=ln[0]]=strdup(ln+2); return;}
   switch(*ln){
   case 0:case'#':case'\n':case'\r':return;
   case '@': alfie(ln+1); return;

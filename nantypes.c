@@ -135,7 +135,7 @@ int dcmp(D a, D b) { unsigned long c,d,e=1; switch (!!isnan(a)*10+!!isnan(b)) {
 
 int pobj(D); // FORWARD
 
-int dprint(D f){char*s=dchars(f);int l=pobj(f);return l?l:s?printf("%s",s):printf("%.7g",f);}
+int dprint(D f){char*s=dchars(f);int l=pobj(f);return l?l:s?printf("%s",s):printf("%.10g",f);}
 
 // Concatenate D + S as new str
 // from Index in S take N chars.

@@ -2,7 +2,7 @@ var o= {sum: 0};
 
 o.add= function F(a,b) {
     var r= a+b;
-    this.sum += a+b;
+    this.sum += r;
     return r;
 }
 
