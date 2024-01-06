@@ -1,5 +1,6 @@
 var x=12345678901234567890;
 function F(n) {
+    // var y=3; // TODO:segfaults!
     //x=x+1; // 10.5s instead of 6.83
     if (n==0) return 0;
     else if (n==1) return 1;
