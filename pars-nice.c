@@ -75,11 +75,12 @@ while(*r && *++r!=end && *r) { switch(*r){
 
 
 
-// For debugging purpose
+// Error diagnostics:
 //   prog(ress): for each char pos:
 //     A..Z = last succesful rule
 //     a..z = failed rule (look last pos)
-char *toparse=0, *prog=0;
+// TODO: expected
+char *toparse=0, *prog=0, xr=0, *xp=0, *xs=0;
 
 // Parse a Rule for String using max N matches starting at results at NR
 //   n==-1 infinity
@@ -124,10 +125,11 @@ newV(nr);r++;  while(*++s&&*s!=*p){if(*s=='\\')s++;
 Z'A'...'Z': if ((p=pR(r++, s, -1))) s= p; else goto fail;
 // --- match (and \quoted) char
 Z'\\': r++; default: if (*s==*r++) {s++; goto next;} else fail: {
+  if(s>=xs){xr=cur;xp=r-1;xs=s;}//printf("\nEXPECT s='%.10s'\nr='%.10s'\n", s, r);}
   DEBUG(if (debug>2) printf("     FAIL '%s' '%s'\n", r-1, s));
   while(*r&&!eor(r++)){}; if (r[-1]!='|') return 0; // FAIL
   // OR
-  if (s-os>=0) prog[s-toparse+1]=tolower(cur);  s=os; n=on; nv=onr;
+  if(s-os>=0)prog[s-toparse+1]=tolower(cur); s=os;n=on;nv=onr;
   DEBUG(if (debug>2) printf("     |OR  '%s' '%s'\n", r-1, s));
   } // fail
 } // switch
@@ -225,9 +227,12 @@ void alfie(char* a) { if (!a) return;
   DEBUG(printf("\n\tstack "); prstack(); pc('\n'););
 }
 
-char* test(char r, char* s) { nv=0;prog=calloc(strlen(toparse=s)+5,1);
+char* test(char r, char* s) { xp=xs=0;nv=xr=0;prog=calloc(strlen(toparse=s)+5,1);
   strcat(prog+1,s);*prog=' ';char*e=parseR(r,s,-1);P("\n>>%s\n>%s\n\n",s,prog);
-  if(!e||*e)P("\n\t%%%s %c->'%s'",e?(*e?"UNPARSED":"OK!"):"FAIL",r,e);
+  printf("\n%%ERROR: rule %c EXPECTED \"%.10s ...\" GOT \"%.10s ...\"\n", xr, xp, xs);
+  {P("\n---RULE: (expected)\n %c=",xr);char*x=R[xr];int n=1;while(x<=xp)pc((*x=='\n'?n++:0, *x++)); P("<<<WRONG HERE!\n...\n%% LINE: %d\n\n", n);}
+  {P("\n---INPUT:\n");char*x=s;int n=1;while(x<=xs)pc((*x=='\n'?n++:0, *x++)); P("<<<WRONG HERE!\n...\n%% LINE: %d\n\n", n);}
+  if(!e||*e)P("\n\t%% %s %c->'%s'",e?(*e?"UNPARSED":"OK!"):"FAIL",r,e);
   int d=debug--;if(debug<0)debug=0;alfie(V[nv+1]);pc('\n');debug=d;return e;}
 
 char rule=0,last=0; int dlm= '\n';
