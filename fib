@@ -7,6 +7,9 @@ echo "===ALF"
 #clang -Ofast alf.c # same
 clang -O3 alf.c
 
+# TODO: how to pass arg?
+# cat fib.alf | time -p ./a.out
+
 echo "\"fib \"$1.\"=> \":Fdz?{\0}{d1=?{\1}{d1-Fs2-F+}}; $1F.\$n" | time -p ./a.out
 
 # erh, fewer spaces => slower??? WTF
