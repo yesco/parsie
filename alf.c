@@ -57,53 +57,51 @@ long nn=0;
 // Returns next position to parse from
 //   NULL if done/fail (loop/if)
 char* alf(char*p, D* A,int n,int iff) {long x,c;char*e=NULL,*d;if(!p)return 0;
-  //printf("\nALF: S=%p A=%p %ld\n", S, A, S-A);
 DEBUG(P("\n===ALF >>>%s<<<\n", p))
 next: DEBUG(prstack();pc('\n');P("\t  '%c'\n",*p))
 x=0;nn++;switch(*p++){case 0:case';':case')':case']':return p;Z' ':Z'\n':Z'\t':Z'\r':
-Z'd': S[1]= *S; S++; Z'\\': S--; // TODO: more?
-Z'o': S[1]= S[-1]; S++; Z's': {D d=*S; *S= S[-1]; S[-1]= d;}
-Z'0'...'9':{D v=0;p--;while(isdigit(*p))v=v*10+*p++-'0';U=v;}
+// - stack
+Z'd':S[1]=*S;S++;Z'\\':S--;Z'o':S[1]=S[-1];S++;Z's':{D d=*S;*S=S[-1];S[-1]=d;}
+// - numbers / functions call/define
 Z'A'...'Z': alf(F[p[-1]-'A'],S,0,0);
-Z'x':{D d=POP;if(TYP(d)==TSTR)alf(dchars(d),A,n,0);else{char x[]={d,0};alf(x,A,n,0);}}
+Z':': e=strchr(p,';'); if(e) F[*p-'A']=strndup(p+1,e-p),p=e+1;
+Z'x':{D d=POP;char x[]={d,0};alf(TYP(d)==TSTR?dchars(d):x,A,n,0);}
+  // TODO: error if no function?
+////////////////////////////////////////////////////////////////////////////////
+Z'(':{x=S-K;S[1]=A-S;S++;D*s=S;p=alf(p,A,n,1);U=x;D nom=atom(parsename(&p)),
+  m=get(s[1],nom);e=dchars(m);alf(e?dchars(m):F[L m-'A'],s+1,S-s,0);*s=*S;S=s;}
+  //DEBUG(P("\n\tCALL: o="); dprint(s[1]); P(" nom="); dprint(nom); P(" m="); dprint(m); pc('\n'););
+// -- numbers / math
+Z'0'...'9':{D v=0;p--;while(isdigit(*p))v=v*10+*p++-'0';U=v;}
+Z'~': S--;*S=deq(*S,S[1]); Z'%': S--;*S=L*S%L S[1]; Z'z': *S=!*S;Z'n':*S=-L*S;
 #define OP(op,e) Z #op[0]: S--;*S=*S op##e S[1];
 OP(+,);OP(-,);OP(*,);OP(/,);OP(<,);OP(>,);OP(=,=);OP(|,|);OP(&,&);
-Z'~': S--;*S=deq(*S,S[1]); Z'%': S--;*S=L*S%L S[1]; Z'z': *S=!*S;Z'n':*S=-L*S;
+// -- memory
 Z'h': U=H-M; Z'm':x=*S;*S=H-M;H+=x; Z'a':H+=L POP;
 Z'g': case ',': align(); if (p[-1]=='g') goto next; memcpy(H,&POP,SL); H+=SL;
 Z'@': *S= *(D*)m(*S,A,n); Z'!': *(D*)m(*S,A,n)= S[-1]; S-=2;
+// -- cC - char | string
 Z'c': switch(c=*p++){ Z'r':pc('\n'); Z'c':*S=dlen(*S); Z'=':S--;*S=dcmp(*S, S[1]);
   Z'"':case'\'':x=p[-1];e=p;while(*p&&*p!=x)p++;U=newstr(e,p++-e);
   // Z'?':case'1':x=*S;if(isnan(*S)){e=dchars(*S);x=e?*e:0;};if(c=='1'){U=x;break;}
   //*S= isalpha(x)?'a':isdigit(x)?'d':isspace(x)?'s':x=='_'?'_':'o';
 }
+// -- printing
 Z'.': dprint(POP);pc(' '); Z'e':pc(POP); Z'p': dprint(POP);
 Z't': P("%*s.",(int)*S,M+L S[-1]);S-=2;
-  Z'\'': U= *p++; Z'"': while(*p&&*p!='"')pc(*p++); p++;
-Z':': e=strchr(p,';'); if(e) F[*p-'A']=strndup(p+1,e-p),p=e+1;
+Z'\'': U= *p++; Z'"': while(*p&&*p!='"')pc(*p++); p++;
 Z'^': A[1]= *S; S=A+1; return p-1;
+// -- hash/atoms/dict
 Z'#': switch(*p++){ Z'a'...'z':case'A'...'Z':case'_':p--;U=atom(parsename(&p));
   Z',': S--;set(*S,dlen(*S),S[1]); Z':': S-=2;set(*S,S[1],S[2]);
   Z'@': S--;*S=get(S[1],*S); Z'!': S-=3;set(S[3],S[2],S[1]);
-  Z'?': *S=typ(*S); Z'^': U=obj(); goto next; default: goto error;
-}
-Z'(': { x= S-K; int z= S[1]=A-S; S++; D* s= S; p=alf(p, A, n, 1); U= x; // ')' will return
- D nom= atom(parsename(&p)), m= get(s[1], nom);
-  DEBUG(P("\n\tCALL: o="); dprint(s[1]); P(" nom="); dprint(nom); P(" m="); dprint(m); pc('\n'););
-  // TODO: error if no function?
-  e=dchars(m); alf(e?dchars(m):F[L m-'A'], s+1, S-s, 0); *s= *S; S=s;
- }
-
-
+  Z'?': *S=typ(*S); Z'^': U=obj(); goto next; default: goto error; }
 // TODO: force create
 #ifdef NOT
-Z'[': {
-  // TODO: same as c"
-  e=p; while(*p&&*p!=']')p++;U=newstr(e, p++-e);
-  {D f=POP; D c=obj(); Obj* o= PTR(TOBJ, c);
+Z'[': { e=p; while(*p&&*p!=']')p++;U=newstr(e, p++-e);
+  {D f=POP; D c=obj(); Obj* o= PTR(TOBJ, c); D* pars=&(o->np[0].name);
     //o->proto=OCLOS;
     // Can store 12 values/frame!
-    D* pars=&(o->np[0].name);
     // TODO: copy from current frame
     // For each frame UP
     // - coppy to new obj()
@@ -112,7 +110,6 @@ Z'[': {
     // (not using proto)
     // alt: use actual names in closure!
   }
-  
  }
 #endif
  
