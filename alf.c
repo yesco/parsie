@@ -17,18 +17,6 @@ int debug= 0; // DEBUG
 
 #include "obj.c"
 
-// Interpreation of memory ref
-//  -SMAX ..  0  = is stack frame ref
-//  0 .. VMAX-1  = D globals
-//  DLIM .. +=DSZ= D heap // TODO:
-//   ...
-//  MLIM ..      = is general M char heap
-void* m(double d, D* A, int n) { long x=L d; if (isnan(d)) return dchars(d);
-  //DEBUG(P(" TYP=%x\n", TYP(d)));
-  // TODO: TOBJ,TCONS,TENV
-  return x<0?A-x-1:(x>MLIM?M+x-MLIM:x<VMAX?(void*)(K+SMAX+x):0);
-}
-
 // Parse from P a name
 //
 // (P is pointer to char* and updated)
@@ -37,7 +25,7 @@ void* m(double d, D* A, int n) { long x=L d; if (isnan(d)) return dchars(d);
 //
 // Returns a static string (use fast!)
 char* parsename(char** p) { static char s[64], i; i=0; while((isalnum(**p)
-   ||**p=='_') && i<sizeof(s)-1) s[i++]=*(*p)++; s[i]= 0; return s;}
+  ||**p=='_') && i<sizeof(s)-1) s[i++]=*(*p)++; s[i]= 0; return s;}
 
 // skips a { block } returns after
 //   TODO: must skip STRINGs!!! lol
@@ -45,10 +33,10 @@ char* skip(char* p){ int n=1;while(n&&*p)if(*p=='?'&&p[1]!='{')p+=2;else n+=(*p=
 
 void prstack(){P("\t:");for(D* s= K+2; s<=S; s++){dprint(*s);pc(' ');}} // DEBUG
 
-#define Z goto next; case
-
 // total tokens processed
 long nn=0;
+
+#define Z goto next; case
 
 // run ALF code Program with ARGS
 // starting that stack position with
