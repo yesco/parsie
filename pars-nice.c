@@ -13,7 +13,7 @@ int debug= 0; // DEBUG
 //char* parsename(char** p) { static char s[64], i; i=0; while((isalnum(**p) // DEBUG
 //  ||**p=='_') && i<sizeof(s)-1) s[i++]=*(*p)++; s[i]= 0; return s;} // DEBUG
 
-#define alfNOMAIN
+#define alfNOMAIN // DEBUG
 #include "alf.c"
 
 // Results and Attributes
@@ -75,8 +75,6 @@ while(*r && *++r!=end && *r) { switch(*r){
 
 
 
-#define Z goto next; case 
-
 // Parse a Rule for String using max N matches starting at results at NR
 //   n==-1 infinity
 //   n==1 one time (for ? + *)
@@ -95,24 +93,21 @@ char* parse(char* r,char* s,int n, int nr,char cur){char *p=0, *os=s, *t, *m;
   // TODO: move while below next?
   while(n-- && r && s) {while(isspace(*r))r++;if(*r)while(isspace(*s))s++;
 DEBUG(if (debug>3)printf("     next '%s' (%d)\n\t   of '%s' left=%d\n",r,*r,s,n));
-switch(*r){case 0: case '|': return s; //Z' ':Z'\n':Z'\r':Z'\t':
-Z'(': Z'{': assert(!"TODO: implement"); // DEBUG
-Z'[': r+= 1+gen(V+nr, r, ']', nr);
+switch(*r){case 0: case '|': return s;
+#define Z goto next; case 
+Z'[': r+= 1+gen(V+nr, r, ']', nr); Z'(': Z'{': assert(!"TODO: implement");
+// -- actions
 Z':': switch(x=r[1]) {
   Z'E': enterframe(); oln=ln; r+=2; Z'X': exitframe(); ln=oln; r+=2;
   Z':': case'=': { char *name= 0; r+= 1; r+= gen(&name, r, ' ', nr);
    if (x=='=' || !frame) setvar(name); else x=newvar(name); } 
-  goto next; default: A[nr]= sncat(A[nr], " ", 1); r+= 1+gen(A+nr, r, ' ', nr);
-}
-  
+  goto next; default: A[nr]= sncat(A[nr], " ", 1); r+= 1+gen(A+nr, r, ' ', nr); }
 Z'?':case'+':case'*':x=*r++;newV(nr);while(s&&*s){p=s;s=parse(R[*r],s,-1,nr, *r);
   if(x=='?'){r++;s=s?s:p;goto next;}if(x=='+'&&!s)goto fail;}  r++;s=s?s:p;
-
-// % qoting/charclass
+// -- % qoting/charclass
 Z'%':++r;if((p=strchr("\"\"''(){}[]<>",*r=='s'?*s:*r))){ if(*s!=*p)goto fail;
 newV(nr);r++;  while(*++s&&*s!=*p){if(*s=='\\')s++;
   V[nv+nr]=sncat(V[nv+nr],s,1);}  s++;goto next;}
-
   // char class: %a %d %w %i %n %e
   // The T string classify curent
   // char, returning list of classes
@@ -121,26 +116,21 @@ newV(nr);r++;  while(*++s&&*s!=*p){if(*s=='\\')s++;
   p=s; do{ t=isdigit(*s)?"nidw":isalpha(*s)?" nwa":*s=='_'?" nw":*s?0:"  e";
     m= t?strchr(t+(s==p), *r):0; if (!m && s==p) goto fail;
   } while(*++s && m && m-t<2);  s-=!m; r++;
-
+// --- rules recursion
 Z'A'...'Z': if ((p=pR(r++, s, -1))) s= p; else goto fail;
+// --- match (and \quoted) char
 Z'\\': r++; default: if (*s==*r++) {s++; goto next;} else fail: {
   DEBUG(if (debug>2) printf("     FAIL '%s' '%s'\n", r-1, s));
-  while(*r&&!eor(r++)){};
-  if (r[-1]!='|') return 0; // FAIL
+  while(*r&&!eor(r++)){}; if (r[-1]!='|') return 0; // FAIL
   // OR
-  if (s-os>=0) prog[s-toparse+1]=tolower(cur);
-  s=os; n=on; nv=onr;
+  if (s-os>=0) prog[s-toparse+1]=tolower(cur);  s=os; n=on; nv=onr;
   DEBUG(if (debug>2) printf("     |OR  '%s' '%s'\n", r-1, s));
   } // fail
 } // switch
-  next:;
-if (s-os>=0) if (prog[s-toparse+1]!='\n')  prog[s-toparse+1]=cur;
- 
-} // while
+  next:if (s-os>=0) if (prog[s-toparse+1]!='\n')  prog[s-toparse+1]=cur;
+}// while
   return s;
 }
-
-/// capture
 
 // --- rules
 // is a single Capital follows by =
@@ -182,13 +172,13 @@ if (s-os>=0) if (prog[s-toparse+1]!='\n')  prog[s-toparse+1]=cur;
 //   %" = "foo\"bar"
 //   %' = 'c' or 'foo\'bar'
 //     (not handling nesting:???)
+// TOOD: remove!
 //   %( = ( fo( oooo ( \) foo bar)
 //   %[ = [ fo[ oooo [ \] foo bar]
 //   %{ = { fo{ oooo { \} foo bar}
 //   %< = < fo< oooo < \> foo bar>
 //   %s = START fo? START \END foo bar END
 //     handle any style string
-
 
 // --- multiple matches PREFIX!
 //   ?R = optionall match rule R
@@ -226,8 +216,7 @@ char* comments(char* os) { int c= 0; char *e= 0, *s= os; if (!s) return os;
 
 void alfie(char* a) { if (!a) return;
   DEBUG(if (debug>1) printf("\t(alf: %s)\n", a));
-  D* s= S;
-  alf(opt(a), 0, 0, 0);
+  D* s= S; alf(opt(a), 0, 0, 0);
   if (s!=S) { P("\nResult: "); for(s++;s<=S;s++) dprint(*s); pc('\n'); }
   DEBUG(printf("\n\tstack "); prstack(); pc('\n'););
 }

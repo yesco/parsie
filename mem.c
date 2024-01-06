@@ -2,7 +2,7 @@
 
 const long SMAX=16*1024L,VMAX=1024*1024L,CMAX=VMAX*3,MLIM=1E9L,KSZ=SMAX+VMAX+CMAX;
 
-// -- Memory
+// -- Memory Layout
 // We use 3 different memory regiops:
 //
 //   K = D-store
@@ -19,7 +19,7 @@ const long SMAX=16*1024L,VMAX=1024*1024L,CMAX=VMAX*3,MLIM=1E9L,KSZ=SMAX+VMAX+CMA
 //    VMAX .. CMAX     =  conses
 //
 // (as address for ! and @: Moffset+MLIM)
-// See:m() in alf.c
+// See:m() below
 //
 // 
 // M= 0 ..
