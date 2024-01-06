@@ -30,7 +30,10 @@ void* m(double d, D* A, int n) { long x=L d; if (isnan(d)) return dchars(d);
 }
 
 // Parse from P a name
+//
 // (P is pointer to char* and updated)
+//
+// Note: this allows any alnum || _
 //
 // Returns a static string (use fast!)
 char* parsename(char** p) { static char s[64], i; i=0; while((isalnum(**p)
@@ -62,12 +65,15 @@ Z'A'...'Z': alf(F[p[-1]-'A'],S,0,0);
 Z'x':{D d=POP;if(TYP(d)==TSTR)alf(dchars(d),A,n,0);else{char x[]={d,0};alf(x,A,n,0);}}
 #define OP(op,e) Z #op[0]: S--;*S=*S op##e S[1];
 OP(+,);OP(-,);OP(*,);OP(/,);OP(<,);OP(>,);OP(=,=);OP(|,|);OP(&,&);
-Z'%': S--; *S=L *S % L S[1]; Z'z': *S= !*S; Z'n': *S= -L *S;
+Z'~': S--;*S=deq(*S,S[1]); Z'%': S--;*S=L*S%L S[1]; Z'z': *S=!*S;Z'n':*S=-L*S;
 Z'h': U=H-M; Z'm':x=*S;*S=H-M;H+=x; Z'a':H+=L POP;
 Z'g': case ',': align(); if (p[-1]=='g') goto next; memcpy(H,&POP,SL); H+=SL;
 Z'@': *S= *(D*)m(*S,A,n); Z'!': *(D*)m(*S,A,n)= S[-1]; S-=2;
-Z'c': switch(*p++){ Z'r': pc('\n');Z'c': *S=dlen(*S);
-  Z'"':case'\'':x=p[-1];e=p;while(*p&&*p!=x)p++;U=newstr(e,p++-e); }
+Z'c': switch(c=*p++){ Z'r':pc('\n'); Z'c':*S=dlen(*S); Z'=':S--;*S=dcmp(*S, S[1]);
+  Z'"':case'\'':x=p[-1];e=p;while(*p&&*p!=x)p++;U=newstr(e,p++-e);
+  // Z'?':case'1':x=*S;if(isnan(*S)){e=dchars(*S);x=e?*e:0;};if(c=='1'){U=x;break;}
+  //*S= isalpha(x)?'a':isdigit(x)?'d':isspace(x)?'s':x=='_'?'_':'o';
+}
 Z'.': dprint(POP);pc(' '); Z'e':pc(POP); Z'p': dprint(POP);
 Z't': P("%*s.",(int)*S,M+L S[-1]);S-=2;
   Z'\'': U= *p++; Z'"': while(*p&&*p!='"')pc(*p++); p++;
@@ -265,7 +271,6 @@ char* opt(char* p) { char *s= p; while(s&&s[0]&&s[1]&&s[2]){switch(s[0]){
     #)
   ( #* - ptr? )
   ( #+ - insert? )
-  ( #, - add N values / array? )
   ( #- - remove? )
   ( #. - print N values? )
   ( #/ - truncate )
@@ -311,8 +316,8 @@ char* opt(char* p) { char *s= p; while(s&&s[0]&&s[1]&&s[2]){switch(s[0]){
   % - mod
   & - and
   ' - char
-  ( 
-  ) 
+  ( - param start for object method call
+  )nm - look up method 'nm' and call
   * - mul
   + - add
   , - ret aligned here, write word
@@ -322,13 +327,14 @@ char* opt(char* p) { char *s= p; while(s&&s[0]&&s[1]&&s[2]){switch(s[0]){
   0123456789 - number
   : - define
   ; - end define
-  < - less than
-  = - equal
-  > - greater than
+  < - number (?) less than
+  = - number equal (?) see ~ for eq!
+  > - number (?) greater than
   ? - if
     ?{ - IF-stmt 1?{then}{else}
     ?] - if true exit {loop} = break
     ?} - if true begin again = cont
+    ??? TODO: label/goto/continue/break? )
   @ - read (& prefix by c/w/l)
 
   ABCDEFGHIJKLMNOPQRSTUVWXYZ - UDF
@@ -342,11 +348,13 @@ char* opt(char* p) { char *s= p; while(s&&s[0]&&s[1]&&s[2]){switch(s[0]){
     `@    - number of args
     ( $1-$9 - see this )
   a - allot (inc here, from arena)
+
   b - bit ops:
     b& - bit & (64 bit)
     b| - bit | (64 bit)
     b^ - bit ^ (64 bit)
     b~ - bit ~ (64 bit)
+
   c - char ops prefix !@
     c" - managed null-terminated string
     cc - count=length of mngd/"ptr"/#atom
@@ -354,18 +362,33 @@ char* opt(char* p) { char *s= p; while(s&&s[0]&&s[1]&&s[2]){switch(s[0]){
     cr - carriage return
   ( ca - append 2 mngd str->mngd )
   ( cm - cmove ? TODO: )
-    c! - 
-    c@ -
-    c, - TODO
+  ( c= - compare strings/all -1 0 +1 )
+
+    ( -- Char type operators - TODO: )
+  ( c! - )
+  ( c@ - )
+  ( c, - )
+
+  ( - code written but 'excluded' - )
+  ( cp = get pointer to string )
+  ( c# - get nth char? (S N - C) )
+  ( c1 - ORD: get first char f str/chr )
+  ( c? - _ a=alhpa d=digit o=other s=spc )
+         ( CHAR c? 'e' < === alphanum||_ )
+  ( cu - toupper char/str )
+  ( cl - tolower char/str )
+    
     ci - c++
     cd - c--
-    c+ - c+=T 
+
+    c+ - c+=T
     c-
     c*
     c/
     c< - c<<=T -- TODO: c{ update skip
     c> - c>>=T -- TODO: c} update skip
 
+  ???
   cons - co cc pc p^
   car  - ca c0 pa p0
   cdr  - cd c1 pd p1
@@ -416,7 +439,7 @@ char* opt(char* p) { char *s= p; while(s&&s[0]&&s[1]&&s[2]){switch(s[0]){
   { - loop begin
   | - or
   } - loop end
-( ~ - ??? label/goto/continue/break? )
+  ~ - identity eq === (bitpattern)
 ( <del> )
 ( 128-255 - optimized atomnames/addr )
 */

@@ -128,7 +128,7 @@ S= \{ V G \} [$1 $2]
  | for(S S S) [--FOR--]
  | N\(A\); [$2$1]
  | E [$1]
- 
+
 # BLOCK grouping of statement
 G= S G [$1 $2] | ; |
 

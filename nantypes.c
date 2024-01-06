@@ -34,8 +34,14 @@ unsigned long d2u(D d) { return *(unsigned long*)(&d); } D u2d(long u) { return 
 const long TNAN=0x7ff8,TATM=0x7ffa,TSTR=0xfffb,TOBJ=0xfffc,TCONS=0xfffe,TENV=0xfffd;
 //,TCONS=0xfffe,TCLOS=0xffff;
 
+// TODO? unify with svar + K + M ???
+
 #define HPSIZE 16*1024
 char hp[HPSIZE]= {0}; int nilo=0; D nil, undef, error, proto;
+
+// TODO: global storage idea
+// - treat:SMAX..VMAX
+
 
 // Add a String to HP limited by SIZE
 //
@@ -46,11 +52,14 @@ char hp[HPSIZE]= {0}; int nilo=0; D nil, undef, error, proto;
 // Returns offset to LEN of string
 // followed by a cstring at offset 1.
 //
+// Extra + (n<<32) atom number
+//
 //   HP=[len=3, "foo", 8b data]...
 //   len=0 means end of list
 //   note: assumes zeroed HeaP
-int nameadd(char* s) { char* p=hp;int l=strlen(s);  while(*p){if(!strcmp(s,p+1))
-  return p-hp;p+=1+strlen(p+1)+1+sizeof(D);} *p=l; return strcpy(p+1, s)-hp-1;
+int nameadd(char* s) {char*p=hp;int l=strlen(s),n=0;while(*p){if(!strcmp(s,p+1))
+  return p-hp; p+=1+strlen(p+1)+1+sizeof(D);n++;}
+  *p=l; return strcpy(p+1,s)-hp-1+((L n)<<32);
   //assert(p+l+2-hp < HPSIZE);
 }
 
@@ -65,7 +74,6 @@ void inittypes() {nil=atom("nil");undef=atom("undef");proto=atom("__proto__");
   assert(DAT(nil)==nilo);
 }
 
-// eq???
 int deq(D a, D b) { return d2u(a)==d2u(b); }
 
 char typ(D d) { int t= TYP(d); return !isnan(d)?(d==L d?'i':'f'):deq(t,nil)?
@@ -79,6 +87,7 @@ char typ(D d) { int t= TYP(d); return !isnan(d)?(d==L d?'i':'f'):deq(t,nil)?
 #define AVPTR(d) (TYP(d)!=2?NULL:(D*)&hp[DAT(d)+hp[DAT(d)]+2])
 
 // Get M pointer from offset TYP
+// TODO: use m() ???
 void* PTR(int t, D o) { return TYP(o)==t?M+DAT(o):0;}
 
 // how many strings can we handle?
@@ -111,8 +120,18 @@ D newstr(char* s,int n){ ss[sn]=sncat(0,s?s:"",n); return u2d(BOX(TSTR,sn++)); }
 char* dchars(D d) { int t=TYP(d), x=DAT(d);
   return t==TATM? x+hp+1: t==TSTR? (char*)ss[x]: 0;}
 
-// TODO: move part to olen?
+// TODO: length of $" char* ?
 int dlen(D f) { char* r= dchars(f); return r?strlen(r):TYP(f)==TOBJ?((D*)PTR(TOBJ,f))[3]:0;}
+
+// compare anything
+// - if both numbers        => <=>
+// - if both strings/atoms  => strcmp
+// - num,nan < obj          => -1 (+1) 
+// - nan and number
+int dcmp(D a, D b) { unsigned long c,d,e=1; switch (!!isnan(a)*10+!!isnan(b)) {
+ case 00:return(a>b)-(a<b);case 01:e=-e;case 10:return DAT(e>0?a:b)?+256:-256;}
+  c=d2u(a),d=d2u(b);if (c==d) return 0;  char *g=dchars(a), *h=dchars(b);
+  if (g&&h) return strcmp(g, h); return (d<c)-(c<d); }
 
 int pobj(D); // FORWARD
 
