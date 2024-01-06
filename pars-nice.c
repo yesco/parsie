@@ -75,14 +75,18 @@ while(*r && *++r!=end && *r) { switch(*r){
 
 
 
+// For debugging purpose
+//   prog(ress): for each char pos:
+//     A..Z = last succesful rule
+//     a..z = failed rule (look last pos)
+char *toparse=0, *prog=0;
+
 // Parse a Rule for String using max N matches starting at results at NR
 //   n==-1 infinity
 //   n==1 one time (for ? + *)
 // Returns:
 ///  NULL=fail
 //   rest of string (unparsed)
-
-char *toparse=0, *prog=0;
 
 char* parse(char* r,char* s,int n, int nr,char cur){char *p=0, *os=s, *t, *m;
   int on=n, onr=nv, x, oln=ln;
@@ -222,7 +226,7 @@ void alfie(char* a) { if (!a) return;
 }
 
 char* test(char r, char* s) { nv=0;prog=calloc(strlen(toparse=s)+5,1);
-  strcat(prog+1,s);*prog=' ';char*e=parseR(r,s,-1);P("\n>>>%s\n>>%s\n",s,prog);
+  strcat(prog+1,s);*prog=' ';char*e=parseR(r,s,-1);P("\n>>%s\n>%s\n\n",s,prog);
   if(!e||*e)P("\n\t%%%s %c->'%s'",e?(*e?"UNPARSED":"OK!"):"FAIL",r,e);
   int d=debug--;if(debug<0)debug=0;alfie(V[nv+1]);pc('\n');debug=d;return e;}
 
