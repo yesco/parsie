@@ -1,5 +1,35 @@
 //80----------------------------------------------------------------------------
-// NAN boxing and unboxing of data
+// NAN-boxing and unboxing of data
+//
+// We're using the NAN values to encode
+// data, type info + offsets into storage.
+//
+// Data values knows their types:
+// - douible
+// - TATM - atoms (symbols/globals)
+// - TSTR - managed immutable strings
+// - TOBJ - JS prototypical objects
+// - TFUN ? - TODO: closuresfunctions
+
+// === ATOMS:
+// Atoms have constant time:
+// - printing name
+// - getting global var offset
+// 
+// An atom encodes [TATM, n, hp-offset]
+// - n is the linear number of atom
+//   (nil=0, undef-1 ...)
+// - the name is stored in hp heap
+
+// === STRINGS
+// (see str.c)
+
+// === OBJECTS:
+// (see obj.c)
+
+// === FUNCTIONS: (clsoures)
+// (see ...)
+
 #include <stdio.h>
 #include <math.h>
 #include <stdlib.h>
@@ -42,7 +72,6 @@ char hp[HPSIZE]= {0}; int nilo=0; D nil, undef, error, proto;
 // TODO: global storage idea
 // - treat:SMAX..VMAX
 
-
 // Add a String to HP limited by SIZE
 //
 // Searches String in HeaP of SIZE
@@ -69,8 +98,6 @@ void prnames() { char* p= hp; printf("\n"); while(*p) { D* d= (D*)(p+1+strlen(p+
 
 // Return a data atom from String
 // empty string returns nil
-extern int dprint(D); // FORWARD
-
 D atom(char* s) {if(!*s)return nil;long n=nameadd(s);D a=u2d(BOX(TATM,n<0?-n:n));
   // TODO: nil not set? lol
   if (n<=0) { n=0-n; *C++= a; *C++= (n>>32<3)?a:undef; } return a; }
