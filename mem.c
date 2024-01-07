@@ -12,7 +12,7 @@ const long SMAX=16*1024L,VMAX=1024*1024L,CMAX=VMAX*3,MLIM=1E9L,KSZ=SMAX+VMAX+CMA
 // K - array of D values
 //     (stack+play+globals)
 // S - the current stack pointer *S=TOP
-// C - current C
+// C - Current "here"
 //
 // K= 0 .. SMAX-1      =  stack
 //    SMAX+2 .. VMAX   =  globals
@@ -31,6 +31,7 @@ const long SMAX=16*1024L,VMAX=1024*1024L,CMAX=VMAX*3,MLIM=1E9L,KSZ=SMAX+VMAX+CMA
 // Safety:
 //   K[0] = error; // detect underrun
 //   K[SMAX] = error; // detect overrun
+//
 double *K,*S,*C; long mmax=0; char *M=0, *H=0, *F['Z'-'A'+1]={0};
 
 #define POP *S--
@@ -55,4 +56,4 @@ extern char* dchars(double); // FORWARD
 void* m(double d, double* A, int n) {long x=L d;if(isnan(d))return dchars(d);
   return x<0?A-x-1:(x>MLIM?M+x-MLIM:x<KSZ-SMAX?(void*)(K+SMAX+x):0); }
 
-void initmem(size_t sz) { S=1+(K=calloc(KSZ, SL)); C=K+SMAX+2; H=1024+(M=calloc(mmax= sz, 1)); }
+void initmem(size_t sz) { S=1+(K=calloc(KSZ, SL)); C=K+SMAX; H=1024+(M=calloc(mmax= sz, 1)); }

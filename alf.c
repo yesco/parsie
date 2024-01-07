@@ -54,8 +54,20 @@ Z'd':S[1]=*S;S++;Z'\\':S--;Z'o':S[1]=S[-1];S++;Z's':{D d=*S;*S=S[-1];S[-1]=d;}
 Z'A'...'Z': alf(F[p[-1]-'A'],S,0,0);
 Z':': e=strchr(p,';'); if(e) F[*p-'A']=strndup(p+1,e-p),p=e+1;
 Z'x':{D d=POP;char x[]={d,0};alf(TYP(d)==TSTR?dchars(d):x,A,n,0);}
-  // TODO: error if no function?
-////////////////////////////////////////////////////////////////////////////////
+Z'[': { e=p; while(*p&&*p!=']')p++;U=newstr(e, p++-e);
+  {D f=POP; D c=obj(); Obj* o= PTR(TOBJ, c); D* pars=&(o->np[0].name);
+    //o->proto=OCLOS;
+    // Can store 12 values/frame!
+    // TODO: copy from current frame
+    // For each frame UP
+    // - coppy to new obj()
+    // - change frameptr stack values
+    // - chain up each frame as next
+    // (not using proto)
+    // alt: use actual names in closure!
+  }
+ }
+// TODO: error if no method?
 Z'(':{x=S-K;S[1]=A-S;S++;D*s=S;p=alf(p,A,n,1);D n=atom(parsename(&p));
   e=dchars(deq(n,nil)?POP:get(s[1],n)); U=x; alf(e,s+1,S-s,0); *s=*S;S=s;}
   //DEBUG(P("\n\tCALL: o="); dprint(s[1]); P(" nom="); dprint(nom); P(" m="); dprint(m); pc('\n'););
@@ -84,45 +96,52 @@ Z'#': switch(*p++){ Z'a'...'z':case'A'...'Z':case'_':p--;U=atom(parsename(&p));
   Z',': S--;set(*S,dlen(*S),S[1]); Z':': S-=2;set(*S,S[1],S[2]);
   Z'@': S--;*S=get(S[1],*S); Z'!': S-=3;set(S[3],S[2],S[1]);
   Z'?': *S=typ(*S); Z'^': U=obj(); goto next; default: goto error; }
-// TODO: force create
-#ifdef NOT
-Z'[': { e=p; while(*p&&*p!=']')p++;U=newstr(e, p++-e);
-  {D f=POP; D c=obj(); Obj* o= PTR(TOBJ, c); D* pars=&(o->np[0].name);
-    //o->proto=OCLOS;
-    // Can store 12 values/frame!
-    // TODO: copy from current frame
-    // For each frame UP
-    // - coppy to new obj()
-    // - change frameptr stack values
-    // - chain up each frame as next
-    // (not using proto)
-    // alt: use actual names in closure!
-  }
- }
-#endif
- 
+// -- loop/if
 Z'}': return iff?p:NULL; Z'{': while(!((e=alf(p, A, n, 0)))){}; p= e;
 Z'?': if (POP) { switch(*p++){ Z'}': return p; Z']': return 0;
   Z'{': p=alf(p,A,n,1);if(*p=='{')p=skip(p+1); default:p=alf(p,A,n,1);
  }} else { // IF==false
   if (*p=='{') { p=skip(p+1); } if (p) p= alf(p+1, A, n, 1); else return 0; }
+// -- bitops
 #define LOP(op,e) Z#op[0]: S--; *S=(L S[1]) op##e L *S;
 Z'b': switch(*p++){ LOP(&,);LOP(|,);LOP(^,); Z'~': *S= ~L *S; }
-Z'`': switch(*p++) { Z'#': U=n; Z'0'...'9': U='0'-p[-1]-1; }
+// -- ` address of stuff
+Z'`': switch(*p++) { Z'#': U=n; Z'0'...'9': U='0'-p[-1]-1; Z'A'...'Z':
+ case'a'...'z':case'_':p--;U=atom(parsename(&p)); case' ':case 0:case'\n':
+   *S=1+2*(DAT(*S)>>32);break;default:goto error;}
+// string/stack/misc functions
 Z'$': x=1;switch(c=*p++){ Z'.': prstack(); case'n': pc('\n');
   // TODO: why 3?
- Z'0'...'9': U=A[p[-1]-'0'];
- Z'$': n=POP; A-=n; Z'd': x=S-K; U=x; 
+  Z'0'...'9': U=A[p[-1]-'0'];
+  Z'$': n=POP; A-=n; Z'd': x=S-K; U=x;
   Z'!': A[*p++-'0']=POP; Z's':x=POP;case' ':while(x-->=0)pc(' ');
   Z'"':case'\'':e=H;while(*p&&*p!=c)*H++=*p++;*H++=0;if(*p)p++;U=e-M;U=H-e-1;
- Z'h': P("%lx\n", L POP);goto next; default: p--; /* err */ Z'q': S=1+K;
-  Z'D': for(int i=0; i<*S;) { int n= S[-1]; P("\n%04x ", n); // DEBUG
+  Z'h': P("%lx\n", L POP); Z'q': S=1+K;
+  Z'D':{ char* M=(void*)C; // DEBUG TODO: M?
+  for(int i=0; i<*S;) { int n= S[-1]; P("\n%04x ", n); // DEBUG
     for(int j=0; j<8; j++) P("%02x%*s", M[n+j], j==3, "");  P("  "); // DEBUG
     for(int j=0; j<8; j++) P("%c", M[n+j]?(M[n+j]<32||M[n+j]>126? '?': M[n+j]):'.'); // DEBUG
     D d= *(D*)(M+n); x=TYP(d); if ((x&0x0ff8)==0x0ff8) { // DEBUG
       if (x>32*1024) x=-(x&7); else x= x&7; } else x=0; // DEBUG
-    P(" %2ld:", x);dprint(d);S[-1]+=8;i+=8;}}P("\n");prstack();break; // DEBUG
-  default: error: P("\n[%% Undefined op: '%s']\n", p-1);p++;} goto next;
+    P(" %2ld:", x);dprint(d);S[-1]+=8;i+=8;}P("\n");prstack();break;} // DEBUG
+  Z'K':{ char*e=0; size_t z=0; long n=0, a=0; // DEBUG
+    do { int p=0; // DEBUG
+      for(int p=0; p<32;) { // DEBUG
+	D d= K[a]; // DEBUG
+	if (++a >= KSZ) goto next; // DEBUG
+	if (d!=0 || K[a]) n=0; else if (n>3) { a++; continue; }// DEBUG
+	p++; // DEBUG
+	if (a%2==1) printf("\n%5ld : ", a); // DEBUG
+	x=TYP(d); if ((x&0x0ff8)==0x0ff8) { // DEBUG
+	  if (x>32*1024) x=-(x&7); else x= x&7; } else x=0; // DEBUG
+	P(" %2ld:", x); // DEBUG
+	printf("%*s", 10-dprint(d), " "); // DEBUG
+	if (d==0 && ++n==3) pc('\n'); // DEBUG
+      }
+      fputc('>', stderr); // DEBUG
+    } while(getline(&e,&z,stdin)); } // DEBUG
+  goto next; default: p--;} /* err */
+default: error: P("\n[%% Undefined op: '%s']\n", p-1);p++;} goto next;
 }
 
 // Simple peep-hole optimization
@@ -133,8 +152,8 @@ Z'$': x=1;switch(c=*p++){ Z'.': prstack(); case'n': pc('\n');
 // TODO: `1@ == $1
 // TODO: #foo => base 128 number
 char* opt(char* p) { char *s= p; while(s&&s[0]&&s[1]&&s[2]){switch(s[0]){
-    case'"': while(*s && *++s!='"'){}break;  case '#': case ')': s++; parsename(&s);break;
-  case'`': break; /* TODO */ case'0'...'9': if(isdigit(s[2]))break;
+  case'"':while(*s&&*++s!='"'){}break;case'#':case')':s++;parsename(&s);break;
+  case'`': break; case'0'...'9': if(isdigit(s[2]))break;
   default: if (!isspace(s[1])) break; memmove(s+1, s+2, strlen(s+2)+1);continue;
   } s++; } DEBUG(P("\n%s\n", p)); return p; }
 
@@ -289,6 +308,7 @@ char* opt(char* p) { char *s= p; while(s&&s[0]&&s[1]&&s[2]){switch(s[0]){
 
   ( $p - P? )
     $D - dump from address / DEBUG
+    $K - dump K mem (stack + globals + obj)
   ( $F - format number? tra forth? )
     $q - quit/reset stacks
 
@@ -333,10 +353,14 @@ char* opt(char* p) { char *s= p; while(s&&s[0]&&s[1]&&s[2]){switch(s[0]){
   ]
   ^ - exit/return (TODO: ??? break)
   _
+
   ` - prefix: addresses?
     `1-`9 - address of N;th parameter
     `@    - number of args
     ( $1-$9 - see this )
+    ` - address of atom global var
+    `foo - address of global var 'foo'
+    
   a - allot (inc here, from arena)
 
   b - bit ops:
@@ -486,7 +510,7 @@ if(0){
     printf(" [%% %ld ops]\n", nn); nn=0;
     if (S<=K) { P("\n%%STACK underflow %ld\n", S-K); } // DEBUG
     if (S>=K+SMAX) { P("\n%%STACK overrun\n"); } // DEBUG
-    if (!deq(K[SMAX],error)) { P("\n%%STACK corrupted/overrun to cons/var storage\n"); } // DEBUG
+    if (!deq(K[SMAX-1],error)) { P("\n%%STACK corrupted/overrun to cons/var storage\n"); } // DEBUG
   }
 }
 #endif

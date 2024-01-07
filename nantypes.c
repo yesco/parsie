@@ -51,28 +51,34 @@ char hp[HPSIZE]= {0}; int nilo=0; D nil, undef, error, proto;
 //
 // Returns offset to LEN of string
 // followed by a cstring at offset 1.
+// (-offset returned if created)
 //
 // Extra + (n<<32) atom number
 //
 //   HP=[len=3, "foo", 8b data]...
 //   len=0 means end of list
 //   note: assumes zeroed HeaP
-int nameadd(char* s) {char*p=hp;int l=strlen(s),n=0;while(*p){if(!strcmp(s,p+1))
-  return p-hp; p+=1+strlen(p+1)+1+sizeof(D);n++;}
-  *p=l; return strcpy(p+1,s)-hp-1+((L n)<<32);
-  //assert(p+l+2-hp < HPSIZE);
+long nameadd(char* s) {char*p=hp;int l=strlen(s),n=0;while(*p){if(!strcmp(s,p+1))
+  return p-hp+((L n)<<32); p+=1+strlen(p+1)+1+sizeof(D);n++;}
+  assert(p+l+2-hp < HPSIZE);
+  // create new (neg)
+  *p=l; return -(strcpy(p+1,s)-hp-1+((L n)<<32));
 }
 
 void prnames() { char* p= hp; printf("\n"); while(*p) { D* d= (D*)(p+1+strlen(p+1)+1); printf("%5ld: %d v=> %10.7g %5ld\t%s\n", p-hp, *p, *d, d2u(*d), p+1); p+=strlen(p+1)+1+1+sizeof(D); } } // DEBUG
 
-// Return a data atom
-D atom(char* s){return !s||!*s?nil:u2d(BOX(TATM, nameadd(s)));}
+// Return a data atom from String
+// empty string returns nil
+extern int dprint(D); // FORWARD
+
+D atom(char* s) {if(!*s)return nil;long n=nameadd(s);D a=u2d(BOX(TATM,n<0?-n:n));
+  // TODO: nil not set? lol
+  if (n<=0) { n=0-n; *C++= a; *C++= (n>>32<3)?a:undef; } return a; }
 
 // TODO: "ERROR"
-void inittypes() {nil=atom("nil");undef=atom("undef");proto=atom("__proto__");
-  K[SMAX]=*S=*K=error=atom("*ERROR*");
-  assert(DAT(nil)==nilo);
-}
+void inittypes() {nil=atom("nil");undef=atom("undef");K[SMAX-1]=*S=*K=error
+  =atom("*ERROR*");proto=atom("__proto__");
+  assert(DAT(nil)==nilo); }
 
 int deq(D a, D b) { return d2u(a)==d2u(b); }
 
@@ -118,7 +124,7 @@ dstr sncat(dstr s, char* x, int n) { int i= s?strlen(s):0, l= x?strlen(x):0;
 D newstr(char* s,int n){ ss[sn]=sncat(0,s?s:"",n); return u2d(BOX(TSTR,sn++)); }
 
 char* dchars(D d) { int t=TYP(d), x=DAT(d);
-  return t==TATM? x+hp+1: t==TSTR? (char*)ss[x]: 0;}
+  return t==TATM? (x&0xffffffff)+hp+1: t==TSTR? (char*)ss[x]: 0;}
 
 // TODO: length of $" char* ?
 int dlen(D f) { char* r= dchars(f); return r?strlen(r):TYP(f)==TOBJ?((D*)PTR(TOBJ,f))[3]:0;}

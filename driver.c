@@ -24,6 +24,11 @@ void alfie(char* a) { if (!a) return;
   D* s= S; alf(opt(a), 0, 0, 0);
   if (s!=S) { P("\nResult: "); for(s++;s<=S;s++) dprint(*s); pc('\n'); }
   DEBUG(printf("\n\tstack "); prstack(); pc('\n'););
+  // integrity
+  DEBUG(printf(" [%% %ld ops]\n", nn); nn=0;);
+  if (S<=K) { P("\n%%STACK underflow %ld\n", S-K); } // DEBUG
+  if (S>=K+SMAX) { P("\n%%STACK overrun\n"); } // DEBUG
+  if (!deq(K[SMAX-1],error)) { P("\n%%STACK corrupted/overrun to cons/var storage\n"); } // DEBUG
 }
 
 char* test(char r, char* s) { xp=xs=0;nv=xr=0;prog=calloc(strlen(toparse=s)+5,1);
