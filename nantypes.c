@@ -98,7 +98,8 @@ void prnames() { char* p= hp; printf("\n"); while(*p) { D* d= (D*)(p+1+strlen(p+
 
 // Return a data atom from String
 // empty string returns nil
-D atom(char* s) {if(!*s)return nil;long n=nameadd(s);D a=u2d(BOX(TATM,n<0?-n:n));
+D atom(char* s){if(!s||!*s)return nil;
+  long n=nameadd(s); D a=u2d(BOX(TATM,n<0?-n:n));
   // TODO: nil not set? lol
   if (n<=0) { n=0-n; *C++= a; *C++= (n>>32<3)?a:undef; } return a; }
 
