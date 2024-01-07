@@ -36,8 +36,7 @@ extern long atomaddr(double); // FORWARD
 int _newvar(char* vs, int* nn, char* n) { int l= strlen(n); char s[l+16];
   memcpy(s, n, l); int i= ++*nn; while(i) {s[l++]= 0x80+(i&0x7f);i>>=7;}
   memmove(vs+l, vs, sizeof(globals)-l); memmove(vs, s, l);
-  if (vs==globals) return atomaddr(atom(n));
-  return *nn; }
+  if (vs==globals) return atomaddr(atom(n)); else return *nn; }
 
 int newvar(char* n) {
   if (frame) return _newvar(vars, &ln, n); else return _newvar(globals, &gn, n);
@@ -50,9 +49,7 @@ char* __findvar(char* vs, char* n) { int l=strlen(n); while(*vs) {
     while(*vs && *vs<128) vs++; rdint(&vs); } return 0; }
 
 int _findvar(char* vs, char* n) { int l=strlen(n); char* p= __findvar(vs, n);
-  double a= atom(n); // make sure defined
-  if (vs==globals) return atomaddr(atom(n));
-  return p?rdint(&p):0; }
+  if (vs==globals) return atomaddr(atom(n)); else return p?rdint(&p):0; }
 
 int findvar(char* n) { int i= _findvar(vars, n); return i?-i:_findvar(globals, n); }
 
@@ -60,12 +57,7 @@ int setvar(char* n) { int i= findvar(n); return i?i:_newvar(globals, &gn, n);}
 
 // TODO: restore?
 void exitframe() { frame--; ln=-10000;
-  char* n= __findvar(vars,"--");
-  DEBUG(if (debug>2) printf("EXIT>>>: v='%s'\n", vars));
-  DEBUG(if (debug>2) printf("EXIT>>>: n='%s'\n", n));
-  memmove(vars, n, strlen(n)+1);
-  DEBUG(if (debug>2) printf("EXIT<<<: v='%s'\n", vars));
-}
+  char* n= __findvar(vars,"--"); memmove(vars, n, strlen(n)+1); }
 
 int atomix(char* n){char*p=__findvar(globals,n);if(!p){_newvar(globals,&gn,n);
   p=__findvar(globals,n);}return p?p-globals-strlen(n):0;}
