@@ -16,8 +16,11 @@ int debug= 0; // DEBUG
 
 #include "parse.c"
 
+int xalf=0; char rule=0,last=0; int dlm= '\n';
+
 void alfie(char* a) { if (!a) return;
-  DEBUG(if (debug>1) printf("\t(alf: %s)\n", a));
+  if (xalf || debug>1) printf("\t(alf: %s)\n", a);
+  if (xalf>1) return;
   D* s= S; alf(opt(a), 0, 0, 0);
   if (s!=S) { P("\nResult: "); for(s++;s<=S;s++) dprint(*s); pc('\n'); }
   DEBUG(printf("\n\tstack "); prstack(); pc('\n'););
@@ -33,8 +36,6 @@ char* test(char r, char* s) { xp=xs=0;nv=xr=0;prog=calloc(strlen(toparse=s)+5,1)
   }
   if(!e||*e)P("\n\t%% %s %c->'%s'",e?(*e?"UNPARSED":"OK!"):"FAIL",r,e);
   int d=debug--;if(debug<0)debug=0;alfie(V[nv+1]);pc('\n');debug=d;return e;}
-
-char rule=0,last=0; int dlm= '\n';
 
 void readparser(FILE* f); // FORWARD
 
@@ -81,6 +82,8 @@ int main(int argc, char** argv) {
   while(--argc && *++argv) {
     DEBUG(printf("\n--ARG: %s\n", *argv));
     if (0==strcmp("-d", *argv)) debug++;
+    else if (0==strcmp("-a", *argv)) xalf=1;
+    else if (0==strcmp("-n", *argv)) xalf=2;
     else if (0==strcmp("-e", *argv)) {argv++;argc--;oneline(*argv,strlen(*argv));}
     else if (0==strcmp("-", *argv)) readparser(stdin);
     else if (**argv=='-') { fprintf(stderr, "%% Unknown option %s\n", *argv); exit(1); }

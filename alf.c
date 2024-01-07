@@ -56,8 +56,8 @@ Z':': e=strchr(p,';'); if(e) F[*p-'A']=strndup(p+1,e-p),p=e+1;
 Z'x':{D d=POP;char x[]={d,0};alf(TYP(d)==TSTR?dchars(d):x,A,n,0);}
   // TODO: error if no function?
 ////////////////////////////////////////////////////////////////////////////////
-Z'(':{x=S-K;S[1]=A-S;S++;D*s=S;p=alf(p,A,n,1);U=x;D nom=atom(parsename(&p)),
-  m=get(s[1],nom);e=dchars(m);alf(e?dchars(m):F[L m-'A'],s+1,S-s,0);*s=*S;S=s;}
+Z'(':{x=S-K;S[1]=A-S;S++;D*s=S;p=alf(p,A,n,1);D n=atom(parsename(&p));
+  e=dchars(deq(n,nil)?POP:get(s[1],n)); U=x; alf(e,s+1,S-s,0); *s=*S;S=s;}
   //DEBUG(P("\n\tCALL: o="); dprint(s[1]); P(" nom="); dprint(nom); P(" m="); dprint(m); pc('\n'););
 // -- numbers / math
 Z'0'...'9':{D v=0;p--;while(isdigit(*p))v=v*10+*p++-'0';U=v;}
@@ -307,6 +307,7 @@ char* opt(char* p) { char *s= p; while(s&&s[0]&&s[1]&&s[2]){switch(s[0]){
   ' - char
   ( - param start for object method call
   )nm - look up method 'nm' and call
+  )   - use last valuie as method & call
   * - mul
   + - add
   , - ret aligned here, write word
@@ -482,7 +483,7 @@ if(0){
   char* ln= NULL; size_t sz= 0;
   while(getline(&ln, &sz, stdin)>=0) {
     alf(opt(ln), S, 0, 0);
-    printf("%% %ld ops\n", nn); nn=0;
+    printf(" [%% %ld ops]\n", nn); nn=0;
     if (S<=K) { P("\n%%STACK underflow %ld\n", S-K); } // DEBUG
     if (S>=K+SMAX) { P("\n%%STACK overrun\n"); } // DEBUG
     if (!deq(K[SMAX],error)) { P("\n%%STACK corrupted/overrun to cons/var storage\n"); } // DEBUG
