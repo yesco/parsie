@@ -31,9 +31,13 @@ char globals[16*1024]={0}, vars[sizeof(globals)]={0}; int frame=0, gn=0, ln=0;
 // In VarString arena insert Name at *NN+1 position
 //
 // Number should be positive, it's Base 128 VarInt Encoded
+extern double atom(char*); // FORWARD
+extern long atomaddr(double); // FORWARD
 int _newvar(char* vs, int* nn, char* n) { int l= strlen(n); char s[l+16];
   memcpy(s, n, l); int i= ++*nn; while(i) {s[l++]= 0x80+(i&0x7f);i>>=7;}
-  memmove(vs+l, vs, sizeof(globals)-l); memmove(vs, s, l); return *nn; }
+  memmove(vs+l, vs, sizeof(globals)-l); memmove(vs, s, l);
+  if (vs==globals) return atomaddr(atom(n));
+  return *nn; }
 
 int newvar(char* n) {
   if (frame) return _newvar(vars, &ln, n); else return _newvar(globals, &gn, n);
@@ -46,6 +50,8 @@ char* __findvar(char* vs, char* n) { int l=strlen(n); while(*vs) {
     while(*vs && *vs<128) vs++; rdint(&vs); } return 0; }
 
 int _findvar(char* vs, char* n) { int l=strlen(n); char* p= __findvar(vs, n);
+  double a= atom(n); // make sure defined
+  if (vs==globals) return atomaddr(atom(n));
   return p?rdint(&p):0; }
 
 int findvar(char* n) { int i= _findvar(vars, n); return i?-i:_findvar(globals, n); }

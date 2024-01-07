@@ -56,8 +56,6 @@ while(*r && *++r!=end && *r) { switch(*r){
   return r-or;
 }
 
-
-
 // Error diagnostics:
 //   prog(ress): for each char pos:
 //     A..Z = last succesful rule

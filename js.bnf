@@ -44,7 +44,9 @@ N=%n
 D=%i
 
 # this matches [] etc...?
-K=%"|%'
+#K=%"[$1]|%'[$1] TODO: not working
+#K=%s[$1] TODO: not working
+K=%"
 # TODO: K=%"[$1] not working...
 M=%'
 
@@ -137,8 +139,8 @@ A= E R [$1 $2] |
 #   TODO: a=b change to E?
 S= \{ V G \} [$1 $2]
  | return E; [$1 ^]
- | console\.log\(K\); [$1cr]
  | console\.log\(M\); [c$1.cr]
+ | console\.log\(K\); [$1cr]
  | console\.log\(E\); [$1.cr]
  | N\.call\(E,A\); [ ($2 $3 $:1@) ]
 # | N\=E; [$2 $:1!]

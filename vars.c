@@ -1,3 +1,5 @@
+not used,  now using svar.c
+
 // vars
 //
 // (<) 2023 Jonas S Karlsson

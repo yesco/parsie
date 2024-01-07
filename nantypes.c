@@ -100,8 +100,10 @@ void prnames() { char* p= hp; printf("\n"); while(*p) { D* d= (D*)(p+1+strlen(p+
 // empty string returns nil
 D atom(char* s){if(!s||!*s)return nil;
   long n=nameadd(s); D a=u2d(BOX(TATM,n<0?-n:n));
-  // TODO: nil not set? lol
   if (n<=0) { n=0-n; *C++= a; *C++= (n>>32<3)?a:undef; } return a; }
+
+long atomaddr(D a) { return 1+2*(DAT(a)>>32); }
+// return 1+2*(d2u(a)>32)&0x1ffff; }
 
 // TODO: "ERROR"
 void inittypes() {nil=atom("nil");undef=atom("undef");K[SMAX-1]=*S=*K=error

@@ -109,7 +109,7 @@ Z'b': switch(*p++){ LOP(&,);LOP(|,);LOP(^,); Z'~': *S= ~L *S; }
 // -- ` address of stuff
 Z'`': switch(*p++) { Z'#': U=n; Z'0'...'9': U='0'-p[-1]-1; Z'A'...'Z':
  case'a'...'z':case'_':p--;U=atom(parsename(&p)); case' ':case 0:case'\n':
-   *S=1+2*(DAT(*S)>>32);break;default:goto error;}
+   *S=atomaddr(*S);break;default:goto error;}
 // string/stack/misc functions
 Z'$': x=1;switch(c=*p++){ Z'.': prstack(); case'n': pc('\n');
   // TODO: why 3?
