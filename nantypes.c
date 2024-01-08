@@ -75,6 +75,9 @@ unsigned long d2u(D d) { return *(unsigned long*)(&d); } D u2d(long u) { return 
 const long TNAN=0x7ff8,TATM=0x7ffa,TSTR=0xfffb,TOBJ=0xfffc,TCONS=0xfffe,TENV=0xfffd;
 //,TCONS=0xfffe,TCLOS=0xffff;
 
+// TODO: isnan isn't working, and atom > number!!!
+int ISNAN(double d) {unsigned long x=d2u(d); return (TYP(d)&TNAN)==TNAN; }
+
 // TODO? unify with svar + K + M ???
 
 #define HPSIZE 16*1024

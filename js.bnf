@@ -10,6 +10,8 @@
 # - integer/double/string/char "values"
 # - (re)assignment x=x+1;
 # - {} objects w __proto__ and [] array!
+# - array.length works
+# - printing [w holes] and mixed
 # - can print static strings ".." or '..'
 # - "var" declare of single variable/init single variable
 # - can define several functions/none
@@ -28,6 +30,7 @@
 # Limitations/Features:
 # - statements need to end with semicolon;
 # - ,, in arrays not working at end?
+# - array.length works on any obj... lol
 # - non-existing functions == identity!
 # - embryo for variable unlimited js strings including GC!
 
@@ -76,6 +79,7 @@ U= D [$1]
 # TODO: E.N but can't do left recursive...
  | this.N [#$1 \$0 #@]
  | this [\$0]
+ | N\.length [$:1@ cc]
  | N\.N [#$2 $:1@ #@]
 # | N\[K] [#$2 $:1@ #@] TODO:
  | N\[E] [$2 # $:1@ #@]

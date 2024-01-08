@@ -95,7 +95,7 @@ Z'^': A[1]= *S; S=A+1; return p-1;
 Z'#': switch(*p++){ Z'a'...'z':case'A'...'Z':case'_':p--;U=atom(parsename(&p));
   Z',': S--;set(*S,dlen(*S),S[1]); Z':': S-=2;set(*S,S[1],S[2]);
   Z'@': S--;*S=get(S[1],*S); Z'!': S-=3;set(S[3],S[2],S[1]);
-  Z' ': case'\n': case 0: *S=atom(dchars(*S));
+  Z' ': case'\n': case 0: if ((e=dchars(*S))) *S=atom(e);
   Z'?': *S=typ(*S); Z'^': U=obj(); goto next; default: goto error; }
 // -- loop/if
 Z'}': return iff?p:NULL; Z'{': while(!((e=alf(p, A, n, 0)))){}; p= e;
@@ -248,7 +248,7 @@ char* opt(char* p) { char *s= p; while(s&&s[0]&&s[1]&&s[2]){switch(s[0]){
   " - print string
   # - atom/obj (hash/dict) stuff
     #abc - make atom (alnum)
-    # - atomify string
+    # - atomify string (ret other)
 
     #? - type? -> i)nt f)float n)nan N)il A)tom S)tring O)bj C)ons U)ndef
          lowercase ( >- 'A' is  "num" )

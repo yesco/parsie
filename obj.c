@@ -45,7 +45,7 @@ D obj() { align(); Obj* o= (Obj*)H; H+= sizeof(Obj); memset(o,0,sizeof(Obj));
 // Set in direct obj
 // if val is undef, name is removed
 D set(D d, D name, D val) {Obj*o=PTR(TOBJ,d),*last=0,*p=o;if(!o)return undef;
-  if (deq(name,proto)) return p->proto=val; if (name >= o->n) o->n=name+1;
+  if (deq(name,proto)) return p->proto=val; if (!ISNAN(name) && name >= o->n) o->n=name+1;
   while(1){for(int i=0;i<NPN;i++){D n=p->np[i].name; if(deq(n,name)||deq(n,
       undef)){p->np[i]=(struct np){val==undef?undef:name,val};return val;
     }} last=p;p=PTR(TOBJ,p->next);if (!p){p=PTR(TOBJ,last->next=obj());}}}
@@ -58,10 +58,15 @@ D get(D d, D name) {Obj *o=PTR(TOBJ,d),*p=o; if(deq(name,proto))return p->proto;
 
 D probj(D); // FORWARD
 
-int pobj(D d) {Obj*o=PTR(TOBJ,d),*p=o;if(!o)return 0;int l=2,i=0;pc('{');
-  while(p){i=0;for(D*x;x=&(p->np[i].name),i<NPN;i++) if (!deq(*x,undef)) {
-  l+=dprint(*x);pc(':');l+=dprint(x[1]);pc(' ');l+=2;} p=PTR(TOBJ,p->next);}
-  printf("}  ");return l; }
+// print numeric properties ( array ? )
+// TODO: not fully correct
+// TODO: technically node has holes
+int pobj(D d){Obj*o=PTR(TOBJ,d),*p=o;if(!o)return 0;int i=0,n=P(o->n?"[":"{");
+  if (o->n) { D last=nil; int u=0; for(int i=0; i<o->n; i++) {D v= get(d, i);
+    if(deq(v,undef)&&++u>0)continue; if(u>1)n+=P("<%d empty items>, %d:",u,i);
+    u=0;n+=dprint(v)+P(", ");last=v;}}  while(p){i=0;for(D*x;x=&(p->np[i].name),
+      i<NPN;i++)if(!deq(*x,undef)&&ISNAN(*x)){n+=dprint(*x)+P(":")+dprint(x[1])
+      +P(" ");} p=PTR(TOBJ,p->next);}n+=P(o->n?"]":"}");return n;}
 
 // ENDWCOUNT
 

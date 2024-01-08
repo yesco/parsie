@@ -43,7 +43,7 @@ double *K,*S,*C; long mmax=0; char *M=0, *H=0, *F['Z'-'A'+1]={0};
 #define align() while((H-M)%SL)H++
 
 #define P printf
-#define pc putchar
+#define pc(a) putchar(a)
 
 extern char* dchars(double); // FORWARD
 
