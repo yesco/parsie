@@ -4,6 +4,42 @@
 #
 # TODO: harmonize/coordinate
 #   with c-types.bnf
+#
+## TYPE ENCODING:
+#
+#   First letter lowercase = simple type
+#   Second letter = size in bytes
+#
+#   1..8 or _=fixed *=varying/dynamic
+#
+# 
+### Simple types:
+#
+# Q=c1|u1|w2|u2|i4|u4|l8|u8|f4|d8|D8|s*
+#
+#
+### Complex types:
+#
+# C=Q\=\N\; | \P8\=N\:C | \R_\=N\:\($+C\); | \U_\=N\:\($+C\)\; | \F\*\=N\:\C | \A\*\=N\:C | \A\[D\]\=N\:C\ | \A\[D,D\]\=N\:\C | O\*\=N\:\; | \C_\=N; | \N_\=N; \E1\=N;
+#
+#
+### Type indicator:
+#
+# T=\T\:C
+#
+#### Examples
+#
+# T:c1=letter;
+# T:R_=coord:{d8=x;d9=y;}
+# T:A[6]=properties:*R_{D8=name;D8=value;}
+# T:R_=Object:{D8=proto;D8=n;D8=reserved;D8=next;A[6]=props:R_=prop{D8=name;D8=value;}}
+
+##### alias type? (typedef)
+#
+# N:coord ==> T:R_=coord:{d8=x;d9=y;}
+# N:coord ==> T:R_=coord;
+# R:coord ==> T:R_:{d8=x;d9=y;}
+
 
 # quantifier
 Q= ^Q | O [$1] | R [$1] | A [$1] | E [$1] | U [$1] | F [$1] | P [$1] | M [$1] | D [$1]

@@ -17,9 +17,20 @@
 // - getting global var offset
 // 
 // An atom encodes [TATM, n, hp-offset]
+//                  12b  20b   32b
+//
+// An atom: [TATM, typ, n, hp-offset]
+//           12b   10b 16b   26b
+//            (- 64 12 10 16)
+//            (** 2 26) = 64 MB
+//
+// - typ number
+//   2^9=512 types, 1 bit==ptr
 // - n is the linear number of atom
 //   (nil=0, undef-1 ...)
+//     16b = 64K max
 // - the name is stored in hp heap
+//     26b = 64 MB addressing
 
 // === STRINGS
 // (see str.c)

@@ -37,20 +37,18 @@
 typedef struct Obj{D proto,next,arr,n;struct np{D name,val;}np[NPN];}Obj;
 
 // TODO: use Memory/Stack
-D obj() { align(); Obj* o= (Obj*)H; H+= sizeof(Obj);
+D obj() { align(); Obj* o= (Obj*)H; H+= sizeof(Obj); memset(o,0,sizeof(Obj));
   // TODO: use m() and K() etc...
-  memset(o, 0, sizeof(Obj));
   for(int i=0; i<NPN; i++)  o->np[i]=(struct np){undef, undef};
   unsigned long x= ((char*)o)-M; return u2d(BOX(TOBJ, x)); }
 
 // Set in direct obj
 // if val is undef, name is removed
 D set(D d, D name, D val) {Obj*o=PTR(TOBJ,d),*last=0,*p=o;if(!o)return undef;
-  if (deq(name,proto)) return p->proto=val;
-  while(1){for(int i=0;i<NPN;i++){D n=p->np[i].name;if(deq(n,name)||deq(n,undef)&&++(o->n)){p->np[i]=(struct np){val==undef?undef:name,val}; return val;}}
-    last=p;p=PTR(TOBJ,p->next);
-    if (!p) {p=PTR(TOBJ, last->next=obj());} } }
-
+  if (deq(name,proto)) return p->proto=val; if (name >= o->n) o->n=name+1;
+  while(1){for(int i=0;i<NPN;i++){D n=p->np[i].name; if(deq(n,name)||deq(n,
+      undef)){p->np[i]=(struct np){val==undef?undef:name,val};return val;
+    }} last=p;p=PTR(TOBJ,p->next);if (!p){p=PTR(TOBJ,last->next=obj());}}}
 
 // Search obj first, then proto...
 D get(D d, D name) {Obj *o=PTR(TOBJ,d),*p=o; if(deq(name,proto))return p->proto;
