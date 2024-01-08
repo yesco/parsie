@@ -54,9 +54,11 @@ void oneline(char* ln, int n) { if(!ln)return; if(ln[n-1]=='\n') ln[n-1]=0;
   #define Q return; case
   switch(*ln){case 0:case'#':case'\n':case'\r':;Q'<':readparser(fopen(ln+1,"r"));
   Q' ':if(ln[1]=='|') case'|':R[last]= sncat(sncat(R[last],"\n",-1),ln,-1);
-  Q'=':for(char c='A';c<='Z';c++)if(!R[c])P("\tFREE: %c\n",c);
+  Q'=': if (isupper(ln[1])) printf("\n%c=%s\n\n", ln[1], R[ln[1]]);
+    P("Free:\t");for(char c='A';c<='Z';c++)pc(R[c]?'.':c); P("\n\n");
   Q'@':alfie(ln+1);Q'*':if(ln[1])dlm=0;case '?':rule=ln[1];if(*ln=='?')dlm='\n';
-    if(!rule){for(char c='A';c<='Z';c++)if(R[c])printf("%c=%s\n",c,R[c]);P("\n\nUsage:\n\tR=...|foo|bar|\n\t |...\t- define rule\n\t?R \t- use rule\n\t*R\t- match rest to rule\n\t?\t- list rules\n\t=\t-list free rules\n\t<file\t- include file\n\t-d\t- inc debug level\n\t@ 3 4+.\t- run alf\n\t# comment\n");}return;}
+      if(!rule){for(char c='A';c<='Z';c++)if(R[c])printf("%c=%s\n",c,R[c]);
+	P("\n\nParse Usage:\n\t# comment\n\tR=...|foo|bar|\n\t |...\t- define rule\n\t?R \t- set rule to match\n\t*R\t- set match ALL to rule\n\t3+4*2\t- match this\n\n\t?\t- list rules\n\t=R\t- list rule R\n\t=\t- list free rules\n\t<file\t- include file\n\t-d\t- inc debug level\n\t@ 3 4+.\t- run alf\n");}return;}
   DEBUG(if (debug>1) printf("\tTEST>%s<\n", ln));
   test(rule, comments(ln)); }
 

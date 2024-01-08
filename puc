@@ -1,8 +1,30 @@
-echo "PARSE: lines `./wcode parse.c`"
-echo "ALF:   lines `./wcode alf.c`"; echo
+## Poly Universal Compiler
+#
+echo "./puc - Poly Universal Compiler"
+echo
+echo "Usage: ./puc js.bnf fil.js"
+echo
+echo "  -      = read interactive" 
+echo "  js.bnf = loads js.bnf lang def!"
+echo "  fil.js = loads fil.js"
+echo
+echo "  -d = debug/echo"
+echo "  -a = show alf"
+echo "  -n = don't run alf (but show)"
+echo
+printf "./r fil.js    = compile and run js\n"
+printf "./repl fil.js =   - \" \" -  with repl\n"
+echo
+echo "[PARSE: `./wcode parse.c` lines, ALF: `./wcode alf.c` lines]"; echo
+echo
+echo "Poly Universal Compiler"
+echo "(c) 2024 Jonas S Karlsson"
+echo
+echo "? for help"
+echo
 
 # debug
 #gcc -g driver.c && ((echo "run $*" ; cat - )| time -p gdb ./a.out)
 
 # normal
-gcc -Ofast driver.c && time -p ./a.out $*
+printf "(wait...)\r" ; gcc -Ofast driver.c && printf "            \r" && time -p ./a.out $*
