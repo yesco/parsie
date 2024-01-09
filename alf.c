@@ -125,23 +125,7 @@ Z'$': x=1;switch(c=*p++){ Z'.': prstack(); case'n': pc('\n');
     D d= *(D*)(M+n); x=TYP(d); if ((x&0x0ff8)==0x0ff8) { // DEBUG
       if (x>32*1024) x=-(x&7); else x= x&7; } else x=0; // DEBUG
     P(" %2ld:", x);dprint(d);S[-1]+=8;i+=8;}P("\n");prstack();break;} // DEBUG
-  Z'K':{ char*e=0; size_t z=0; long n=0, a=0; // DEBUG
-    do { int p=0; // DEBUG
-      for(int p=0; p<32;) { // DEBUG
-	D d= K[a]; // DEBUG
-	if (++a >= KSZ) goto next; // DEBUG
-	if (d!=0 || K[a]) n=0; else if (n>3) { a++; continue; }// DEBUG
-	p++; // DEBUG
-	if (a%2==1) printf("\n%5ld : ", a); // DEBUG
-	x=TYP(d); if ((x&0x0ff8)==0x0ff8) { // DEBUG
-	  if (x>32*1024) x=-(x&7); else x= x&7; } else x=0; // DEBUG
-	P(" %2ld:", x); // DEBUG
-	printf("%*s", 10-dprint(d), " "); // DEBUG
-	if (d==0 && ++n==3) pc('\n'); // DEBUG
-      }
-      fputc('>', stderr); // DEBUG
-    } while(getline(&e,&z,stdin)); } // DEBUG
-  goto next; default: p--;} /* err */
+ Z'K': prK(); goto next; default: p--;} /* err */
 default: error: P("\n[%% Undefined op: '%s']\n", p-1);p++;} goto next;
 }
 
@@ -460,7 +444,7 @@ char* opt(char* p) { char *s= p; while(s&&s[0]&&s[1]&&s[2]){switch(s[0]){
 ( 128-255 - optimized atomnames/addr )
 */
 
-#ifndef alfNOMAIN
+#ifdef alfTEST
 
 int main(int argc, char** argv) {
   assert(sizeof(long)==8);

@@ -1,3 +1,6 @@
+// Parse.c
+//
+// 
 
 // Results and Attributes
 #define NV 256
@@ -28,13 +31,6 @@ char* attrval(int nr, char a) {
 // Using named Rule, parse String do only N matches
 char* parseR(char r, char* s, int n); // FORWARD
 char* pR(char* r, char* s, int n) { nv++; return parseR(*r, s, n); }
-
-//#include "nantypes.c"
-// TODO: remove
-//char* sncat(char* s, char* x, int n) { int i= s?strlen(s):0, l= x?strlen(x):0; // DEBUG
-//  if (n<0 || n>l) n= l; s= realloc(s, 1024*((i+n+1024)/1024)); s[i+n]= 0; // DEBUG
-//  return strncpy(s+i, x?x:"", n), s; // DEBUG
-//}
 
 // Generate (add to *G) from [Rule] stop at ENDchar nr being $0 V[NR]
 int gen(char** g, char* r, char end, int nr) { int n, l; char *or=r, *v, *e;

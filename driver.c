@@ -7,13 +7,8 @@
 int debug= 0; // DEBUG
 #define DEBUG(D) if (debug) do{D;}while(0);
 
-#define pc putchar // FORWARD
-#include "svar.c"
-#undef pc
-
-#define alfNOMAIN // DEBUG
 #include "alf.c"
-
+#include "avar.c"
 #include "parse.c"
 
 int xalf=0; char rule=0,last=0; int dlm= '\n';

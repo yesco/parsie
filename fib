@@ -4,8 +4,8 @@
 echo | ./alf
 
 echo "===ALF"
-#clang -Ofast alf.c # same
-clang -O3 alf.c
+#clang -DalfTEST -Ofast alf.c # same
+clang -DalfTEST -O3 alf.c
 
 # TODO: how to pass arg?
 # cat fib.alf | time -p ./a.out

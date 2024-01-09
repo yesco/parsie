@@ -18,7 +18,7 @@
 
 rm .total.c
 
-ls -1 parse.c driver.c mem.c svar.c nantypes.c obj.c alf.c | xargs -I% sh -c "
+ls -1 parse.c driver.c mem.c avar.c nantypes.c obj.c alf.c | xargs -I% sh -c "
 cat % | \
 sed '/ENDWCOUNT/q' | \
 grep -iPv '^\s*//' | \

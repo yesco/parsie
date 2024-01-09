@@ -20,9 +20,10 @@
 //                  12b  20b   32b
 //
 // An atom: [TATM, typ, n, hp-offset]
-//           12b   10b 16b   26b
-//            (- 64 12 10 16)
-//            (** 2 26) = 64 MB
+//           16b   10b 16b   22b
+//            (- 64 16 10 16) 
+//            (** 2 22) = 4MB const strings
+//            (** 2 16) = 64K symbols
 //
 // - typ number
 //   2^9=512 types, 1 bit==ptr
@@ -102,26 +103,39 @@ char hp[HPSIZE]= {0}; int nilo=0; D nil, undef, error, proto;
 //   len=0 means end of list
 //   note: assumes zeroed HeaP
 long nameadd(char* s) {char*p=hp;int l=strlen(s),n=0;while(*p){if(!strcmp(s,p+1))
-  return p-hp+((L n)<<32); p+=1+strlen(p+1)+1+sizeof(D);n++;}
+ return p-hp+((L n)<<22); p+=1+strlen(p+1)+1+sizeof(D);n++;}
   assert(p+l+2-hp < HPSIZE);
   // create new (neg)
-  *p=l; return -(strcpy(p+1,s)-hp-1+((L n)<<32));
+  *p=l; return -(strcpy(p+1,s)-hp-1+((L n)<<22));
 }
 
 void prnames() { char* p= hp; printf("\n"); while(*p) { D* d= (D*)(p+1+strlen(p+1)+1); printf("%5ld: %d v=> %10.7g %5ld\t%s\n", p-hp, *p, *d, d2u(*d), p+1); p+=strlen(p+1)+1+1+sizeof(D); } } // DEBUG
 
 // Return a data atom from String
 // empty string returns nil
-D atom(char* s){if(!s||!*s)return nil;
-  long n=nameadd(s); D a=u2d(BOX(TATM,n<0?-n:n));
-  if (n<=0) { n=0-n; *C++= a; *C++= (n>>32<3)?a:undef; } return a; }
+D typatom(long typ, char* s){if(!s||!*s)return nil; typ+=512; assert(typ>=0 && typ<0x3ff);
+  //printf(" [TYP=%ld] ", typ);
+  long x=nameadd(s); D a=u2d(BOX(TATM,(x<0?-x:x)|(typ<<(22+16))));
+  if (x<=0) { x=-x; *C++= a; long n= (x>>22)&0xffff; *C++= n<3?a:undef; }
+  if (typ<512) { *--Y= undef; *--Y= a; } return a; }
 
-long atomaddr(D a) { return 1+2*(DAT(a)>>32); }
+D atom(char* s) { return typatom(0, s); }
+
+// Search scoped 8atom:
+//   1:st in local scope stack
+//   2:nd in global vars storage
+// (since they are adj just one linear!) 
+D varatom(char* s) { D a= atom(s); char* c= dchars(a);
+  for(D* x= Y; Y<C; x+=2) if (dchars(*x)==c) return *x;  return a; }
+
+// global var storage location
+long atomaddr(D a) { return 1+2*((DAT(a)>>22)&0xffff); }
+long atomtyp(D a) { return ((DAT(a)>>(22+16))&0x3ff)-512; }
 // return 1+2*(d2u(a)>32)&0x1ffff; }
 
 // TODO: "ERROR"
-void inittypes() {nil=atom("nil");undef=atom("undef");K[SMAX-1]=*S=*K=error
-  =atom("*ERROR*");proto=atom("__proto__");
+void inittypes() {nil=typatom(-512,"nil");undef=atom("undef");
+  K[SMAX-2]=K[SMAX-1]=*S=*K=error =atom("*ERROR*");proto=atom("__proto__");
   assert(DAT(nil)==nilo); }
 
 int deq(D a, D b) { return d2u(a)==d2u(b); }
@@ -129,7 +143,6 @@ int deq(D a, D b) { return d2u(a)==d2u(b); }
 char typ(D d) { int t= TYP(d); return !isnan(d)?(d==L d?'i':'f'):deq(t,nil)?
   'N':deq(t,undef)?'U':deq(d,error)?'E':t==TATM?'A':t==TSTR?'S':t==TOBJ?'O':
   t==TCONS?'C':t==TNAN?'n':t==TENV?'E':0; }
-
 
 // TODO: it's not aligned
 // AtomValPTR is used as address to global var storage in M
@@ -168,7 +181,7 @@ dstr sncat(dstr s, char* x, int n) {int i=s?strlen(s):0,l=(x||n<0)?strlen(x):0;
 D newstr(char* s,int n){ ss[sn]=sncat(0,s?s:"",n); return u2d(BOX(TSTR,sn++)); }
 
 char* dchars(D d) { int t=TYP(d), x=DAT(d);
-  return t==TATM? (x&0xffffffff)+hp+1: t==TSTR? (char*)ss[x]: 0;}
+  return t==TATM? (x&0x3fffff)+hp+1: t==TSTR? (char*)ss[x]: 0;}
 
 // TODO: length of $" char* ?
 int dlen(D f) { char* r= dchars(f); return r?strlen(r):TYP(f)==TOBJ?((D*)PTR(TOBJ,f))[3]:0;}
