@@ -4,16 +4,22 @@
 char *V[NV]= {0}, *R[128]= {0}, *A[NV]= {0}; int nv= 0;
 
 // TODO: nv++ and nr? hmmm
-void newV(int nr) { nv++; assert(nv<NV); free(V[nr]); V[nr]=0; free(A[nr]); A[nr]= 0; }
+void newV(int nr) { nv++; assert(nv<NV); free(V[nr]); V[nr]=0;
+  P("\nnewV: %d DELETE '%s'\n", nr, A[nr]);
+  free(A[nr]); A[nr]= 0; }
 
 //int eor(char* r) { return !r || !*r || *r=='\n' || *r=='\r' || *r=='|' && r[-1]!='\\'; }
 
 int eor(char* r) { return !r || !*r || *r=='|' && r[-1]!='\\'; }
 
 // find start of attr val string
-char* attrval(int nr, char a) { for(int i=nr+1;i<NV;i++){ char* s= A[i];
+char* attrval(int nr, char a) {
+  for(int i=0;i<NV;i++){ char* s= A[i]; // DEBUG
+    if (s || V[i]) P("...A[%d]='%s'\t V[%d]='%s'\n", i, s, i, V[i]); } // DEBUG
+  
+  for(int i=nr+2;i<NV;i++){ char* s= A[i];
     // TODO: not MAXRES...
-    DEBUG(if (debug) if (s) printf("find.A[%d] = '%s'\n", i, s));
+    DEBUG(if (debug) if (s) printf("find:%c A[%d] = '%s'\n", a, i, s));
     while(s&&*s&&(s=strchr(s, ' ')))if(s[1]==a&&s[2]=='=') return s+3; else s++;
   }
   return 0;
@@ -32,27 +38,34 @@ char* pR(char* r, char* s, int n) { nv++; return parseR(*r, s, n); }
 
 // Generate (add to *G) from [Rule] stop at ENDchar nr being $0 V[NR]
 int gen(char** g, char* r, char end, int nr) { int n, l; char *or=r, *v, *e;
+  debug+=5; // DEBUG
 DEBUG(if (debug>3) printf("GEN: '%s'\n", r));
-while(*r && *++r!=end && *r) { switch(*r){
-  case'$': r++;
+while(*r && *++r!=end && *r) {
+  DEBUG(  P("GEN.next: '%s'\n", r));
+  switch(*r){
+  case'$': r++; n=0;
     if (*r=='#') { char e[]={ ln+'0', 0 }; *g=sncat(*g,e,-1); break; }
     else if (*r==':') { char s[10]= {0}; r++; v= V[*r-'0'+nr+1]; n= findvar(v);
       if (!n) {	printf("\nReferenceError: %s is not defined\n", v); return 0; } //exit(1); } // TODOL: longjmp(err);
-      if (n>0) sprintf(s, "%d", n); else sprintf(s, "`%d", ln+n+1);
+      if (n>0) sprintf(s, "%d", n); else sprintf(s, "`%d", ln+n+1); // DEBUG
       *g=sncat(*g,s,-1); break;
-    } else if(isdigit(*r)){ v=V[*r-'0'+nr+1]; l=-1; } else if (isalpha(*r)) {
-    DEBUG(if (debug) printf("ATTRVAL= '%s'\n", r))
-    e= v= attrval(nr, *r); if (!e) break; while(*e && *++e && *e!=' '){}; l= e-v;
-   } else if ((e=strchr("\"\"''(){}[]<>", *r)) && isdigit(*++r)) { // $"1 quoted
-    v= V[*r-'0'+nr+1]; *g= sncat(*g, e+0, 1);
-    DEBUG(if (debug>1) printf("GEN e=%s r=%s v=%s \n", e, r, v)); // DEBUG
-    while(*v){ if(*v==e[1]) *g=sncat(*g,"\\",1); *g=sncat(*g,v++,1); } v=e+1;l=1;
-  } else { break; /* ERROR */ }
-   *g= sncat(*g, v, l); break;
+    } else if(isdigit(*r)){ v=V[*r-'0'+nr+1]; l=-1; } else if (isalpha(*r)||*r=='$') {
+      if (*r=='$') { n=r[1]-'0'-1;r+=2; }
+      DEBUG(if (debug) printf("ATTRVAL= %d %d '%s'\n", n, nr+n, r-3));
+      e= v= attrval(nr+n-3, *r); if (!e) break; while(*e && *++e && *e!=' '){}; l= e-v;
+    } else if ((e=strchr("\"\"''(){}[]<>", *r)) && isdigit(*++r)) { // $"1 quoted
+      v= V[*r-'0'+nr+1]; *g= sncat(*g, e+0, 1);
+      DEBUG(if (debug>1) printf("GEN e=%s r=%s v=%s \n", e, r, v)); // DEBUG
+      while(*v){ if(*v==e[1]) *g=sncat(*g,"\\",1); *g=sncat(*g,v++,1); } v=e+1;l=1;
+    } else { break; /* ERROR */ }
+
+    // used by many branch, unl break
+    *g= sncat(*g, v, l); break;
   case '\\': r++; default: *g= sncat(*g, r, 1);
   }
-  DEBUG(if (debug>2) printf("  V[%d]='%s'\n", nr, *g));
+  DEBUG(if (debug>2) printf("  [%d]='%s'\n", nr, *g));
   }
+ debug-=5;
   return r-or;
 }
 
@@ -87,7 +100,7 @@ Z':': switch(x=r[1]) {
   Z'E': enterframe(); oln=ln; r+=2; Z'X': exitframe(); ln=oln; r+=2;
   Z':': case'=': { char *name= 0; r+= 1; r+= gen(&name, r, ' ', nr);
    if (x=='=' || !frame) setvar(name); else x=newvar(name); } 
-  goto next; default: A[nr]= sncat(A[nr], " ", 1); r+= 1+gen(A+nr, r, ' ', nr); }
+   goto next; default: A[nr]= sncat(A[nr], " ", 1); r+= 1+gen(A+nr, r, ' ', nr); }
 Z'?':case'+':case'*':x=*r++;newV(nr);while(s&&*s){p=s;s=parse(R[*r],s,-1,nr, *r);
   if(x=='?'){r++;s=s?s:p;goto next;}if(x=='+'&&!s)goto fail;}  r++;s=s?s:p;
 // -- % qoting/charclass

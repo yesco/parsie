@@ -19,7 +19,7 @@ int debug= 0; // DEBUG
 int xalf=0; char rule=0,last=0; int dlm= '\n';
 
 void alfie(char* a) { if (!a) return;
-  if (xalf || debug>1) printf("\t(alf: %s)\n", a);
+  if (xalf || debug>1) printf("\talf>>>%s<<<\n", a);
   if (xalf>1) return;
   D* s= S; alf(opt(a), 0, 0, 0);
   if (s!=S) { P("\nResult: "); for(s++;s<=S;s++) dprint(*s); pc('\n'); }

@@ -106,8 +106,15 @@ It is possible to set one character attributes, these are also cleared at each b
     > sizeof(char)
     1
    
-NOTE: imlemented but not yet used.
+If you want to get a specific results attribute you can use:
 
+    > A=a :z=1
+    > B=b :z=1
+    > C=c :z=1
+    > X=A B C [$$1z $$2z $$3z]
+    > ?X
+    > a b c
+    
 ## Actions
 
 All these parsing functionality so far mentioned has been purely translational. Now, to handle scope, bindings, and variables in a sensible manner, we introduce *actions*. These are *NOT* retractable during parsing - even partial matches will run the rules and does not (currently) reset at choice of a different OR-branch that matches.

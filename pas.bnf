@@ -75,18 +75,39 @@ Z= = | <> [z] | <= [>z] | < | >= [<z] | >
 # TODO: E Z E may not work
 C= E Z E [$1 $3 $2] | not C [$1~] | C and C [$1 $2 &]
 
-# types...
-Q= integer :t=i8 | char :t=c1 | string :t=s | real :t=r
 
+# types...
+Q= integer :t=i :z=8 [#T_i]
+ | char :t=c :z=1 :l=0 :h=255 [#T_c]
+ | string :t=s :z=8 [#T_s]
+ | real :t=d :z=8 [#T_d]
+# sum/concat how mnay layers ;)
+# TODO: $.t concat all $t
+# TODO: $+z sum all $z
+# | record X end :t=$.t :z=$+z [#^ $1 #Z_size $z #: d.]
+ | record X end :t=R :z=100 [#^ $1 d cc #Z_size s #:]
+# | array\[Q\] of Q :t=A$t :z=8*$z :l=$l :h=$h [#^ $2 #, #A_lo $l #: #A_hi $h #: d 0 s #@ #Z_size s #@ $h $l - * #Z_size s #: ]
+ | array\[Q\] of Q :t=A$t :z=$z :l=$l :h=$h [#^ $2 #, #A_lo $l #: #A_hi $h #: $$2z s #@ $h $l - * #Z_size s #: ]
+ | N :t=$t [#T_$1]
+ | D\.\.D :l=$1 :h=$2 :t=i :z=8 [I\[$1,$2\]]
+ 
+X= N\:Q; X [dcc #o_$1 s #: #$1 #, #$1 $2 #: $3] |
+
+ 
 # var...; var... ; lol TODO: only one, and many vars
-V= var N\:Q=E; ::$1 V [$3 $:1! $4] | var N\:Q; V ::$1 [$3] |
+V= var N\:Q=E; ::$1 V [$3 $:1! $4]
+ | var N\:Q; V ::$1 [$3]
+ |
 
 # let
 L= N\:=E :=$1 [$2 $:1!]
 
 I= if C then S else S [$1?{$2}{$3}] | if C then S [$1?{$2} ]
 
-M= write\(K\) [$1] | write\(E\) [$1.] | writeln\(K\) [$1cr] | writeln\(E\) [$1.cr]|
+M= write\(K\) [$1]
+ | write\(E\) [$1.]
+ | writeln\(K\) [$1cr]
+ | writeln\(E\) [$1.cr]|
 
 # formal arguments declaration
 #   TODO: add types
@@ -105,7 +126,19 @@ A= E R [$1 $2] |
 F= N\(A\) [$2$1]
 
 # statement is
-S= B [$1] | \Exit E; [^] | \Exit [^]; | \Result\:\=E; [$1] | result:=E; [$1] | M; [$1] | L; [$1] | I [$1] | repeat G until C [--REPEAT--] | while E do S [--WHILE--] | for N:=E to E [--FOR--] | for N:=E downto E [--FOR--] | F; [$1]
+S= B [$1]
+ | \Exit E; [^]
+ | \Exit [^];
+ | \Result\:\=E; [$1]
+ | result:=E; [$1]
+ | M; [$1]
+ | L; [$1]
+ | I [$1]
+ | repeat G until C [--REPEAT--]
+ | while E do S [--WHILE--]
+ | for N:=E to E [--FOR--]
+ | for N:=E downto E [--FOR--]
+ | F; [$1]
 
 # BEGIN END grouping of statement
 G= S G [$1 $2] | ; |

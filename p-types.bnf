@@ -40,7 +40,6 @@
 # N:coord ==> T:R_=coord;
 # R:coord ==> T:R_:{d8=x;d9=y;}
 
-
 # quantifier
 Q= ^Q | O [$1] | R [$1] | A [$1] | E [$1] | U [$1] | F [$1] | P [$1] | M [$1] | D [$1]
 
@@ -54,7 +53,8 @@ S= %d...%d [R$1,$2 ] | %'...%' [R$1,$2 ]
 
 # complex objects
 
-R= record *;Q end [C($1)]
+X= :Q;
+R= record X end [C($1)]
 # TODO: multi-dimensional array
 A= array[S] of Q [A$1 $2]
 
