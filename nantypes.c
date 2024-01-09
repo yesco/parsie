@@ -12,26 +12,25 @@
 // - TFUN ? - TODO: closuresfunctions
 
 // === ATOMS:
-// Atoms have constant time:
-// - printing name
-// - getting global var offset
-// 
-// An atom encodes [TATM, n, hp-offset]
-//                  12b  20b   32b
+// Atoms have special functions:
+// - printing name (constant time)
+// - getting global var offset (constant time)
+// - use to calculate scopes during oompile
 //
-// An atom: [TATM, typ, n, hp-offset]
+// 
+// An atom: [TATM, OFS, n, hp-offset]
 //           16b   10b 16b   22b
 //            (- 64 16 10 16) 
-//            (** 2 22) = 4MB const strings
-//            (** 2 16) = 64K symbols
+//            (** 2 22) = 4 MB const strings
+//            (** 2 16) = 6 4K symbols
 //
-// - typ number
-//   2^9=512 types, 1 bit==ptr
+// - OFS number [511..512]
+//   2^9=1024 VALUES 5 lex scopes
 // - n is the linear number of atom
 //   (nil=0, undef-1 ...)
 //     16b = 64K max
 // - the name is stored in hp heap
-//     26b = 64 MB addressing
+//     22b = 4 MB addressing
 
 // === STRINGS
 // (see str.c)
@@ -113,13 +112,12 @@ void prnames() { char* p= hp; printf("\n"); while(*p) { D* d= (D*)(p+1+strlen(p+
 
 // Return a data atom from String
 // empty string returns nil
-D typatom(long typ, char* s){if(!s||!*s)return nil; typ+=512; assert(typ>=0 && typ<0x3ff);
-  //printf(" [TYP=%ld] ", typ);
-  long x=nameadd(s); D a=u2d(BOX(TATM,(x<0?-x:x)|(typ<<(22+16))));
+D ofsatom(long ofs, char* s){if(!s||!*s)return nil; ofs+=512; assert(ofs>=0 && ofs<0x3ff);
+  long x=nameadd(s); D a=u2d(BOX(TATM,(x<0?-x:x)|(ofs<<(22+16))));
   if (x<=0) { x=-x; *C++= a; long n= (x>>22)&0xffff; *C++= n<3?a:undef; }
-  if (typ<512) { *--Y= undef; *--Y= a; } return a; }
+  if (ofs<512) { *--Y= undef; *--Y= a; } return a; }
 
-D atom(char* s) { return typatom(0, s); }
+D atom(char* s) { return ofsatom(0, s); }
 
 // Search scoped 8atom:
 //   1:st in local scope stack
@@ -130,11 +128,11 @@ D varatom(char* s) { D a= atom(s); char* c= dchars(a);
 
 // global var storage location
 long atomaddr(D a) { return 1+2*((DAT(a)>>22)&0xffff); }
-long atomtyp(D a) { return ((DAT(a)>>(22+16))&0x3ff)-512; }
+long atomofs(D a) { return ((DAT(a)>>(22+16))&0x3ff)-512; }
 // return 1+2*(d2u(a)>32)&0x1ffff; }
 
 // TODO: "ERROR"
-void inittypes() {nil=typatom(-512,"nil");undef=atom("undef");
+void inittypes() {nil=ofsatom(-512,"nil");undef=atom("undef");
   K[SMAX-2]=K[SMAX-1]=*S=*K=error =atom("*ERROR*");proto=atom("__proto__");
   assert(DAT(nil)==nilo); }
 
