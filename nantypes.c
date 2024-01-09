@@ -159,7 +159,7 @@ typedef char* dstr; dstr ss[ZZ]={0}; char sr[ZZ]={0}; int sn=1;
 // Returns S or a new pointer.
 //  
 // TODO: not safe if x not ZeroTerminated...
-dstr sncat(dstr s, char* x, int n) { int i= s?strlen(s):0, l= x?strlen(x):0;
+dstr sncat(dstr s, char* x, int n) {int i=s?strlen(s):0,l=(x||n<0)?strlen(x):0;
   if (n<0 || n>l) n= l; s= realloc(s, 1024*((i+n+1024)/1024)); s[i+n]= 0;
   return strncpy(s+i, x?x:"", n), s;
 }
