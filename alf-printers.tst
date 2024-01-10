@@ -18,7 +18,7 @@ cr"--- stringify"cr
 42 cs p cr
 c"foo" cs p cr
 #foo cs p cr
-'f cC p 'o cC p 'o cC p cr
+'f ce p 'o ce p 'o ce p cr
 #^ cs p "    ==< obj"cr
 
 cr"---formatted strings"cr
@@ -35,6 +35,10 @@ cr"---quoted stringify"cr
 c"foo" cq p cr
 #foo cq p cr
 #^ cq p "    ==< obj"cr
+
+cr"---chain appends"cr
+c"foo" '- cae #bar cas ': ca%3c 42 ca%018.18g 64 cae 666 cas c"burp" caq p cr
+
 cr
 cr
 

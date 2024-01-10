@@ -50,9 +50,9 @@ D lxfind(D a){D*s=S,f=atom("__"),n=0;char*x=dchars(a); while(--s>K+2) if(isatom(
 //
 // Returns next position to parse from
 //   NULL if done/fail (loop/if)
-char* alf(char*p, D* A,int n,int iff) {long x,c;char*e=NULL,*d;if(!p)return 0;
+char* alf(char*p,D*A,int n,int iff){long x;char*e=0,*s,c;D d;if(!p)return 0;
 DEBUG(P("\n===ALF >>>%s<<<\n", p))
-next: DEBUG(prstack();pc('\n');P("\t  '%c'\n",*p))
+next: DEBUG(prstack();P("\t>%.10s ...\n",p));
 x=0;nn++;switch(*p++){case 0:case';':case')':case']':return p;Z' ':Z'\n':Z'\t':Z'\r':
 // - stack
 Z'd':S[1]=*S;S++;Z'\\':S--;Z'o':S[1]=S[-1];S++;Z's':{D d=*S;*S=S[-1];S[-1]=d;}
@@ -87,17 +87,30 @@ Z'h': U=H-M; Z'm':x=*S;*S=H-M;H+=x; Z'a':H+=L POP;
 Z'g': case ',': align(); if (p[-1]=='g') goto next; memcpy(H,&POP,SL); H+=SL;
 Z'@': *S= *(D*)m(*S,A,n); Z'!': *(D*)m(*S,A,n)= S[-1]; S-=2;
 // -- cX - char | string
-Z'c': switch(c=*p++){ Z'r':pc('\n'); Z'c':*S=dlen(*S); Z'=':S--;*S=dcmp(*S, S[1]);
+Z'c': s=0;switch(c=*p++){ Z'r':pc('\n'); Z'c':*S=dlen(*S); Z'=':S--;*S=dcmp(*S, S[1]);
   Z'"':case'\'':x=p[-1];e=p;while(*p&&*p!=x)p++;U=newstr(e,p++-e);
-  
-  #define SP(P) do{*S=newstr(e=P,-1);free(e);}while(0)
-  Z'e':{char s[]={*S,0};*S=newstr(s,-1);} Z's':SP(sdprinc(0,*S));
-  Z'q':SP(sdprinq(0,*S)); Z'%':{e=p-1;while(*p&&!isspace(*p))p++;
-    char* f=strndup(e,p-e);SP(sdprintf(0,f,*S));free(f);}
   // c?=charclass c1=first char
   // Z'?':case'1':x=*S;if(isnan(*S)){e=dchars(*S);x=e?*e:0;};if(c=='1'){U=x;break;}
   //*S= isalpha(x)?'a':isdigit(x)?'d':isspace(x)?'s':x=='_'?'_':'o';
-}
+
+  // TODO: need to free e???
+
+  /// > ./alf -d <alf-printers.tst
+
+  // but for ca% ???? errro
+  #define SP(P) do{*S=newstr(e=P,-1);}while(0)
+
+  //#define SP(P) do{*S=newstr(e=P,-1);free(e);}while(0)
+
+  // TODO: buffer "type" to not create things for the GC?
+  Z'a':{d=POP;s=sncat(0,dchars(POP),-1);U=d;c=*p++;case'e':case's':case'q':case'%':switch(c){
+    Z'b':{char a[]={' ',0};SP(sncat(s,a,-1));} // TODO: use c fix sncat
+    Z'e':{char a[]={*S,0};SP(sncat(s,a,-1));} // TODO: use c fix sncat
+    Z'q':SP(sdprinq(s,*S)); Z'%':P("<hello>");{e=--p;while(*p&&!isspace(*p))p++;
+	char* f=strndup(e,p-e);SP(sdprintf(s,f,*S));free(f);}
+    case's':p++;default:p--;SP(sdprinc(s,*S));}}}
+      //    goto next;default:p-=2;goto error;}}}
+
 // -- printing
 Z'.': dprint(POP);pc(' '); Z'e':pc(POP); Z't':P("%*s.",(int)*S,M+L S[-1]);S-=2;
 Z'p': dprint(POP); Z'\'': U= *p++; Z'"': while(*p&&*p!='"')pc(*p++); p++;
@@ -133,13 +146,17 @@ default: error: P("\n[%% Undefined op: '%s']\n", p-1);p++;} goto next;
 // Simple peep-hole optimization
 //
 // Removes extra spaces-fib 19-27% faster!
+// CAVEAT: generally not a good idea...
 // 
 // TODO: doesn't rem spc in >c"fooo" 35<
 // TODO: `1@ == $1
 // TODO: #foo => base 128 number
+// TOOD: 'f ... might get ignored till '?
+// 
 char* opt(char* p) { char *s= p; while(s&&s[0]&&s[1]&&s[2]){switch(s[0]){
+  case'$':s++;break;
   case'"':while(*s&&*++s!='"'){}break;case'#':case')':s++;parsename(&s);break;
-    case'c': if(s[1]=='%')while(*s&&!isspace(*s))s++; break;
+  case'c': if (s[1]=='a')s++; if(s[1]=='%'){while(*s&&!isspace(*s))s++;break;} if(isspace(s[1]))s++; break;
   case'`': break; case'0'...'9': if(isdigit(s[2]))break;
   default: if(!isspace(s[1])) break; memmove(s+1, s+2, strlen(s+2)+1);continue;
   } s++; } DEBUG(P("\n%s\n", p)); return p; }
@@ -375,8 +392,13 @@ char* opt(char* p) { char *s= p; while(s&&s[0]&&s[1]&&s[2]){switch(s[0]){
     cs - stringify to managed string
     c%1s - snprintf stringify mngd str
          ( C%8.g C%1s )
-
-  ( ca - append 2 mngd str->mngd )
+    (- same in append mode )
+  ( ca - ambigious TODO:? )
+    cae - append char
+    caq - append quoted
+    cas - append stringified
+    c%1s - append snprintf...
+    
   ( cm - cmove ? TODO: )
   ( c= - compare strings/all -1 0 +1 )
 

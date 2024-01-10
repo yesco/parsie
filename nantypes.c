@@ -204,6 +204,7 @@ dstr sdprinq(dstr s, D d) {if (isatom(d)) s= sncat(s,"#",-1);char* p= dchars(d);
   if (isstr(d)) s= sncat(s,"\"",-1); return  s; }
 
 // Return a new str from char* S take N chars.
+// TODO: GC and freelist... LOL
 D newstr(char* s,int n){ ss[sn]=sncat(0,s?s:"",n); return u2d(BOX(TSTR,sn++)); }
 
 char* dchars(D d) { int t=TYP(d), x=DAT(d);
