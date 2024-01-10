@@ -180,22 +180,15 @@ dstr sncat(dstr s, char* x, int n) {int i=s?strlen(s):0,l=(x||n<0)?strlen(x):0;
 
 // --- printers
 // s=sdprinc(s,,D)   - stringify
-// s=_sdprinq(s,D)    - quote "
 // s=sdprinq(s,D)    - "foo" if str #atm
 // s=sdprintf(s,f,D) - printf(f,D)
 
+////////////////////////////////////////////////////////////////////////////////  
 dstr sdprintf(dstr s, char* f, D d) {char*x=dchars(d);
-  if (x) {
-    int n= snprintf(0,0,f,x);
-    char q[n+1];
-    snprintf(q,sizeof(q),f,x);
-    return sncat(s,q,-1);
-  }
-  int n= snprintf(0,0,f?f:"%.8g",d);
-  char q[n+1];
-  snprintf(q,sizeof(q),f?f:"%.8g",d);
-  return sncat(s,q,-1);
-}
+  if(x) {int n= snprintf(0,0,f,x); char q[n+1];
+    snprintf(q,sizeof(q),f,x); return sncat(s,q,-1);}
+  int n= snprintf(0,0,f?f:"%.8g",d); char q[n+1];
+  snprintf(q,sizeof(q),f?f:"%.8g",d); return sncat(s,q,-1); }
 
 dstr sdprinc(dstr s, D d) {char*x=dchars(d);
   return x?sncat(s,x,-1):sdprintf(s,0,d); }
@@ -205,10 +198,10 @@ dstr _sdprinq(dstr s, D d) { dstr v= sdprinc(0,d),p=v;
   while(p&&*p){if(*p=='"')s=sncat(s,"\\",1);s=sncat(s,p++,1);}free(v);return s;}
 
 // TODO: #atom
-dstr sdprinq(dstr s, D d) {if (isatom(d)) s=sncat(s,"#",1);dstr v=sdprinc(0,d);
-  if (isstr(d)){char*p=v;s=sncat(s,"\"",1);while(*p){if(*p=='"')s=sncat(s,"\\",1);s=sncat(s,p++,1);}
-      free(v);return sncat(s,"\"",1);}
-  return v;}
+dstr sdprinq(dstr s, D d) {if (isatom(d)) s= sncat(s,"#",-1);char* p= dchars(d);
+  if (isstr(d)) s= sncat(s,"c\"",-1); if (!p) s= sdprinc(s,d); else
+    while(*p){ if(*p=='"')s=sncat(s,"\\",1); s=sncat(s,p++,1); }
+  if (isstr(d)) s= sncat(s,"\"",-1); return  s; }
 
 // Return a new str from char* S take N chars.
 D newstr(char* s,int n){ ss[sn]=sncat(0,s?s:"",n); return u2d(BOX(TSTR,sn++)); }

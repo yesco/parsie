@@ -91,20 +91,16 @@ Z'c': switch(c=*p++){ Z'r':pc('\n'); Z'c':*S=dlen(*S); Z'=':S--;*S=dcmp(*S, S[1]
   Z'"':case'\'':x=p[-1];e=p;while(*p&&*p!=x)p++;U=newstr(e,p++-e);
   
   #define SP(P) do{*S=newstr(e=P,-1);free(e);}while(0)
-  Z'e':{char s[]={*S,0};*S=newstr(s,-1);}
-  Z's':SP(sdprinc(0,*S));
-  Z'q':SP(sdprinq(0,*S));
-  Z'%':{e=p-1;while(*p&&!isspace(*p))p++; char* f=strndup(e,p-e);SP(sdprintf(0,f,*S));free(f);}
+  Z'e':{char s[]={*S,0};*S=newstr(s,-1);} Z's':SP(sdprinc(0,*S));
+  Z'q':SP(sdprinq(0,*S)); Z'%':{e=p-1;while(*p&&!isspace(*p))p++;
+    char* f=strndup(e,p-e);SP(sdprintf(0,f,*S));free(f);}
   // c?=charclass c1=first char
   // Z'?':case'1':x=*S;if(isnan(*S)){e=dchars(*S);x=e?*e:0;};if(c=='1'){U=x;break;}
   //*S= isalpha(x)?'a':isdigit(x)?'d':isspace(x)?'s':x=='_'?'_':'o';
 }
 // -- printing
-Z'.': dprint(POP);pc(' '); Z'e':pc(POP); 
-	   
-Z't': P("%*s.",(int)*S,M+L S[-1]);S-=2;
-Z'\'': U= *p++; Z'"': while(*p&&*p!='"')pc(*p++); p++;
-  Z'p': dprint(POP);
+Z'.': dprint(POP);pc(' '); Z'e':pc(POP); Z't':P("%*s.",(int)*S,M+L S[-1]);S-=2;
+Z'p': dprint(POP); Z'\'': U= *p++; Z'"': while(*p&&*p!='"')pc(*p++); p++;
 // -- hash/atoms/dict
 Z'#': switch(*p++){ Z'a'...'z':case'A'...'Z':case'_':p--;U=atom(parsename(&p));
   Z',': S--;set(*S,dlen(*S),S[1]); Z':': S-=2;set(*S,S[1],S[2]);

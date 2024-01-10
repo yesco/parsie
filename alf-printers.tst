@@ -35,4 +35,6 @@ cr"---quoted stringify"cr
 c"foo" cq p cr
 #foo cq p cr
 #^ cq p "    ==< obj"cr
+cr
+cr
 
