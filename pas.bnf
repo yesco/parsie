@@ -102,7 +102,7 @@ V= var N\:Q=E; ::$1 V [$3 $:1! $4]
 # let
 L= N\:=E :=$1 [$2 $:1!]
 
-I= if C then S else S [$1?{$2}{$3}] | if C then S [$1?{$2} ]
+I= if C then S else S [$1?\{$2\}\{$3\}] | if C then S [$1?\{$2\} ]
 
 M= write\(K\) [$1]
  | write\(E\) [$1.]

@@ -68,6 +68,18 @@ void initmem(size_t sz) { K=calloc(KSZ,SL);S=K+1; C=K+SMAX;Y=C-2;
   M=calloc(mmax=sz,1);H=M+1024; }
 
 // ENDWCOUNT
+
+extern int dprint(double); // FORWARD
+
+void dump() { char* M= (void*)C;
+  for(int i=0; i<*S;) { int n= S[-1]; P("\n%04x ", n);
+    for(int j=0;j<8;j++) P("%02x%*s", M[n+j], j==3, "");  P("  ");
+    for(int j=0;j<8;j++) P("%c", M[n+j]?(M[n+j]<32||M[n+j]>126?'?':M[n+j]):'.');
+    double d= *(double*)(M+n);
+    //x=TYP(d); if ((x&0x0ff8)==0x0ff8) {
+    //if (x>32*1024) x=-(x&7); else x= x&7; } else x=0; P(" %2ld:", x);
+    dprint(d);S[-1]+=8;i+=8;} P("\n");extern void prstack(); prstack(); }
+
 void prK() {
   char*e=0; size_t z=0; long n=0, a=0;
   do { int p=0;
@@ -87,7 +99,6 @@ void prK() {
       if (a%2==0) P("\n   %5ld : ", a);
       n++;
 
-      extern int dprint(double);
       P("%*s", 10-dprint(d), " ");
 
       if (d==0 && !K[a+1]) { n=0; }

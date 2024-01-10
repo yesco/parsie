@@ -76,7 +76,7 @@ const long TNAN=0x7ff8,TATM=0x7ffa,TSTR=0xfffb,TOBJ=0xfffc,TCONS=0xfffe,TENV=0xf
 //,TCONS=0xfffe,TCLOS=0xffff;
 
 // TODO: isnan isn't working, and atom > number!!!
-int ISNAN(double d) {unsigned long x=d2u(d); return (TYP(d)&TNAN)==TNAN; }
+int ISNAN(double d) { return (TYP(d)&TNAN)==TNAN; }
 
 // TODO? unify with svar + K + M ???
 
@@ -138,6 +138,9 @@ void inittypes() {nil=ofsatom(-512,"nil");undef=atom("undef");
 
 int deq(D a, D b) { return d2u(a)==d2u(b); }
 
+#define TT(nm, t) int nm(D d) { return TYP(d)==t; }
+TT(isatom,TATM);TT(isobj,TOBJ);TT(isstr,TSTR);TT(iscons,TCONS);//TT(isfun,TFUN);
+
 char typ(D d) { int t= TYP(d); return !isnan(d)?(d==L d?'i':'f'):deq(t,nil)?
   'N':deq(t,undef)?'U':deq(d,error)?'E':t==TATM?'A':t==TSTR?'S':t==TOBJ?'O':
   t==TCONS?'C':t==TNAN?'n':t==TENV?'E':0; }
@@ -174,6 +177,38 @@ dstr sncat(dstr s, char* x, int n) {int i=s?strlen(s):0,l=(x||n<0)?strlen(x):0;
   if (n<0 || n>l) n= l; s= realloc(s, 1024*((i+n+1024)/1024)); s[i+n]= 0;
   return strncpy(s+i, x?x:"", n), s;
 }
+
+// --- printers
+// s=sdprinc(s,,D)   - stringify
+// s=_sdprinq(s,D)    - quote "
+// s=sdprinq(s,D)    - "foo" if str #atm
+// s=sdprintf(s,f,D) - printf(f,D)
+
+dstr sdprintf(dstr s, char* f, D d) {char*x=dchars(d);
+  if (x) {
+    int n= snprintf(0,0,f,x);
+    char q[n+1];
+    snprintf(q,sizeof(q),f,x);
+    return sncat(s,q,-1);
+  }
+  int n= snprintf(0,0,f?f:"%.8g",d);
+  char q[n+1];
+  snprintf(q,sizeof(q),f?f:"%.8g",d);
+  return sncat(s,q,-1);
+}
+
+dstr sdprinc(dstr s, D d) {char*x=dchars(d);
+  return x?sncat(s,x,-1):sdprintf(s,0,d); }
+
+// quoted any " in string w \"
+dstr _sdprinq(dstr s, D d) { dstr v= sdprinc(0,d),p=v;
+  while(p&&*p){if(*p=='"')s=sncat(s,"\\",1);s=sncat(s,p++,1);}free(v);return s;}
+
+// TODO: #atom
+dstr sdprinq(dstr s, D d) {if (isatom(d)) s=sncat(s,"#",1);dstr v=sdprinc(0,d);
+  if (isstr(d)){char*p=v;s=sncat(s,"\"",1);while(*p){if(*p=='"')s=sncat(s,"\\",1);s=sncat(s,p++,1);}
+      free(v);return sncat(s,"\"",1);}
+  return v;}
 
 // Return a new str from char* S take N chars.
 D newstr(char* s,int n){ ss[sn]=sncat(0,s?s:"",n); return u2d(BOX(TSTR,sn++)); }

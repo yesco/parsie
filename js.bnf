@@ -128,7 +128,7 @@ V= var N=E; ::$1 V [$2 $:1! $3]
  | var N; V ::$1 [$2]
  |
 
-I= if \(C\) S else S [$1?{$2}{$3}] | if \(C\) S [$1?{$2} ]
+I= if \(C\) S else S [$1?\{$2\}\{$3\}] | if \(C\) S [$1?\{$2\} ]
 
 # formal arguments declaration
 #   TODO: add types

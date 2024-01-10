@@ -2,6 +2,11 @@
 //
 // 
 
+////////////////////////////////////////////////////////////////////////////////
+// not as generic as I like to think?
+//int till(char c, char** p, char q) { int n=0;
+//  while(*p && **p && *(*p)++!=c) if (**p==q)(*p)++,n++; n++; return n; }
+
 // Results and Attributes
 #define NV 256
 char *V[NV]= {0}, *R[128]= {0}, *A[NV]= {0}; int nv= 0;
@@ -39,8 +44,14 @@ DEBUG(if (debug>3) printf("GEN: '%s'\n", r));
 while(*r && *++r!=end && *r) {
   DEBUG(  P("GEN.next: '%s'\n", r));
   switch(*r){
+  case'{':v=0;r+=1+gen(&v,r,'}',nr);alf(v,S,n,0);free(v);
   case'$': r++; n=0;
-    if (*r=='#') { char e[]={ ln+'0', 0 }; *g=sncat(*g,e,-1); break; }
+    // TODO: literal text //if (*r=='$') //
+    if (*r=='.') { r++;*g=sncat(*g,"\"before>>>\"",-1);
+			    *g=sdprinc(*g,POP);
+			    *g=sncat(*g,"\"<<<after\"",-1); break;;
+    }
+    else if (*r=='#') { char e[]={ ln+'0', 0 }; *g=sncat(*g,e,-1); break; }
     else if (*r==':') { char s[10]= {0}; r++; v= V[*r-'0'+nr+1]; n= findvar(v);
       if (!n) {	printf("\nReferenceError: %s is not defined\n", v); return 0; } //exit(1); } // TODOL: longjmp(err);
       if (n>0) sprintf(s, "%d", n); else sprintf(s, "`%d", ln+n+1); // DEBUG
@@ -90,7 +101,9 @@ char* parse(char* r,char* s,int n, int nr,char cur){char *p=0, *os=s, *t, *m;
 DEBUG(if (debug>3)printf("     next '%s' (%d)\n\t   of '%s' left=%d\n",r,*r,s,n));
 switch(*r){case 0: case '|': return s;
 #define Z goto next; case 
-Z'[': r+= 1+gen(V+nr, r, ']', nr); Z'(': Z'{': assert(!"TODO: implement");
+  Z'[':r+=1+gen(V+nr,r,']',nr); Z'(':
+  Z'{':t=0;r+=1+gen(&t,r,'}',nr);alf(t,S,n,0);free(t);
+
 // -- actions
 Z':': switch(x=r[1]) {
   Z'E': enterframe(); oln=ln; r+=2; Z'X': exitframe(); ln=oln; r+=2;
