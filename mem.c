@@ -61,8 +61,14 @@ extern char* dchars(double); // FORWARD
 // ^^^^^^^ ^^^^^^ ^^^^^^^       ^^^^^^^^
 // K-<S>-<Y>-(SMAX)-<C>-(SMAX+VMAX)-(KSZ)
 
-void* m(double d, double* A, int n) {long x=L d;if(isnan(d))return dchars(d);
-  return x<0?A-x-1:(x>MLIM?M+x-MLIM:x<KSZ-SMAX?(void*)(K+SMAX+x):0); }
+extern long atomaddr(double); // FORWARD
+void* m(double d, double* A, int n) {long x=L d;if(isnan(d))return m(atomaddr(d),A,n);
+  return x<0?A-x-1:(x>=MLIM?M+x-MLIM:x<KSZ-SMAX?(void*)(K+SMAX+x):0); }
+
+// TODO: hmmm, not so useful for debug?
+//void w(void* p,double v){if(p&&(p>=(void*)K&&p<(void*)(K+KSZ))||(p>=(void*)M&&p<(void*)(M+mmax)))*(D*)p=v;
+//  else{printf("\nERROR: w() to address outof bounds: %p", p);}
+
 
 void initmem(size_t sz) { K=calloc(KSZ,SL);S=K+1; C=K+SMAX;Y=C-2;
   M=calloc(mmax=sz,1);H=M+1024; }

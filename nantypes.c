@@ -208,7 +208,7 @@ int ISNAN(double d) { return (TYP(d)&TNAN)==TNAN; }
 // TODO? unify with svar + K + M ???
 
 #define HPSIZE 16*1024
-char hp[HPSIZE]= {0}; int nilo=0; D nil, undef, error, proto;
+char hp[HPSIZE]= {0}; int nilo=0; D nil, undef, error, proto, NaN, Infinity;
 
 // TODO: global storage idea
 // - treat:SMAX..VMAX
@@ -258,11 +258,6 @@ long atomaddr(D a) { return 1+2*((DAT(a)>>22)&0xffff); }
 long atomofs(D a) { return ((DAT(a)>>(22+16))&0x3ff)-512; }
 // return 1+2*(d2u(a)>32)&0x1ffff; }
 
-// TODO: "ERROR"
-void inittypes() {nil=ofsatom(-512,"nil");undef=atom("undef");
-  K[SMAX-2]=K[SMAX-1]=*S=*K=error =atom("*ERROR*");proto=atom("__proto__");
-  assert(DAT(nil)==nilo); }
-
 int deq(D a, D b) { return d2u(a)==d2u(b); }
 
 #define TT(nm, t) int nm(D d) { return TYP(d)==t; }
@@ -272,6 +267,7 @@ char typ(D d) { int t= TYP(d); return !isnan(d)?(d==L d?'i':'f'):deq(t,nil)?
   'N':deq(t,undef)?'U':deq(d,error)?'E':t==TATM?'A':t==TSTR?'S':t==TOBJ?'O':
   t==TCONS?'C':t==TNAN?'n':t==TENV?'E':0; }
 
+// TODO: remove?
 // TODO: it's not aligned
 // AtomValPTR is used as address to global var storage in M
 // TODO: remove: use svar.c and hibit encoded offsets!
@@ -280,6 +276,25 @@ char typ(D d) { int t= TYP(d); return !isnan(d)?(d==L d?'i':'f'):deq(t,nil)?
 // Get M pointer from offset TYP
 // TODO: use m() ???
 void* PTR(int t, D o) { return TYP(o)==t?M+DAT(o):0;}
+
+void inittypes() {
+  // Order matters: first 3 == self
+  // WARNING: Do NOT change order
+  nil=ofsatom(-512,"nil");undef=atom("undef");
+  assert(DAT(nil)==nilo);
+  K[SMAX-2]=K[SMAX-1]=*S=*K=error =atom("*ERROR*");
+  // WARNING: Do NOT add above!
+
+  proto=atom("__proto__");
+
+  // TODO:
+  //   - move obj alloc from H to K
+  //   - make a special this ptr at "0"
+  //   - make obj.set/.get work w D
+  //   - (and iterators/printer)?
+  //     (any one knows NPN)
+  //this=atom("__this__");
+}
 
 // how many strings can we handle?
 // TODO: make dynamic?
@@ -315,13 +330,11 @@ dstr sncat(dstr s, char* x, int n) {int i=s?strlen(s):0,l=(x||n<0)?strlen(x):n;
 // s=sdprintf(s,f,D) - printf(f,D)
 
 ////////////////////////////////////////////////////////////////////////////////  
+// only %lf %g %s makes sense...
 dstr sdprintf(dstr s, char* f, D d) {char*x=dchars(d);
   if(x) {int n= snprintf(0,0,f,x); char q[n+1];
     snprintf(q,sizeof(q),f,x);
-    //return sncat(s,q,-1);
-    printf("P.before>%s<\n",s);
     s=sncat(s,q,-1);
-    printf("P. after>%s<\n",s);
     return s;
   }
   int n= snprintf(0,0,f?f:"%.8g",d); char q[n+1];
