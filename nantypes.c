@@ -1,15 +1,90 @@
 //80----------------------------------------------------------------------------
-// NAN-boxing and unboxing of data
+// NAN-boxing and unboxing of Data
 //
 // We're using the NAN values to encode
-// data, type info + offsets into storage.
+// data, type info + offsets into
+// storage.
+//
+// We call the datatype D here.
+// It's just a double, with extra info.
+//
+// 
+// Normal numbers in double:
+//  - 0    = encoded as 0x0
+//  + 0    = also possible, haha
+//  - int  = 54 bit int
+//  - num  = floating point double
+//  - TNAN = NaN (can be neg)
+//  - INF  = Infinity (can be neg)
 //
 // Data values knows their types:
-// - douible
-// - TATM - atoms (symbols/globals)
-// - TSTR - managed immutable strings
-// - TOBJ - JS prototypical objects
-// - TFUN ? - TODO: closuresfunctions
+//  - TATM = atoms (symbols/globals)
+//  - TSTR = managed immutable strings
+//  - TOBJ = JS prototypical objects
+//  - TARR = array & slices?
+//  - TUTS = ? TODO: Unix TS
+//  - TFUN = ? TODO: closuresfunctions
+
+
+// TECHNICAL INFORAMTION
+// =====================
+// - https://en.m.wikipedia.org/wiki/Double-precision_floating-point_format
+//
+// Doubles are encoded as:
+//
+//         2 bytes         6 bytes
+//   /-------bits------\   /--hex--\
+//   smmm mmmm mmmm 1xxx,   XXXXXX
+//   s:1    m11     x:3 + X:6*8=48
+//   s: sign bit 1=neg
+//   m: mantissa 11 bits
+//   x: 
+// NAN numbers are encoded:
+//
+//         2 bytes          6 bytes
+//   /-------bits------\    /^^^^\
+//   s111 1111 1111 1000,   000000
+//   s:1            q:1
+//
+//   s111 1111 1111 0000,   000001 NaN
+//   s111 1111 1111 1000,   000001 qNaN
+//   s111 1111 1111 1111,   FFFFFF NAN
+//
+// We're stuffing data in qNaNs:
+//
+//   s111 1111 1111 1ttt,   DDDDDD
+//
+//   0x7ff8 = is the highest bits
+//   0x7ff9 = is t=1
+//   0x7ffa = is t=2
+//   0x8ff9 = is t= -1 (?)
+//   0x8ffa = is t= -2 (?)
+//   0x7ff8000000000000
+//     s << 63, sign bit
+//        t << 48, (3bits t= 0..7)
+//         dddddddddddd == 48 bits
+//
+// We're using:
+//   s= sign bit to indicate to GC
+//   t= 0..7 indicating type
+//   d= 48 bits data, for offset
+//
+//
+
+// NEG:  used to indicate need GC
+//
+// TYPES:
+//   0: NaN         (could be used)
+//   1: -
+//   2: atom        offset atom heap
+//   3: dstr        managed strings
+//
+// Possible candidates:
+//   - short str   char[6] (==1)
+//   - void*       offset data heap
+//   6: closure     ix closure array
+//   7: function    ix func array
+//
 
 // === ATOMS:
 // Atoms have special functions:
@@ -18,28 +93,80 @@
 // - use to calculate scopes during oompile
 //
 // 
-// An atom: [TATM, OFS, n, hp-offset]
-//           16b   10b 16b   22b
-//            (- 64 16 10 16) 
-//            (** 2 22) = 4 MB const strings
-//            (** 2 16) = 6 4K symbols
+// BOX DDDDDDDDDDDDDDDD
+//     TATM............
+//         oo/nnn/hhhhh
+//     ..16|10|.16|.22.
 //
-// - OFS number [511..512]
-//   2^9=1024 VALUES 5 lex scopes
+//     TATM  = 16 bits nan-type
+//     oo/   = 10 bits ofs         1K
+//     /nnn/ = 16 bits atom seq n 64K
+//     hhhhh = 22 bits hp offset  4MB
+//     
+// - OFS number [-511..512]
+//   at first imagine as a type info
+//   now used as -frame*100 - ln
+//   local scope var "address"
+//
 // - n is the linear number of atom
 //   (nil=0, undef-1 ...)
 //     16b = 64K max
+//
 // - the name is stored in hp heap
 //     22b = 4 MB addressing
 
 // === STRINGS
-// (see str.c)
+//
+// Most scripting languages, as well
+// as PASCAL has managed strings. They
+// cannot be modified, but still have
+// rich libraries of concat/slicing.
+//
+// These are intially just boxed
+// offsets to an array of char*
+//
+// The strings stored are "dstr" which
+// dyanmically resize if neeed.
+// They grow or shrink (realloc:ed)
+// in chunks. So even appending char by
+// char isn't a too bad operation.
+
+// JS str - https://iliazeus.github.io/articles/js-string-optimizations-en/
+// ropes - https://en.m.wikipedia.org/wiki/Rope_(data_structure)
+// Worth to note is slicing, and concat
+
+// TODO: slicing strings?
+// BOX DDDDDDDDDDDDDDDD
+//     TSTR............
+//         iiiinnnnSSSS
+//                 64K strings
+//         0000ppppSSSS = pascal 64KB
+//         000000000000 = empty
+//         00000000SSSS = C str (unl)
 
 // === OBJECTS:
 // (see obj.c)
 
-// === FUNCTIONS: (clsoures)
+// === TODO: FUNCTIONS: (clsoures)
 // (see ...)
+
+// === TODO: TARR - resizeable arrays?
+//     TARR............
+//         iiiinnnnAAAA
+//                 64K arrs
+
+// == TODO: T datetime?
+//
+// BOX DDDDDDDDDDDDDDDD
+//     TUTSAxxxUUUUUUUU = unixTS 32b
+//          xxx=1024*16 store ms 10b
+//               ms  2b=*y 4yyy ...
+//     TISOyyyymmddhhmm = DateTime
+//     TUTC............
+//         D=y14m4d5 = 23b
+//         T=h5m6s6  = 17b 40
+//           m10   > 8 - no 'ms'
+
 
 #include <stdio.h>
 #include <math.h>
@@ -170,10 +297,14 @@ typedef char* dstr; dstr ss[ZZ]={0}; char sr[ZZ]={0}; int sn=1;
 // X= NULL, or string to append from
 // N= chars to copy, or -1=all
 //
+// Note: N string must be zero-terminated
+// the length will be read from it.
+//
+//
 // Returns S or a new pointer.
 //  
 // TODO: not safe if x not ZeroTerminated...
-dstr sncat(dstr s, char* x, int n) {int i=s?strlen(s):0,l=(x||n<0)?strlen(x):0;
+dstr sncat(dstr s, char* x, int n) {int i=s?strlen(s):0,l=(x||n<0)?strlen(x):n;
   if (n<0 || n>l) n= l; s= realloc(s, 1024*((i+n+1024)/1024)); s[i+n]= 0;
   return strncpy(s+i, x?x:"", n), s;
 }
@@ -186,7 +317,13 @@ dstr sncat(dstr s, char* x, int n) {int i=s?strlen(s):0,l=(x||n<0)?strlen(x):0;
 ////////////////////////////////////////////////////////////////////////////////  
 dstr sdprintf(dstr s, char* f, D d) {char*x=dchars(d);
   if(x) {int n= snprintf(0,0,f,x); char q[n+1];
-    snprintf(q,sizeof(q),f,x); return sncat(s,q,-1);}
+    snprintf(q,sizeof(q),f,x);
+    //return sncat(s,q,-1);
+    printf("P.before>%s<\n",s);
+    s=sncat(s,q,-1);
+    printf("P. after>%s<\n",s);
+    return s;
+  }
   int n= snprintf(0,0,f?f:"%.8g",d); char q[n+1];
   snprintf(q,sizeof(q),f?f:"%.8g",d); return sncat(s,q,-1); }
 
@@ -204,8 +341,10 @@ dstr sdprinq(dstr s, D d) {if (isatom(d)) s= sncat(s,"#",-1);char* p= dchars(d);
   if (isstr(d)) s= sncat(s,"\"",-1); return  s; }
 
 // Return a new str from char* S take N chars.
+// These strings are trimmed.
+//
 // TODO: GC and freelist... LOL
-D newstr(char* s,int n){ ss[sn]=sncat(0,s?s:"",n); return u2d(BOX(TSTR,sn++)); }
+D newstr(char* s,int n){int i=0;if(s&&*s)ss[i=sn++]=strndup(s,n);return u2d(BOX(TSTR,i));}
 
 char* dchars(D d) { int t=TYP(d), x=DAT(d);
   return t==TATM? (x&0x3fffff)+hp+1: t==TSTR? (char*)ss[x]: 0;}
@@ -252,21 +391,6 @@ void gc() { memset(sr, 0, sizeof(sr));
 
 // ENDWCOUNT
 
-// NEG:  used to indicate need GC
-//
-// TYPES:
-//   0: NaN         (could be used)
-//   1: -
-//   2: atom        offset atom heap
-//   3: dstr        managed strings
-//
-// Possible candidates:
-//   - short str   char[6] (==1)
-//   - void*       offset data heap
-//   6: closure     ix closure array
-//   7: function    ix func array
-//
-
 /*
 typedef union data {
   uint64_t u;
@@ -291,6 +415,9 @@ char* nanchar6(data d) { static char s[7]= {0}; if (TYP(d)!=1) return NULL;
 */
 
 #ifdef nantypesTEST
+
+not currently working
+
 void P(char* desc, data d) {
   //printf("TYPE=%d\n", d.str.t);
   data *v= AVPTR(d);
@@ -304,9 +431,9 @@ int main() {
   inittypes();
 
   data n= NAN;
-  data f= BOX(1, 7, MDAT);
+  data f= u2d(BOX(1, 7, MDAT));
   //data c= char6nan("gurkafoobar");
-  data s= BOX(1, 7, 4711);
+  data s= u2d(BOX(1, 7, 4711));
 
   P("nil", nil);
   P("nil", nil);

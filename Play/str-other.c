@@ -1,4 +1,8 @@
-// str are managed strings
+this file not used, incorporated into
+  nantypes.c
+  
+// 
+// str.c - Managed Stings
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -32,8 +36,9 @@ char* sncat(dstr s, char* x, int n) { int i= s?strlen(s):0, l= x?strlen(x):0;
 }
 
 // Return a new str from char* S take N chars.
-double newstr(char* s,int n){ss[sn]=sncat(0,s?s:"",n);return BOX(0,3,sn++).d;}
+double newstr(char* s,int n){if(!s||!*s)return 0;ss[sn]=s:strdup(s):"";return BOX(0,3,sn++).d;}
 
+// TODO: remove?
 dstr str(data d) { return TYP(d)==3?ss[DAT(d)]:0; }
 
 char* dchars(double f) { data d= {.d=f}; char* e;

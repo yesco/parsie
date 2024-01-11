@@ -5,6 +5,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+// enable to trace memory allocations
+//#include "malloc-trace.c"
+
 #ifndef DEBUG
 int debug= 0; // DEBUG
 #define DEBUG(D) if (debug) do{D;}while(0);
@@ -98,15 +101,15 @@ Z'c': s=0;switch(c=*p++){ Z'r':pc('\n'); Z'c':*S=dlen(*S); Z'=':S--;*S=dcmp(*S, 
   /// > ./alf -d <alf-printers.tst
 
   // but for ca% ???? errro
-  #define SP(P) do{*S=newstr(e=P,-1);}while(0)
+  //#define SP(P) do{*S=newstr(e=P,-1);}while(0)
 
-  //#define SP(P) do{*S=newstr(e=P,-1);free(e);}while(0)
+  #define SP(P) do{*S=newstr(e=P,-1);free(e);}while(0)
 
   // TODO: buffer "type" to not create things for the GC?
   Z'a':{d=POP;s=sncat(0,dchars(POP),-1);U=d;c=*p++;case'e':case's':case'q':case'%':switch(c){
     Z'b':{char a[]={' ',0};SP(sncat(s,a,-1));} // TODO: use c fix sncat
     Z'e':{char a[]={*S,0};SP(sncat(s,a,-1));} // TODO: use c fix sncat
-    Z'q':SP(sdprinq(s,*S)); Z'%':P("<hello>");{e=--p;while(*p&&!isspace(*p))p++;
+    Z'q':SP(sdprinq(s,*S)); Z'%':{e=--p;while(*p&&!isspace(*p))p++;
 	char* f=strndup(e,p-e);SP(sdprintf(s,f,*S));free(f);}
     case's':p++;default:p--;SP(sdprinc(s,*S));}}}
       //    goto next;default:p-=2;goto error;}}}

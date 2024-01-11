@@ -37,8 +37,7 @@ c"foo" cq p cr
 #^ cq p "    ==< obj"cr
 
 cr"---chain appends"cr
-c"foo" '- cae #bar cas ': ca%3c 42 ca%018.18g 64 cae 666 cas c"burp" caq p cr
-
+1.c"foo" dpcr 2.'- cae dpcr 3.#bar cas dpcr 5. c"" 6. ca%3s ">"dp"<"cr 7. 42 8.ca%018.18g dpcr 9. 64 10. cae dpcr 11. 666 12. cas dpcr 13. c"burp" 14. caq dpcr 15. p 16. cr
 cr
 cr
 
