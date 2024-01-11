@@ -208,7 +208,7 @@ int ISNAN(double d) { return (TYP(d)&TNAN)==TNAN; }
 // TODO? unify with svar + K + M ???
 
 #define HPSIZE 16*1024
-char hp[HPSIZE]= {0}; int nilo=0; D nil, undef, error, proto, NaN, Infinity;
+char hp[HPSIZE]= {0}; int nilo=0; D nil, undef, error, proto, __;
 
 // TODO: global storage idea
 // - treat:SMAX..VMAX
@@ -286,6 +286,7 @@ void inittypes() {
   // WARNING: Do NOT add above!
 
   proto=atom("__proto__");
+  __=atom("__");
 
   // TODO:
   //   - move obj alloc from H to K

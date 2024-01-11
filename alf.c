@@ -40,8 +40,25 @@ void prstack(){P("\t:");for(D* s= K+2; s<=S; s++){dprint(*s);pc(' ');}} // DEBUG
 long nn=0;
 
 ////////////////////////////////////////////////////////////////////////////////
-D lxfind(D a){D*s=S,f=atom("__"),n=0;char*x=dchars(a); while(--s>K+2) if(isatom(
-  *s)&&(n+=deq(*s,f)?100-L n%100:1)&&dchars(*s)==x)return-n;return atomaddr(a);}
+//D lxfind2(D a){D*s=S,f=atom("__"),n=0;char*x=dchars(a); while(--s>K+2) if(isatom(
+//  *s)&&(n+=deq(*s,f)?100-L n%100:1)&&dchars(*s)==x)return-n;return atomaddr(a);}
+
+D lxfind4(D q){ // DEBUG
+  D*s=S,a=atomaddr(q),n=0,l=0; // DEBUG
+  char*x=dchars(q); // DEBUG
+  while(--s>K+2 && a>=0) if (isatom(*s)) { // DEBUG
+      if (deq(*s,__)){ if (l) a=-n-l;else n+=100;} // DEBUG
+      if (l || dchars(*s)==x) l++; // DEBUG
+    } // DEBUG
+  return a; // DEBUG
+} // DEBUG
+
+// Find lexical stack frame reference
+// -100 per new stack frame
+// -3 variable 3 steps above __
+// see alf-lxfind.tst
+D lxfind(D q){D*s=S,a=atomaddr(q),n=0,l=0;char*x=dchars(q);while(--s>K+2&&a>=0)
+ !isatom(*s)?0:deq(*s,__)?l?a=-n-l:(n+=100):l||dchars(*s)==x?l++:0;return a;}
 
 
 
@@ -329,7 +346,7 @@ char* opt(char* p) { char *s= p; while(s&&s[0]&&s[1]&&s[2]){switch(s[0]){
   ( $[ - another?] )
   ( $l - strlen - see cc ? )
 
-    $: = find lex var on stack
+    $? = find lex var on stack frame
     
   % - mod
   & - and
