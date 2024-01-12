@@ -175,7 +175,7 @@
 
 // alias to clarify extended meaning
 typedef double D;
-unsigned long d2u(D d) { return *(unsigned long*)(&d); } D u2d(long u) { return *(D*)(&u); }
+UL d2u(D d) { return *(UL*)(&d); } D u2d(UL u) { return *(D*)(&u); }
 
 // 1 sign, 7 types, 48(47?) bits of data
 // Use Typ:2B = sIII IIII IIII Ittt
@@ -186,7 +186,7 @@ unsigned long d2u(D d) { return *(unsigned long*)(&d); } D u2d(long u) { return 
 //const uint64_t MNAN=0x7ff8L<<48,MDAT=(1L<<48)-1L; //,MNEG=1L<<63;
 // TODO: MDAT should be 1L<<49?
 
-#define BOX(t,dat) ((((unsigned long)(dat))&((1LU<<48)-1)) | (((unsigned long)t)<<48))
+#define BOX(t,dat) ((((UL)(dat))&((1LU<<48)-1)) | (((UL)t)<<48))
 #define DAT(x) (d2u(x)&(((1LU<<48))-1))
 #define TYP(x) ((unsigned int)(d2u(x)>>48))
 
@@ -372,7 +372,7 @@ int dlen(D f) { char* r= dchars(f); return r?strlen(r):TYP(f)==TOBJ?((D*)PTR(TOB
 // - if both strings/atoms  => strcmp
 // - num,nan < obj          => -1 (+1) 
 // - nan and number
-int dcmp(D a, D b) { unsigned long c,d,e=1; switch (!!isnan(a)*10+!!isnan(b)) {
+int dcmp(D a, D b) { UL c,d,e=1; switch (!!isnan(a)*10+!!isnan(b)) {
  case 00:return(a>b)-(a<b);case 01:e=-e;case 10:return DAT(e>0?a:b)?+256:-256;}
   c=d2u(a),d=d2u(b);if (c==d) return 0;  char *g=dchars(a), *h=dchars(b);
   if (g&&h) return strcmp(g, h); return (d<c)-(c<d); }
@@ -402,10 +402,10 @@ D strnconcat(D d, D s, int i, int n) { char* x= dchars(s);
 //   how to GC it correctly?
 //   () store an N last...LOL
 //   N doesn't include local added vars
-const unsigned long MF=(1UL<<18)-1, MA=(1UL<<22)-1;
+const UL MF=(1UL<<18)-1, MA=(1UL<<22)-1;
 
 D fun(D f, D* A) {
-  unsigned long fd= DAT(f), s= fd&MF;
+  UL fd= DAT(f), s= fd&MF;
   assert(TYP(f)==TSTR);
   assert(fd<MF);
   assert(A>=K);

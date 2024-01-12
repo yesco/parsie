@@ -38,6 +38,7 @@ double *K,*S,*Y,*C; long mmax=0; char *M=0, *H=0, *F['Z'-'A'+1]={0};
 #define U *++S
 
 #define L (long)
+#define UL unsigned long
 #define SL (sizeof L)
 
 #define align() while((H-M)%SL)H++

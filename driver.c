@@ -33,17 +33,17 @@
 // I
 // J
 // K - K storage
-// L - (long)
+// L - macro "(long)"
 // M - byte Memory storage rename to B?
 // N
-// O (?objects)
+//(O)
 // P - printf
 // Q 
 // R - Rules of parser
 // S - (alf) stack pointer top
-// T (types?)
+// T
 // U - pUsh
-// V (values?)
+// V
 // X
 // Y - parse; magic calls stack 
 // Z

@@ -40,7 +40,7 @@ typedef struct Obj{D proto,next,arr,n;struct np{D name,val;}np[NPN];}Obj;
 D obj() { align(); Obj* o= (Obj*)H; H+= sizeof(Obj); memset(o,0,sizeof(Obj));
   // TODO: use m() and K() etc...
   for(int i=0; i<NPN; i++)  o->np[i]=(struct np){undef, undef};
-  unsigned long x= ((char*)o)-M; return u2d(BOX(TOBJ, x)); }
+  UL x= ((char*)o)-M; return u2d(BOX(TOBJ, x)); }
 
 // Set in direct obj
 // if val is undef, name is removed
