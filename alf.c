@@ -60,8 +60,6 @@ D lxfind4(D q){ // DEBUG
 D lxfind(D q){D*s=S,a=atomaddr(q),n=0,l=0;char*x=dchars(q);while(--s>K+2&&a>=0)
  !isatom(*s)?0:deq(*s,__)?l?a=-n-l:(n+=100):l||dchars(*s)==x?l++:0;return a;}
 
-
-
 #define Z goto next; case
 
 // run ALF code Program with ARGS

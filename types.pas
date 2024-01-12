@@ -1,3 +1,8 @@
+(* these are fragments run with:
+
+  ./puc pas.bnf -e '?Q' types.pas -
+
+ *)
 record name:place; loc:record x:integer; y:real; end; end
 
 array[0..31] of integer
@@ -9,4 +14,3 @@ array[1..26] of record x:integer; y:string; end
 record proto:real; reserved:real; n:real; next:real; props:array[6] of record name:real; val:real; end; end
 
 array[3..7] of 10..100
-   

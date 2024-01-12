@@ -1,16 +1,16 @@
 (* Fibonacci program *)
-program foo;
+program Fibonacci;
 
-function F(n(*comment*)):integer begin
+function F(n:integer):integer begin
   if n<=0 then Result:=0;
   else if n=1 then Result:=1;
   else Result:=F(n-1)+F(n-2);
 end
 
 begin
-  var x: integer = 42;
-  var a: integer = 35;
-  var r: integer;
+  var x:integer = 42;
+  var a:integer = 35;
+  var r:integer;
 
   write("FIB: ");
 (*

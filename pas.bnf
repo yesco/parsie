@@ -112,7 +112,7 @@ M= write\(K\) [$1]
 # formal arguments declaration
 #   TODO: add types
 W= ,H |
-H= N W ::$1
+H= N\:Q W ::$1
 
 # actual argument expression list
 R= ,A [$1] |
