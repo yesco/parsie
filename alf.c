@@ -75,7 +75,7 @@ x=0;nn++;switch(*p++){case 0:case';':case')':case']':return p;Z' ':Z'\n':Z'\t':Z
 // - stack
 Z'd':S[1]=*S;S++;Z'\\':S--;Z'o':S[1]=S[-1];S++;Z's':{D d=*S;*S=S[-1];S[-1]=d;}
 // - numbers / functions call/define
-Z'A'...'Z': alf(F[p[-1]-'A'],S,0,0); Z'^': A[1]= *S; S=A+1; return p-1;
+Z'A'...'Z': alf(F[p[-1]-'A'],0,0,0); Z'^': A[1]= *S; S=A+1; return p-1;
 Z':': e=strchr(p,';'); if(e) F[*p-'A']=strndup(p+1,e-p),p=e+1;
 Z'x':{D d=POP;char x[]={d,0};alf(TYP(d)==TSTR?dchars(d):x,A,n,0);}
 Z'[': { e=p; while(*p&&*p!=']')p++;U=newstr(e, p++-e);
@@ -154,7 +154,7 @@ Z'`': switch(*p++) { Z'#': U=n; Z'0'...'9': U='0'-p[-1]-1; Z'A'...'Z':
 // string/stack/misc functions
 ////////////////////////////////////////////////////////////////////////////////
 Z'$': x=1; switch(c=*p++){ Z'.':prstack(); case'n':pc('\n'); Z'd':x=S-K;U=x;
-  Z'$':n=POP;A-=n; Z'0'...'9':U=A[p[-1]-'0']; Z'h':P("%lx\n",L POP);Z'q':S=1+K;
+  Z'$':n=POP;A=S-n; Z'0'...'9':U=A[p[-1]-'0']; Z'h':P("%lx\n",L POP);Z'q':S=1+K;
   Z'!':A[*p++-'0']=POP; Z's':x=POP;case' ':while(x-->=0)pc(' ');
   Z'"':case'\'':e=H;while(*p&&*p!=c)*H++=*p++;*H++=0;if(*p)p++;U=e-M;U=H-e-1;
   Z'D':dump(); Z'?':*S=lxfind(*S); Z'K': prK(); goto next; default:p--;}/*err*/
@@ -548,7 +548,7 @@ if(0){
   // read-eval
   char* ln= NULL; size_t sz= 0;
   while(getline(&ln, &sz, stdin)>=0) {
-    alf(opt(ln), S, 0, 0);
+    alf(opt(ln), 0, 0, 0);
     DEBUG(printf("\t[%% %ld ops]\n", nn); nn=0);
     if (S<=K) { P("\n%%STACK underflow %ld\n", S-K); } // DEBUG
     if (S>=K+SMAX) { P("\n%%STACK overrun\n"); } // DEBUG

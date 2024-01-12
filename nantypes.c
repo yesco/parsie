@@ -199,7 +199,7 @@ unsigned long d2u(D d) { return *(unsigned long*)(&d); } D u2d(long u) { return 
 //(-5 = TENV   0xfffd - TODO: same same?      )
 //(-6 = TCONS  0xfffe - TODO:                 ) 
 //(-7 = TCLOS  0xffff - TODO:                 }
-const long TNAN=0x7ff8,TATM=0x7ffa,TSTR=0xfffb,TOBJ=0xfffc,TCONS=0xfffe,TENV=0xfffd;
+const long TNAN=0x7ff8,TATM=0x7ffa,TSTR=0xfffb,TOBJ=0xfffc,TCONS=0xfffe,TFUN=0xfffd;
 //,TCONS=0xfffe,TCLOS=0xffff;
 
 // TODO: isnan isn't working, and atom > number!!!
@@ -261,11 +261,12 @@ long atomofs(D a) { return ((DAT(a)>>(22+16))&0x3ff)-512; }
 int deq(D a, D b) { return d2u(a)==d2u(b); }
 
 #define TT(nm, t) int nm(D d) { return TYP(d)==t; }
-TT(isatom,TATM);TT(isobj,TOBJ);TT(isstr,TSTR);TT(iscons,TCONS);//TT(isfun,TFUN);
+TT(isatom,TATM);TT(isobj,TOBJ);TT(isstr,TSTR);TT(iscons,TCONS);TT(isfun,TFUN);
 
+// lowercase is numeric
 char typ(D d) { int t= TYP(d); return !isnan(d)?(d==L d?'i':'f'):deq(t,nil)?
   'N':deq(t,undef)?'U':deq(d,error)?'E':t==TATM?'A':t==TSTR?'S':t==TOBJ?'O':
-  t==TCONS?'C':t==TNAN?'n':t==TENV?'E':0; }
+  t==TCONS?'C':t==TNAN?'n':t==TFUN?'F':0; }
 
 // TODO: remove?
 // TODO: it's not aligned
@@ -385,6 +386,56 @@ int dprint(D f){char*s=dchars(f);int l=pobj(f);return l?l:s?printf("%s",s):print
 // TODO: optimize?
 D strnconcat(D d, D s, int i, int n) { char* x= dchars(s);
   ss[sn]= sncat(sncat(0,dchars(d),-1), x?x+i:0, n); return BOX(TSTR,sn++); }
+
+// TFUN: 
+//
+//      TFUN............
+//      TFUNzzaaaaa/ffff
+//
+//    z=2*4= 8 bits =  256 items
+//    a=   =22 bits =   4M cells lol
+//    f=   =18 bits = 256K strings
+
+// only works w lexical closure
+// TODO: "copy" frame
+//   if copied closure have no N
+//   how to GC it correctly?
+//   () store an N last...LOL
+//   N doesn't include local added vars
+const unsigned long MF=(1UL<<18)-1, MA=(1UL<<22)-1;
+
+D fun(D f, D* A) {
+  unsigned long fd= DAT(f), s= fd&MF;
+  assert(TYP(f)==TSTR);
+  assert(fd<MF);
+  assert(A>=K);
+  // TODO: size?
+  long z= S-A;
+  long a= A-K;
+  return u2d(BOX(TFUN,z<<(22+18)|a<<18|s));
+}
+
+char* alf(char*,D*,int,int); // FORWARD
+
+// when called assumes and args frame on stack, what is this frame then, it's outer function
+void funcall(D c) {
+  // TOOD: use str?
+  long u= DAT(c);
+  D f= u2d(BOX(TSTR,u&MF));
+  D* A= K+((u>>18)&MA);
+  int z= u>>(22+18); // incl locals
+
+  char* e= dchars(f);
+  // TODO: need to add a prev frame ptr?
+  // when called previous frame (A) should be on the stack as beginning of the frame used in this call...
+  // But it points to the outer frame...
+  // That means we patch it?
+  // most function calls would have 0?
+  // as end of chain...
+  // TODO: n?
+  alf(e,A,z,0);
+  // No cleanup!
+}
 
 // GC for managed strings
 // TODO: TCONS
