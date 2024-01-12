@@ -1,4 +1,54 @@
 //80----------------------------------------------------------------------------
+// driver.c - repl/loop/driver
+//
+// The driver integrates parse and alf,
+// parsing command arguemnts and loading
+// files, providing a rudimentary command
+// interface for interaction.
+//
+// Giving it '-' as filename will make it
+// an repl.
+// 
+// The Poly Universal Compiler (driver)
+// Is invoked by:
+//
+//   ./puc [-d [-d ...] ] js.bnf -e '*P' fib.js -e '?S' -
+//
+// This loads the definition for
+// javascript first, runs fib.js,
+// then plops you into a command repl.
+
+
+
+// Variables/Letters used
+//
+// A - (inside alf: Arguments)
+// B (from M?)
+// C - Cells here
+// D - type double
+// E - prev stackframe F-- lol
+// F - alf: functions
+// G
+// H - here for M
+// I
+// J
+// K - K storage
+// L - (long)
+// M - byte Memory storage rename to B?
+// N
+// O (?objects)
+// P - printf
+// Q 
+// R - Rules of parser
+// S - (alf) stack pointer top
+// T (types?)
+// U - pUsh
+// V (values?)
+// X
+// Y - parse; magic calls stack 
+// Z
+
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <ctype.h>
@@ -16,7 +66,7 @@ int xalf=0; char rule=0,last=0; int dlm= '\n';
 void alfie(char* a) { if (!a) return;
   if (xalf || debug>1) printf("\talf>>>%s<<<\n", a);
   if (xalf>1) return;
-  D* s= S; alf(opt(a), 0, 0, 0);
+  D* s= S; alf(opt(a),0,0,0,0);
   if (s!=S) { P("\nResult: "); for(s++;s<=S;s++) dprint(*s); pc('\n'); }
   DEBUG(printf("\n\tstack "); prstack(); pc('\n'););
   // integrity

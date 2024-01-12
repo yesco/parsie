@@ -415,7 +415,7 @@ D fun(D f, D* A) {
   return u2d(BOX(TFUN,z<<(22+18)|a<<18|s));
 }
 
-char* alf(char*,D*,int,int); // FORWARD
+char* alf(char*,D*,int,D*,int); // FORWARD
 
 // when called assumes and args frame on stack, what is this frame then, it's outer function
 void funcall(D c) {
@@ -433,7 +433,7 @@ void funcall(D c) {
   // most function calls would have 0?
   // as end of chain...
   // TODO: n?
-  alf(e,A,z,0);
+  alf(e,A,z,0,0);
   // No cleanup!
 }
 

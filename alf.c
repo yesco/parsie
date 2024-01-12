@@ -68,16 +68,16 @@ D lxfind(D q){D*s=S,a=atomaddr(q),n=0,l=0;char*x=dchars(q);while(--s>K+2&&a>=0)
 //
 // Returns next position to parse from
 //   NULL if done/fail (loop/if)
-char* alf(char*p,D*A,int n,int iff){long x;char*e=0,*s,c;D d;if(!p)return 0;
+char* alf(char*p,D*A,int n,D*E,int iff){long x;char*e=0,*s,c;D d;if(!p)return 0;
 DEBUG(P("\n===ALF >>>%s<<<\n", p))
 next: DEBUG(prstack();P("\t>%.10s ...\n",p));
 x=0;nn++;switch(*p++){case 0:case';':case')':case']':return p;Z' ':Z'\n':Z'\t':Z'\r':
 // - stack
 Z'd':S[1]=*S;S++;Z'\\':S--;Z'o':S[1]=S[-1];S++;Z's':{D d=*S;*S=S[-1];S[-1]=d;}
 // - numbers / functions call/define
-Z'A'...'Z': alf(F[p[-1]-'A'],0,0,0); Z'^': A[1]= *S; S=A+1; return p-1;
+Z'A'...'Z': alf(F[p[-1]-'A'],0,0,0,0); Z'^': A[1]= *S; S=A+1; return p-1;
 Z':': e=strchr(p,';'); if(e) F[*p-'A']=strndup(p+1,e-p),p=e+1;
-Z'x':{D d=POP;char x[]={d,0};alf(TYP(d)==TSTR?dchars(d):x,A,n,0);}
+Z'x':{D d=POP;char x[]={d,0};alf(TYP(d)==TSTR?dchars(d):x,A,n,E,0);}
 Z'[': { e=p; while(*p&&*p!=']')p++;U=newstr(e, p++-e);
   {D f=POP; D c=obj(); Obj* o= PTR(TOBJ, c); D* pars=&(o->np[0].name);
     //o->proto=OCLOS;
@@ -92,8 +92,8 @@ Z'[': { e=p; while(*p&&*p!=']')p++;U=newstr(e, p++-e);
   }
  }
 // TODO: error if no method?
-Z'(':{x=S-K;S[1]=A-S;S++;D*s=S;p=alf(p,A,n,1);D n=atom(parsename(&p));
-  e=dchars(deq(n,nil)?POP:get(s[1],n)); U=x; alf(e,s+1,S-s,0); *s=*S;S=s;}
+Z'(':{x=S-K;S[1]=A-S;S++;D*s=S;p=alf(p,A,n,E,1);D n=atom(parsename(&p));
+  e=dchars(deq(n,nil)?POP:get(s[1],n)); U=x; alf(e,s+1,S-s,E,0); *s=*S;S=s;}
   //DEBUG(P("\n\tCALL: o="); dprint(s[1]); P(" nom="); dprint(nom); P(" m="); dprint(m); pc('\n'););
 // -- numbers / math
 Z'0'...'9':{D v=0;p--;while(isdigit(*p))v=v*10+*p++-'0';U=v;}
@@ -139,11 +139,11 @@ Z'#': switch(*p++){ Z'a'...'z':case'A'...'Z':case'_':p--;U=atom(parsename(&p));
   Z' ': case'\n': case 0: if ((e=dchars(*S))) *S=atom(e);
   Z'?': *S=typ(*S); Z'^': U=obj(); goto next; default: goto error; }
 // -- loop/if
-Z'}': return iff?p:NULL; Z'{': while(!((e=alf(p, A, n, 0)))){}; p= e;
+Z'}': return iff?p:NULL; Z'{': while(!((e=alf(p, A, n, E, 0)))){}; p= e;
 Z'?': if (POP) { switch(*p++){ Z'}': return p; Z']': return 0;
-  Z'{': p=alf(p,A,n,1);if(*p=='{')p=skip(p+1); default:p=alf(p,A,n,1);
+  Z'{': p=alf(p,A,n,E,1);if(*p=='{')p=skip(p+1); default:p=alf(p,A,n,E,1);
  }} else { // IF==false
-  if (*p=='{') { p=skip(p+1); } if (p) p= alf(p+1, A, n, 1); else return 0; }
+  if (*p=='{') { p=skip(p+1); } if (p) p= alf(p+1,A,n,E,1); else return 0; }
 // -- bitops
 #define LOP(op,e) Z#op[0]: S--; *S=(L S[1]) op##e L *S;
 Z'b': switch(*p++){ LOP(&,);LOP(|,);LOP(^,); Z'~': *S= ~L *S; }
@@ -522,18 +522,18 @@ int main(int argc, char** argv) {
   initmem(16*1024); inittypes();
 
 if(0){
-  alf("3d.4d.+. 44444d. 1111111d. + . 3 3=. 4 3=. 1 0|. 7 3|. 1 0&. 1 3&.", 0, 0, 0);
-  alf(":A666;333Ad.+.", 0, 0, 0);
-  alf(":C[p0];:B[.p0.p1.p2.p3.(999 222)C];(777 888)666(11 22 33)(44 55 66 77)B.", 0, 0, 0);
-  alf("666 'A . 'a. ' .", 0, 0, 0);
-  alf("\"Foo=\" 42. '\"e", 0, 0, 0);
-  alf(":P...; 11 22 33 'P x", 0, 0, 0);
-  alf("1.{2.1 3<?}3.", 0, 0, 0);
+  alf("3d.4d.+. 44444d. 1111111d. + . 3 3=. 4 3=. 1 0|. 7 3|. 1 0&. 1 3&.",0,0,0,0);
+  alf(":A666;333Ad.+.", 0,0,0,0);
+  alf(":C[p0];:B[.p0.p1.p2.p3.(999 222)C];(777 888)666(11 22 33)(44 55 66 77)B.", 0,0,0,0);
+  alf("666 'A . 'a. ' .", 0,0,0,0);
+  alf("\"Foo=\" 42. '\"e", 0,0,0,0);
+  alf(":P...; 11 22 33 'P x",0,0,0,0);
+  alf("1.{2.1 3<?}3.", 0,0,0,0);
 }
 
-  //alf("1.{2.}3.", 0, 0, 0);
-//alf("1d.?{2d.}{3d.}.4.", 0, 0, 0);
-//  alf("0d.?{2d.}{3d.}.4.", 0, 0, 0);
+  //alf("1.{2.}3.",0,0,0,0);
+//alf("1d.?{2d.}{3d.}.4.",0,0,0,0);
+//  alf("0d.?{2d.}{3d.}.4.",0,0,0,0);
 
   if (0) {
     P("1 %s\n", skip("foo}OK"));
@@ -548,7 +548,7 @@ if(0){
   // read-eval
   char* ln= NULL; size_t sz= 0;
   while(getline(&ln, &sz, stdin)>=0) {
-    alf(opt(ln), 0, 0, 0);
+    alf(opt(ln),0,0,0,0);
     DEBUG(printf("\t[%% %ld ops]\n", nn); nn=0);
     if (S<=K) { P("\n%%STACK underflow %ld\n", S-K); } // DEBUG
     if (S>=K+SMAX) { P("\n%%STACK overrun\n"); } // DEBUG

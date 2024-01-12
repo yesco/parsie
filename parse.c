@@ -1,6 +1,7 @@
 // Parse.c
 //
 // 
+//
 
 ////////////////////////////////////////////////////////////////////////////////
 // not as generic as I like to think?
@@ -44,7 +45,7 @@ DEBUG(if (debug>3) printf("GEN: '%s'\n", r));
 while(*r && *++r!=end && *r) {
   DEBUG(  P("GEN.next: '%s'\n", r));
   switch(*r){
-  case'{':v=0;r+=1+gen(&v,r,'}',nr);alf(v,S,n,0);free(v);
+  case'{':v=0;r+=1+gen(&v,r,'}',nr);alf(v,S,n,0,0);free(v);
   case'$': r++; n=0;
     // TODO: literal text //if (*r=='$') //
     if (*r=='.') { r++;*g=sncat(*g,"\"before>>>\"",-1);
@@ -102,7 +103,7 @@ DEBUG(if (debug>3)printf("     next '%s' (%d)\n\t   of '%s' left=%d\n",r,*r,s,n)
 switch(*r){case 0: case '|': return s;
 #define Z goto next; case 
   Z'[':r+=1+gen(V+nr,r,']',nr); Z'(':
-  Z'{':t=0;r+=1+gen(&t,r,'}',nr);alf(t,S,n,0);free(t);
+  Z'{':t=0;r+=1+gen(&t,r,'}',nr);alf(t,S,n,0,0);free(t);
 
 // -- actions
 Z':': switch(x=r[1]) {
