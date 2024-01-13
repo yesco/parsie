@@ -43,37 +43,41 @@ long nn=0;
 
 char* alf(char*p,D*A,int n,D*E,int iff){assert(!"not ALF it's AL!\n");}
 
-char* al(char*o,char*p,D*A,int n,D*E,int iff){long x;char*e=0,*s,c;D d;if(!p)return 0;
+char* al(char*o,char*p,D*A,int n,D*E,int iff){ long x; char*e=0,*s,c,*a=0; D d;
+// Temp vars: L x ; *e,*s,c ; D d
+// (a is argument names string)
+
+if(!p)return 0;
+// Make sure a is free:d
+#define RET(r) do{free(a);return r;}while(0)
+
 DEBUG(P("\n===AL >>>%s<<<\n", p))
 next: DEBUG(prstack();P("\t>%.10s ...\n",p));
-x=0;nn++;switch(c=*p++){case 0:case';':case')':case']':return p;Z' ':Z'\n':Z'\t':Z'\r':
+x=0;nn++;switch(c=*p++){case 0:case';':case')':case']':RET(p);Z' ':Z'\n':Z'\t':Z'\r':
 
-case 'l': switch(c=*p++){
-  Z'"': ; // string
-  Z'#': *S=!istyped(*S);
-  Z'$': *S=isstr(*S);
-  Z'%': ; // mod
-  Z'&': ; //  &and
-  Z'\'':U=atom(parsename(&p)); // 'quote
-  Z'(': ; // (list // TODO: '(a b) ...
-  Z')': ; // )
-  Z'*': ; // *mul
-  Z'+': ; // +plus
-  Z',': ; // ??? , (cons for list, or just space?)
-  Z'-': ; // -minus
-  Z'.': *S=isatom(*S); // .atom?
-  Z'/': ; // /div
-  //Z'0-9number
-  Z':': ; // :define
-  Z';': ; // ; end
-  Z'<': ; // <less
-  Z'=': ; // =eq
-  Z'>': ; // >gt
-  Z'?': *S=!deq(*S,nil); // !null
+Z'"': ; // string
+Z'#': *S=!istyped(*S);
+Z'$': *S=isstr(*S);
+//Z'%': ; // mod
+//Z'&': ; //  &and
+Z'\'':U=atom(parsename(&p)); // 'quote
+//Z'(': ; // (list // TODO: '(a b) ...
+//Z')': ; // )
+//Z'*': ; // *mul
+//Z'+': ; // +plus
+Z',': ; // ??? , (cons for list, or just space?)
+//Z'-': ; // -minus
+//Z'.': *S=isatom(*S); // .atom?
+//Z'/': ; // /div
+//Z'0-9number
+//Z':': ; // :define
+//Z';': ; // ; end
+//Z'<': ; // <less
+//Z'=': ; // =eq
+//Z'>': ; // >gt
+Z'?': *S=!deq(*S,nil); // !null
 
-}
-
-// JUMPS (forward only!)
+// -- JUMPS (forward only!)
 Z (129)...(255): p+=c-128; // JMP: +1..
 Z 128: p=o; // tail rec
 
@@ -84,8 +88,6 @@ Z 128: p=o; // tail rec
 // === `abcdefghijklmnopqrstuvwxyz{|}~
 //     `abcdefghijklmnopqrstuvwxyz   
 
-Z'^': return p-1;
- 
 // Missing:
 // - let let*
 // - lambda \
@@ -100,15 +102,16 @@ Z'^': return p-1;
 // list of functions
 // - https://homepage.divms.uiowa.edu/~luke/xls/tutorial/techreport/node87.html
 
-//Z'@': // @assoc or Gassoc?
+Z'@': // @pply, funcall/call/execute
 Z'A': *S=car(*S); // cAr
 Z'B': while(iscons(*S)) {if(deq(S[-1],car(*S))){S--;*S=S[1];goto next;}
   *S=cdr(*S);}  S--;*S=nil; // memBer
 Z'C': S--;*S=cons(S[0],S[1]); // Cons
 Z'D': *S=cdr(*S); // cDr
 Z'E': e=dchars(POP);al(e,e,A,n,E,0);// Eval
-//Z'F': //  ( Format )
-//Z'G': // (G)assoc or @
+//Z'F': //  ( Format Function )
+Z'G': while(iscons(*S)&&!deq(car(car(*S)),S[-1]))*S=cdr(*S); S--;*S=S[1];
+// (G)assoc
 //Z'H': // (H)append
 Z'I': if(POP)p++; // If (== ?skip)
 //Z'J': // ?? prog1 - ? Jump?
@@ -117,33 +120,77 @@ Z'L': x=POP;d=nil; while(x-->0)d=cons(*S--,d); U=d; // List (<n items>... n -- L
 //Z'M': // Map
 //Z'N': // Nth
 Z'O': x=0; while(iscons(*S) && dprint(++x))*S=cdr(*S); *S=x; // --- Ordinal + lengthO or just fOld?
-//Z'P': // Print ?
+Z'P': pc('\n'); dprint(POP); // Print ?
 //Z'Q': // eQual
 Z'R': al(o,o,A,n,0,0);
 //Z'S': // Setq
 Z'T': pc('\n'); // Terpri
 Z'U': *S=deq(*S,nil)||deq(*s,undef); // null?
 //Z'V': // reVerse
-Z'W': dprint(POP); // Write/Princ ?
+Z'W': dprint(POP); // Write/Princ ? use P?
 Z'X': printf("%s", e=sdprinq(0,POP)); free(e); // X/Princ1 ?
 //Z'Y': // Yread ?
 //Z'Z': // Zapply
-//  [
-//Z'\\': // \lambda
+//Z'[': // quotation:
+//
+//    :\\ ab+;
+//    [\\ ab+]
+//    \x\y xy+
+//    \xy:xy+;
+//    \xy xy+
+//    \x\yxy+
+//    \x\y:xy+;
+//    \\ ab+
+//    \x\y xy+
+//
+//Z'\\': 
+// \lambda reverse debruijn index and use letters instead a..z
 //  ]
 //  ^
 //Z'_': // _floor - or long names?
-// ` back? => addr?
+
+// `backquote
+// - means application f`3
+// - `foo${b}ar` = JS-templates
+// - common lisp macros 
+// - `(progn (setq ,v1 ,e) (setq ,v2 ,e))
+//   ^ backquote   ^   ^  insert here    
+// APPLY: f $ g $ h == f`g`h 
+//   how about h@ g@ f@ in AL?
+// 
+//Z'`' back? => addr?
+
 Z'~': *S=!*S; // ~not
 //case'a'...'z': // a-z variables
 // {} use in IF but gone during interpret
 //Z'|': // |or
 // } see {
 
+Z'0'...'9': d=0;p--;while(isdigit(*p))d=d*10+*p++-'0';U=d;
+
+// -- lambda functions and parameters
+Z'\\': a=strdup(parsename(&p)); // \ambda
+ n= *a?strlen(a):n+1; A=S-n;
+P(" [lambda names:%s %d] ", a, n);
+
+Z'a'...'z': e=strchr(a,c);x=e?e-a:-1;U=x<0?A[c-'a'+1]:A[x+1]; // local var
+Z'^': RET(p-1); // return
+
+// -- Math operators
+Z'%': S--;*S=L*S%L S[1];
+//Z'z': *S=!*S;
+//Z'n':*S=-L*S;
+#define OP(op,e) Z #op[0]: S--;*S=*S op##e S[1];
+OP(+,);OP(-,);OP(*,);OP(/,);OP(<,);OP(>,);OP(=,=);OP(|,|);OP(&,&);
+
 
 
 ////////////////////////////////////////
 // ALF (legacy) TODO: use include?
+
+// :::BEGIN ALF
+
+Z'F': switch(c=*p++){
 
 Z'@': *S= *(D*)m(*S,A,n); Z'!': *(D*)m(*S,A,n)= S[-1]; S-=2;
 // - stack
@@ -171,7 +218,7 @@ Z'[': { e=p; while(*p&&*p!=']')p++;U=newstr(e, p++-e);
 //    alf(f?dchars(f):F[L m-'A'],s+1,S-s,c,0); *s=*S;S=s;}
   //DEBUG(P("\n\tCALL: o="); dprint(s[1]); P(" nom="); dprint(nom); P(" m="); dprint(m); pc('\n'););
 // -- numbers / math
-Z'0'...'9':{D v=0;p--;while(isdigit(*p))v=v*10+*p++-'0';U=v;}
+//Z'0'...'9':{D v=0;p--;while(isdigit(*p))v=v*10+*p++-'0';U=v;}
 //Z'~': S--;*S=deq(*S,S[1]);
 Z'%': S--;*S=L*S%L S[1]; Z'z': *S=!*S;Z'n':*S=-L*S;
 #define OP(op,e) Z #op[0]: S--;*S=*S op##e S[1];
@@ -216,7 +263,7 @@ Z'#': switch(*p++){ Z'a'...'z':case'A'...'Z':case'_':p--;U=atom(parsename(&p));
   Z' ': case'\n': case 0: if ((e=dchars(*S))) *S=atom(e);
   Z'?': *S=typ(*S); Z'^': U=obj(); goto next; default: goto error; }
 // -- loop/if
-Z'}': return iff?p:NULL; Z'{': while(!((e=alf(p, A, n, E, 0)))){}; p= e;
+Z'}': RET(iff?p:0); Z'{': while(!((e=alf(p, A, n, E, 0)))){}; p= e;
 // -- bitops
 //#define LOP(op,e) Z#op[0]: S--; *S=(L S[1]) op##e L *S;
 //Z'b': switch(*p++){ LOP(&,);LOP(|,);LOP(^,); Z'~': *S= ~L *S; }
@@ -231,6 +278,9 @@ Z'$': x=1; switch(c=*p++){ Z'.':prstack(); case'n':pc('\n'); Z'd':x=S-K;U=x;
   Z'!':A[*p++-'0']=POP; Z's':x=POP;case' ':while(x-->=0)pc(' ');
   Z'"':case'\'':e=H;while(*p&&*p!=c)*H++=*p++;*H++=0;if(*p)p++;U=e-M;U=H-e-1;
   Z'D':dump(); Z'K': prK(); goto next; default:p--;}/*err*/
+}
+/// ::: END ALF
+
 default: error: P("\n[%% Undefined op: '%s']\n", p-1);p++;} goto next;
 }
 
@@ -301,15 +351,19 @@ char* opt(char* p) {
     switch(c=*p){
     case 0: return p;
     case'"': p++;while(*p&&*p!='"')p++; break;
-      // TODO: list?
-    case'\'': p++; parsename(&p); break;
+    case'\'': p++;parsename(&p);
+      
+      break;
     case'}': *p=' ';return p;
     case'I':  case '{': {
       if (*p=='I')p++;
       if (*p>=128) break; // idempotent
       char*e=opt(p+1);
       // => 128...== +1...
-      *p=128+e-p+(c=='I');
+      int x=e-p+(c=='I');
+      assert(x);
+      assert(128+x<=255);
+      *p=128+x;
       p=e;break;}
     }
 
@@ -579,7 +633,7 @@ int main(int argc, char** argv) {
 
   char *p;
 
-  p= strdup("666666 42 1 I{111}{222}..\\\n");
+  p= strdup("666666 42 1 I{111}{222}F.F.F\\\n");
   pal(p);
   opt(p);
   pal(p);
@@ -587,7 +641,7 @@ int main(int argc, char** argv) {
   pal(p);
   al(p,p,0,0,0,0); pc('\n');
   
-  p= strdup("666666 42 0 I{111}{222}..\\\n");
+  p= strdup("666666 42 0 I{111}{222}F.F.F\\\n");
   pal(p);
   opt(p);
   pal(p);
