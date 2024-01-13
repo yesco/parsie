@@ -39,45 +39,105 @@ void prstack(){P("\t:");for(D* s= K+2; s<=S; s++){dprint(*s);pc(' ');}} // DEBUG
 // total tokens processed
 long nn=0;
 
-////////////////////////////////////////////////////////////////////////////////
-//D lxfind2(D a){D*s=S,f=atom("__"),n=0;char*x=dchars(a); while(--s>K+2) if(isatom(
-//  *s)&&(n+=deq(*s,f)?100-L n%100:1)&&dchars(*s)==x)return-n;return atomaddr(a);}
-
-D lxfind4(D q){ // DEBUG
-  D*s=S,a=atomaddr(q),n=0,l=0; // DEBUG
-  char*x=dchars(q); // DEBUG
-  while(--s>K+2 && a>=0) if (isatom(*s)) { // DEBUG
-      if (deq(*s,__)){ if (l) a=-n-l;else n+=100;} // DEBUG
-      if (l || dchars(*s)==x) l++; // DEBUG
-    } // DEBUG
-  return a; // DEBUG
-} // DEBUG
-
-// Find lexical stack frame reference
-// -100 per new stack frame
-// -3 variable 3 steps above __
-// see alf-lxfind.tst
-D lxfind(D q){D*s=S,a=atomaddr(q),n=0,l=0;char*x=dchars(q);while(--s>K+2&&a>=0)
- !isatom(*s)?0:deq(*s,__)?l?a=-n-l:(n+=100):l||dchars(*s)==x?l++:0;return a;}
-
 #define Z goto next; case
 
-// run ALF code Program with ARGS
-// starting that stack position with
-// N items, IFF=1 if running ?{}{}
-//
-// Returns next position to parse from
-//   NULL if done/fail (loop/if)
-char* alf(char*p,D*A,int n,D*E,int iff){long x;char*e=0,*s,c;D d;if(!p)return 0;
-DEBUG(P("\n===ALF >>>%s<<<\n", p))
+char* alf(char*p,D*A,int n,D*E,int iff){assert(!"not ALF it's AL!\n");}
+
+char* al(char*o,char*p,D*A,int n,D*E,int iff){long x;char*e=0,*s,c;D d;if(!p)return 0;
+DEBUG(P("\n===AL >>>%s<<<\n", p))
 next: DEBUG(prstack();P("\t>%.10s ...\n",p));
-x=0;nn++;switch(*p++){case 0:case';':case')':case']':return p;Z' ':Z'\n':Z'\t':Z'\r':
+x=0;nn++;switch(c=*p++){case 0:case';':case')':case']':return p;Z' ':Z'\n':Z'\t':Z'\r':
+
+// JUMPS
+case (129)...(255): p+=c-128; // JMP: +1..
+Z 128: p=o; // tail rec
+
+Z'^': return p-1;
+
+//Z'@': // @assoc
+Z'A': *S=K[L*S+SMAX]; // cAr
+Z'B': // memBer
+Z'C': d=C-K-SMAX;C[1]=POP;*C=POP;C+=2;U=d; // Cons
+Z'D': *S=K[L*S+SMAX+1]; // cDr
+Z'E': e=dchars(POP);al(e,e,A,n,E,0); // Eval
+//  ( Format )
+Z'G': // (G)assoc
+Z'H': // (H)append
+Z'I': if(POP)p++; // If (== ?skip)
+Z'J': // ?? prog1 - ? Jump?
+// KOND? LOL
+//
+// a1=I{11 }{ a2=I{22 }{ a3=I{33    }}}
+// a1=I{11 K} a2=I{22 K}{a3=I{33 K} ]
+//         >---------->---------->--*
+
+// SWITCH w break
+//
+// a1=I{11 }{a2=I{22[}}}a3=I{]33 [} ]
+
+// SWITCH 11 fallthrough
+// 
+// switch(a){
+// case 1: printf("11 ");
+// case 2: printf("22 "); break;
+// case 3: printf("33 ");
+// default: printf("44 ");
+// }
+
+// K = break
+//
+// a1=I{11.   [ }
+//     {a2=I{ ]  22. K [ }
+//          {a3=I{     ] 33. [ }
+//               {           ] 44. [
+//               }
+//          }
+//     }                           ]
+
+// a1=I{0}{a2=I{1}{a2=I{2}{1n}}}
+// [11.][22.K][33.]\0[44.] \
+// d0zI{...}1-
+//     >-^  -1
+// 0    1     2    3
+
+// [ a1=I{J2}{ a2=I{J3}{ a3=I{J4}{ J1}}} J0
+//   _1 11. _2 22. J0 _3 33. _1 44. _0]
+//
+//   J0 = end, J1 = default  [] = nesting
+
+Z'K': //  K ??? progn
+Z'L': // Length
+Z'N': // Nth
+//  Pair?
+Z'Q': // eQual
+Z'R': al(o,o,A,n,0,0);
+Z'S': // Setq
+Z'T': // Terpri
+Z'U': //  nUll
+Z'V': // reVerse
+Z'W': // Write/Princ ?
+Z'X': // X/Princ1 ?
+Z'Y': // Yread ?
+Z'Z': // Zapply
+//  [
+//Z'\\': // \lambda
+//  ]
+//  ^
+Z'_': // _floor
+// ` back?
+goto next;
+//case'a'...'z': // a-z variables
+// {
+//Z'|': // |or
+// }
+Z'~': // ~not
+
+Z'@': *S= *(D*)m(*S,A,n); Z'!': *(D*)m(*S,A,n)= S[-1]; S-=2;
 // - stack
 Z'd':S[1]=*S;S++;Z'\\':S--;Z'o':S[1]=S[-1];S++;Z's':{D d=*S;*S=S[-1];S[-1]=d;}
 // - numbers / functions call/define
-Z'A'...'Z': alf(F[p[-1]-'A'],0,0,0,0); Z'^': A[1]= *S; S=A+1; return p-1;
+//Z'A'...'Z': al(F[p[-1]-'A'],0,0,0,0); Z'^': A[1]= *S; S=A+1; return p-1;
 Z':': e=strchr(p,';'); if(e) F[*p-'A']=strndup(p+1,e-p),p=e+1;
-Z'x':{D d=POP;char x[]={d,0};alf(TYP(d)==TSTR?dchars(d):x,A,n,E,0);}
 Z'[': { e=p; while(*p&&*p!=']')p++;U=newstr(e, p++-e);
   {D f=POP; D c=obj(); Obj* o= PTR(TOBJ, c); D* pars=&(o->np[0].name);
     //o->proto=OCLOS;
@@ -92,26 +152,28 @@ Z'[': { e=p; while(*p&&*p!=']')p++;U=newstr(e, p++-e);
   }
  }
 // TODO: error if no method?
-Z'(':{x=S-K;U=E?E-K:0;D*s=S;p=alf(p,A,n,E,1);D n=atom(parsename(&p));
-    D m=deq(n,nil)?POP:get(s[1],n),f=funf(m),*c=fune(m);
+//Z'(':{x=S-K;U=E?E-K:0;D*s=S;p=alf(p,A,n,E,1);D n=atom(parsename(&p));
+//    D m=deq(n,nil)?POP:get(s[1],n),f=funf(m),*c=fune(m);
 //    P(" [FUN:");dprint(n);P(" '");dprint(m); P("' %ld] ", c?c-K:0);
-    alf(f?dchars(f):F[L m-'A'],s+1,S-s,c,0); *s=*S;S=s;}
+//    alf(f?dchars(f):F[L m-'A'],s+1,S-s,c,0); *s=*S;S=s;}
   //DEBUG(P("\n\tCALL: o="); dprint(s[1]); P(" nom="); dprint(nom); P(" m="); dprint(m); pc('\n'););
 // -- numbers / math
 Z'0'...'9':{D v=0;p--;while(isdigit(*p))v=v*10+*p++-'0';U=v;}
-Z'~': S--;*S=deq(*S,S[1]); Z'%': S--;*S=L*S%L S[1]; Z'z': *S=!*S;Z'n':*S=-L*S;
+//Z'~': S--;*S=deq(*S,S[1]);
+Z'%': S--;*S=L*S%L S[1]; Z'z': *S=!*S;Z'n':*S=-L*S;
 #define OP(op,e) Z #op[0]: S--;*S=*S op##e S[1];
 OP(+,);OP(-,);OP(*,);OP(/,);OP(<,);OP(>,);OP(=,=);OP(|,|);OP(&,&);
 // -- memory
 Z'h': U=H-M; Z'm':x=*S;*S=H-M;H+=x; Z'a':H+=L POP;
 Z'g': case ',': align(); if (p[-1]=='g') goto next; memcpy(H,&POP,SL); H+=SL;
-Z'@': *S= *(D*)m(*S,A,n); Z'!': *(D*)m(*S,A,n)= S[-1]; S-=2;
+//Z'@': *S= *(D*)m(*S,A,n); Z'!': *(D*)m(*S,A,n)= S[-1]; S-=2;
 // -- cX - char | string
+/*
 Z'c': s=0;switch(c=*p++){ Z'r':pc('\n'); Z'c':*S=dlen(*S); Z'=':S--;*S=dcmp(*S, S[1]);
   Z'"':case'\'':x=p[-1];e=p;while(*p&&*p!=x)p++;U=newstr(e,p++-e);
   // c?=charclass c1=first char
   // Z'?':case'1':x=*S;if(isnan(*S)){e=dchars(*S);x=e?*e:0;};if(c=='1'){U=x;break;}
-  //*S= isalpha(x)?'a':isdigit(x)?'d':isspace(x)?'s':x=='_'?'_':'o';
+  // *S= isalpha(x)?'a':isdigit(x)?'d':isspace(x)?'s':x=='_'?'_':'o';
 
   // TODO: need to free e???
 
@@ -130,7 +192,7 @@ Z'c': s=0;switch(c=*p++){ Z'r':pc('\n'); Z'c':*S=dlen(*S); Z'=':S--;*S=dcmp(*S, 
 	char* f=strndup(e,p-e);SP(sdprintf(s,f,*S));free(f);}
     case's':p++;default:p--;SP(sdprinc(s,*S));}}}
       //    goto next;default:p-=2;goto error;}}}
-
+*/
 // -- printing
 Z'.': dprint(POP);pc(' '); Z'e':pc(POP); Z't':P("%*s.",(int)*S,M+L S[-1]);S-=2;
 Z'p': dprint(POP); Z'\'': U= *p++; Z'"': while(*p&&*p!='"')pc(*p++); p++;
@@ -142,13 +204,9 @@ Z'#': switch(*p++){ Z'a'...'z':case'A'...'Z':case'_':p--;U=atom(parsename(&p));
   Z'?': *S=typ(*S); Z'^': U=obj(); goto next; default: goto error; }
 // -- loop/if
 Z'}': return iff?p:NULL; Z'{': while(!((e=alf(p, A, n, E, 0)))){}; p= e;
-Z'?': if (POP) { switch(*p++){ Z'}': return p; Z']': return 0;
-  Z'{': p=alf(p,A,n,E,1);if(*p=='{')p=skip(p+1); default:p=alf(p,A,n,E,1);
- }} else { // IF==false
-  if (*p=='{') { p=skip(p+1); } if (p) p= alf(p+1,A,n,E,1); else return 0; }
 // -- bitops
-#define LOP(op,e) Z#op[0]: S--; *S=(L S[1]) op##e L *S;
-Z'b': switch(*p++){ LOP(&,);LOP(|,);LOP(^,); Z'~': *S= ~L *S; }
+//#define LOP(op,e) Z#op[0]: S--; *S=(L S[1]) op##e L *S;
+//Z'b': switch(*p++){ LOP(&,);LOP(|,);LOP(^,); Z'~': *S= ~L *S; }
 // -- ` address of stuff
 Z'`': switch(*p++) { Z'#': U=n; Z'0'...'9': U='0'-p[-1]-1; Z'A'...'Z':
  case'a'...'z':case'_':p--;U=atom(parsename(&p)); case' ':case 0:case'\n':
@@ -159,28 +217,53 @@ Z'$': x=1; switch(c=*p++){ Z'.':prstack(); case'n':pc('\n'); Z'd':x=S-K;U=x;
   Z'$':n=POP;A=S-n; Z'0'...'9':U=A[p[-1]-'0']; Z'h':P("%lx\n",L POP);Z'q':S=1+K;
   Z'!':A[*p++-'0']=POP; Z's':x=POP;case' ':while(x-->=0)pc(' ');
   Z'"':case'\'':e=H;while(*p&&*p!=c)*H++=*p++;*H++=0;if(*p)p++;U=e-M;U=H-e-1;
-  Z'D':dump(); Z'?':*S=lxfind(*S); Z'K': prK(); goto next; default:p--;}/*err*/
+  Z'D':dump(); Z'K': prK(); goto next; default:p--;}/*err*/
 default: error: P("\n[%% Undefined op: '%s']\n", p-1);p++;} goto next;
 }
 
-// Simple peep-hole optimization
-//
-// Removes extra spaces-fib 19-27% faster!
-// CAVEAT: generally not a good idea...
-// 
-// TODO: doesn't rem spc in >c"fooo" 35<
-// TODO: `1@ == $1
-// TODO: #foo => base 128 number
-// TOOD: 'f ... might get ignored till '?
-// 
-char* opt(char* p) { char *s= p; while(s&&s[0]&&s[1]&&s[2]){switch(s[0]){
-  case'$':s++;break;
-  case'"':while(*s&&*++s!='"'){}break;case'#':case')':s++;parsename(&s);break;
-  case'c': if (s[1]=='a')s++; if(s[1]=='%'){while(*s&&!isspace(*s))s++;break;} if(isspace(s[1]))s++; break;
-  case'`': break; case'0'...'9': if(isdigit(s[2]))break;
-  default: if(!isspace(s[1])) break; memmove(s+1, s+2, strlen(s+2)+1);continue;
-  } s++; } DEBUG(P("\n%s\n", p)); return p; }
 
+void pal(char* p) {
+  while(p&&*p)
+    if (*p>=128) P("[+%d]",*p++-128);
+    else pc(*p++);
+}
+
+// Simple peep-hole optimization
+// 
+// Actually, it's more an "compiler"
+//
+// 
+// This destructively changes the str.
+//
+// NOTE: don't use result!
+//
+//   "..." skip
+//   {...}   => "[+4]... ""
+//at { put jump to } repl w ' '
+//   I{T}    => "I[+4]T "
+//   I{T}{E} => "I[+4]T [+3]F }"
+char* opt(char* p) {
+  while(p&&*p) { char c;
+    //P("OPT:");pal(p);P("\n");
+    switch(c=*p){
+    case 0: return p;
+    case'"': p++;while(*p&&*p!='"')p++; break;
+      // TODO: list?
+    case'\'' p++; parsename(&p); break;
+    case'}': *p=' ';return p;
+    case'I':  case '{': {
+      if (*p=='I')p++;
+      if (*p>=128) break; // idempotent
+      char*e=opt(p+1);
+      // => 128...== +1...
+      *p=128+e-p+(c=='I');
+      p=e;break;}
+    }
+
+    p++;
+  }
+  return p?p-1:0;
+}
 // ENDWCOUNT
 
 // ALFabetical (F)orth!
@@ -502,7 +585,7 @@ char* opt(char* p) { char *s= p; while(s&&s[0]&&s[1]&&s[2]){switch(s[0]){
 ( 128-255 - optimized atomnames/addr )
 */
 
-#ifdef alfTEST
+#ifdef alTEST
 
 int main(int argc, char** argv) {
   assert(sizeof(long)==8);
@@ -523,34 +606,35 @@ int main(int argc, char** argv) {
 
   initmem(16*1024); inittypes();
 
-if(0){
-  alf("3d.4d.+. 44444d. 1111111d. + . 3 3=. 4 3=. 1 0|. 7 3|. 1 0&. 1 3&.",0,0,0,0);
-  alf(":A666;333Ad.+.", 0,0,0,0);
-  alf(":C[p0];:B[.p0.p1.p2.p3.(999 222)C];(777 888)666(11 22 33)(44 55 66 77)B.", 0,0,0,0);
-  alf("666 'A . 'a. ' .", 0,0,0,0);
-  alf("\"Foo=\" 42. '\"e", 0,0,0,0);
-  alf(":P...; 11 22 33 'P x",0,0,0,0);
-  alf("1.{2.1 3<?}3.", 0,0,0,0);
-}
+  char *p;
 
-  //alf("1.{2.}3.",0,0,0,0);
-//alf("1d.?{2d.}{3d.}.4.",0,0,0,0);
-//  alf("0d.?{2d.}{3d.}.4.",0,0,0,0);
+  p= strdup("666666 42 1 I{111}{222}..\\\n");
+  pal(p);
+  opt(p);
+  pal(p);
+  opt(p);
+  pal(p);
+  al(p,p,0,0,0,0); pc('\n');
+  
+  p= strdup("666666 42 0 I{111}{222}..\\\n");
+  pal(p);
+  opt(p);
+  pal(p);
+  opt(p);
+  pal(p);
+  al(p,p,0,0,0,0); pc('\n');
 
-  if (0) {
-    P("1 %s\n", skip("foo}OK"));
-    P("2 %s\n", skip("f?]oo}OK"));
-    P("3 %s\n", skip("f?}oo}OK"));
-    P("4 %s\n", skip("f?{oo}OK"));
-    P("5 %s\n", skip("f{o}o}OK"));
-    P("6 %s\n", skip("1}{OK}"));
-    exit(3);
-  }
 
+
+  P("\n---REPL:\n");
+  
+  
   // read-eval
   char* ln= NULL; size_t sz= 0;
   while(getline(&ln, &sz, stdin)>=0) {
-    alf(opt(ln),0,0,0,0);
+    opt(ln);
+    pal(ln);
+    al(ln,ln,0,0,0,0);
     DEBUG(printf("\t[%% %ld ops]\n", nn); nn=0);
     if (S<=K) { P("\n%%STACK underflow %ld\n", S-K); } // DEBUG
     if (S>=K+SMAX) { P("\n%%STACK overrun\n"); } // DEBUG

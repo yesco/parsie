@@ -24,12 +24,12 @@
 //
 // A - (inside alf: Arguments)
 // B (from M?)
-// C - Cells here
+// C - Cells here (rename to G)
 // D - type double
 // E - prev stackframe F-- lol
 // F - alf: functions
-// G
-// H - here for M
+// G - Globals (renamed from C)
+// H - here for M (hmmm)
 // I
 // J
 // K - K storage

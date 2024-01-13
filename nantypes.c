@@ -418,6 +418,10 @@ D fun(D f, D* A) {
 char* alf(char*,D*,int,D*,int); // FORWARD
 
 // when called assumes and args frame on stack, what is this frame then, it's outer function
+D funf(D f){ return TYP(f)==TFUN?u2d(BOX(TSTR,DAT(f)&MF)):0; }
+D* fune(D f){ UL u= (DAT(f)>>18)&MA; return u?K+u:0; }
+
+
 void funcall(D c) {
   // TOOD: use str?
   long u= DAT(c);
