@@ -77,63 +77,47 @@ case 'l': switch(c=*p++){
 Z (129)...(255): p+=c-128; // JMP: +1..
 Z 128: p=o; // tail rec
 
-Z'^': return p-1;
+// ===  !"#$%&'()*+,-./0123456789:;<=>?
+//      !      ()  ,              ;   ?
+// ===  @ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_
+//      @     FGHIJ  M OP  S  VWXYZ[\] _
+// === `abcdefghijklmnopqrstuvwxyz{|}~
+//     `abcdefghijklmnopqrstuvwxyz   
 
-//Z'@': // @assoc
-Z'A': *S=car(*S);
-//Z'B': // memBer
+Z'^': return p-1;
+ 
+// Missing:
+// - let let*
+// - lambda \
+// - prog prog* prog1 prog2 progn
+// - fold reduce remove reVerse
+// - set set! setq
+// - max min sqrt
+// - funcall
+
+// how to define variables?
+
+// list of functions
+// - https://homepage.divms.uiowa.edu/~luke/xls/tutorial/techreport/node87.html
+
+//Z'@': // @assoc or Gassoc?
+Z'A': *S=car(*S); // cAr
+Z'B': while(iscons(*S)) {if(deq(S[-1],car(*S))){S--;*S=S[1];goto next;}
+  *S=cdr(*S);}  S--;*S=nil; // memBer
 Z'C': S--;*S=cons(S[0],S[1]); // Cons
-Z'D': *S=cdr(*S);
-Z'E': e=dchars(POP);al(e,e,A,n,E,0); // Eval
-//  ( Format )
-//Z'G': // (G)assoc
+Z'D': *S=cdr(*S); // cDr
+Z'E': e=dchars(POP);al(e,e,A,n,E,0);// Eval
+//Z'F': //  ( Format )
+//Z'G': // (G)assoc or @
 //Z'H': // (H)append
 Z'I': if(POP)p++; // If (== ?skip)
 //Z'J': // ?? prog1 - ? Jump?
-// KOND? LOL
-//
-// a1=I{11 }{ a2=I{22 }{ a3=I{33    }}}
-// a1=I{11 K} a2=I{22 K}{a3=I{33 K} ]
-//         >---------->---------->--*
-
-// SWITCH w break
-//
-// a1=I{11 }{a2=I{22[}}}a3=I{]33 [} ]
-
-// SWITCH 11 fallthrough
-// 
-// switch(a){
-// case 1: printf("11 ");
-// case 2: printf("22 "); break;
-// case 3: printf("33 ");
-// default: printf("44 ");
-// }
-
-// K = break
-//
-// a1=I{11.   [ }
-//     {a2=I{ ]  22. K [ }
-//          {a3=I{     ] 33. [ }
-//               {           ] 44. [
-//               }
-//          }
-//     }                           ]
-
-// a1=I{0}{a2=I{1}{a2=I{2}{1n}}}
-// [11.][22.K][33.]\0[44.] \
-// d0zI{...}1-
-//     >-^  -1
-// 0    1     2    3
-
-// [ a1=I{J2}{ a2=I{J3}{ a3=I{J4}{ J1}}} J0
-//   _1 11. _2 22. J0 _3 33. _1 44. _0]
-//
-//   J0 = end, J1 = default  [] = nesting
-
 Z'K': *S=iscons(*S); // Konsp
-//Z'L': // Length? List? varargs... use C
+Z'L': x=POP;d=nil; while(x-->0)d=cons(*S--,d); U=d; // List (<n items>... n -- L)
+//Z'M': // Map
 //Z'N': // Nth
-//  Pair?
+Z'O': x=0; while(iscons(*S) && dprint(++x))*S=cdr(*S); *S=x; // --- Ordinal + lengthO or just fOld?
+//Z'P': // Print ?
 //Z'Q': // eQual
 Z'R': al(o,o,A,n,0,0);
 //Z'S': // Setq
@@ -148,13 +132,18 @@ Z'X': printf("%s", e=sdprinq(0,POP)); free(e); // X/Princ1 ?
 //Z'\\': // \lambda
 //  ]
 //  ^
-//Z'_': // _floor
-// ` back?
+//Z'_': // _floor - or long names?
+// ` back? => addr?
 Z'~': *S=!*S; // ~not
 //case'a'...'z': // a-z variables
-// {
+// {} use in IF but gone during interpret
 //Z'|': // |or
-// }
+// } see {
+
+
+
+////////////////////////////////////////
+// ALF (legacy) TODO: use include?
 
 Z'@': *S= *(D*)m(*S,A,n); Z'!': *(D*)m(*S,A,n)= S[-1]; S-=2;
 // - stack
@@ -244,6 +233,46 @@ Z'$': x=1; switch(c=*p++){ Z'.':prstack(); case'n':pc('\n'); Z'd':x=S-K;U=x;
   Z'D':dump(); Z'K': prK(); goto next; default:p--;}/*err*/
 default: error: P("\n[%% Undefined op: '%s']\n", p-1);p++;} goto next;
 }
+
+// KOND? LOL
+//
+// a1=I{11 }{ a2=I{22 }{ a3=I{33    }}}
+// a1=I{11 K} a2=I{22 K}{a3=I{33 K} ]
+//         >---------->---------->--*
+
+// SWITCH w break
+//
+// a1=I{11 }{a2=I{22[}}}a3=I{]33 [} ]
+
+// SWITCH 11 fallthrough
+// 
+// switch(a){
+// case 1: printf("11 ");
+// case 2: printf("22 "); break;
+// case 3: printf("33 ");
+// default: printf("44 ");
+// }
+
+// K = break
+//
+// a1=I{11.   [ }
+//     {a2=I{ ]  22. K [ }
+//          {a3=I{     ] 33. [ }
+//               {           ] 44. [
+//               }
+//          }
+//     }                           ]
+
+// a1=I{0}{a2=I{1}{a2=I{2}{1n}}}
+// [11.][22.K][33.]\0[44.] \
+// d0zI{...}1-
+//     >-^  -1
+// 0    1     2    3
+
+// [ a1=I{J2}{ a2=I{J3}{ a3=I{J4}{ J1}}} J0
+//   _1 11. _2 22. J0 _3 33. _1 44. _0]
+//
+//   J0 = end, J1 = default  [] = nesting
 
 
 void pal(char* p) {

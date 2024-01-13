@@ -1,5 +1,10 @@
 #include <math.h>
 
+#ifndef DEBUG
+int debug= 0; // DEBUG
+#define DEBUG(D) if (debug) do{D;}while(0);
+#endif
+
 const long SMAX=16*1024L,GMAX=1024*1024L,CMAX=GMAX*3,MLIM=1E9L,KSZ=SMAX+GMAX+CMAX;
 
 // -- Memory Layout

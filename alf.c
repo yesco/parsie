@@ -8,11 +8,6 @@
 // enable to trace memory allocations
 //#include "malloc-trace.c"
 
-#ifndef DEBUG
-int debug= 0; // DEBUG
-#define DEBUG(D) if (debug) do{D;}while(0);
-#endif
-
 #include "mem.c"
 
 // Variable Name Bindings on Stack
@@ -36,23 +31,6 @@ char* skip(char* p){ int n=1;while(n&&*p)if(*p=='?'&&p[1]!='{')p+=2;else n+=(*p=
 
 void prstack(){P("\t:");for(D* s= K+2; s<=S; s++){dprint(*s);pc(' ');}} // DEBUG
 
-// total tokens processed
-long nn=0;
-
-////////////////////////////////////////////////////////////////////////////////
-//D lxfind2(D a){D*s=S,f=atom("__"),n=0;char*x=dchars(a); while(--s>K+2) if(isatom(
-//  *s)&&(n+=deq(*s,f)?100-L n%100:1)&&dchars(*s)==x)return-n;return atomaddr(a);}
-
-D lxfind4(D q){ // DEBUG
-  D*s=S,a=atomaddr(q),n=0,l=0; // DEBUG
-  char*x=dchars(q); // DEBUG
-  while(--s>K+2 && a>=0) if (isatom(*s)) { // DEBUG
-      if (deq(*s,__)){ if (l) a=-n-l;else n+=100;} // DEBUG
-      if (l || dchars(*s)==x) l++; // DEBUG
-    } // DEBUG
-  return a; // DEBUG
-} // DEBUG
-
 // Find lexical stack frame reference
 // -100 per new stack frame
 // -3 variable 3 steps above __
@@ -60,7 +38,11 @@ D lxfind4(D q){ // DEBUG
 D lxfind(D q){D*s=S,a=atomaddr(q),n=0,l=0;char*x=dchars(q);while(--s>K+2&&a>=0)
  !isatom(*s)?0:deq(*s,__)?l?a=-n-l:(n+=100):l||dchars(*s)==x?l++:0;return a;}
 
+
 #define Z goto next; case
+
+// total tokens processed
+long nn=0;
 
 // run ALF code Program with ARGS
 // starting that stack position with

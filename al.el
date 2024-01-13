@@ -35,6 +35,7 @@
 
 (defun cal (x) 
   (cond 
+   ((null x) (list "'nil"))
    ((numberp x) (list x " "))
    ((stringp x) (list "\"" x "\""))
    ((atom x) (list (or (cadr (member x trans)) x)))
@@ -44,12 +45,35 @@
       (append (list "'")
 	      (cal (cadr x))
 	      (list " ")))
+     ((eq (car x) 'cond)
+      (cal (cond2if x)))
      ((eq (car x) 'if)
       (append (cal (cadr x))
 	      (cal (car x))
 	      (append '("{") (cal (caddr x)) '("}"))
-	      (append '("{") (cal (cadddr x)) '("} "))))
+	      (append '("{") (cal (cadddr x)) '("}"))))
      (t (append (apply 'append (mapcar 'cal (cdr x))) (cal (car x))))))))
+
+(defun condcases (x)
+  (if (not (consp x)) x
+    (if (not (consp (car x))) x
+      (list 'if (caar x) (cadar x)
+	    (condcases (cdr x))))))
+
+(condcases '())
+(condcases '(5))
+(condcases '((5 7)))
+(condcases '((5 7)(3 4)))
+
+
+(pr (cal (condcases '((5 7)(3 4)))))
+
+(pr (cal (condcases '((5 7)(3 4)))))
+
+
+(defun cond2if (x) 
+  (if (not (eq (car x) 'cond)) x
+    (condcases (cdr x))))
 
 (defun pr (x) 
   (apply 'concat
@@ -63,6 +87,41 @@
 		  (+ (recurse (car a))
 		     (recurse (cdr a)))
 		0)))))
+
+(defun opt (x)
+  (if (null x) x
+    (cons
+     (car x)
+     (opt
+      (if (and
+	   (numberp (car x))
+	   (equal (cadr x) " ")
+	   (not (numberp (caddr x))))
+	  (cddr x)
+	(cdr x))))))
+
+(defun al (x)
+  (pr (opt (cal x))))
+
+(al '(cond ((null a) 0)
+	   ((numberp a) a)
+	   ((consp a) 
+	    (+ (recurse (car a))
+	       (recurse (cdr a))))
+	   (1 0)))
+
+(member 'c '(a 1 b 2 c 3 d 4))
+(c 3 d 4)
+
+;; ???
+;; cannot remove "} }" spaces as a missing
+;; else clause could be concatted?
+;; (that is if would be merged with loop)
+
+
+;; or.....?
+"aUI{0}{a#I{a}{aKI{aARaDR+}{1I{0}{'nil}}}}"
+"aUI{0}{a#I{a}{aKI{aARaDR+}{1I{0}{'nil} } } } "
 
 ;; spaces edited...
 

@@ -6,6 +6,7 @@ v=$(./wcode avar.c)
 o=$(./wcode obj.c)
 #s=$(./wcode str.c)
 a=$(./wcode alf.c)
+l=$(./wcode al.c)
 
 js=$(grep '^.=' js.bnf | wc -l)
 pas=$(grep '^.=' pas.bnf | wc -l)
@@ -17,4 +18,8 @@ printf "STMTS:\t`./wc-statements`\n"
 printf "ALF#F:\t`clang -E alf.c | sed 's/case/\ncase/g' | grep -in '^case' | wc -l`\n"
 printf "full#F:\t`clang -E alf-full.c | sed 's/case/\ncase/g' | grep -in '^case' | wc -l`\n"
 
+
+printf "\nAL:\t$l\n"
+
 printf "\nPASCAL:\t$pas\nJS:\t$js\n"
+
