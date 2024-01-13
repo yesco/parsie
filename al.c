@@ -54,8 +54,8 @@ case 'l': switch(c=*p++){
   Z'$': *S=isstr(*S);
   Z'%': ; // mod
   Z'&': ; //  &and
-  Z'\'':; // 'quote
-  Z'(': ; // (list
+  Z'\'':U=atom(parsename(&p)); // 'quote
+  Z'(': ; // (list // TODO: '(a b) ...
   Z')': ; // )
   Z'*': ; // *mul
   Z'+': ; // +plus
@@ -69,7 +69,8 @@ case 'l': switch(c=*p++){
   Z'<': ; // <less
   Z'=': ; // =eq
   Z'>': ; // >gt
-  Z'?': *S=iscons(*S); // ?if ??? or NULL?/non-zero
+  Z'?': *S=!deq(*S,nil); // !null
+
 }
 
 // JUMPS (forward only!)
@@ -80,15 +81,15 @@ Z'^': return p-1;
 
 //Z'@': // @assoc
 Z'A': *S=car(*S);
-Z'B': // memBer
+//Z'B': // memBer
 Z'C': S--;*S=cons(S[0],S[1]); // Cons
 Z'D': *S=cdr(*S);
 Z'E': e=dchars(POP);al(e,e,A,n,E,0); // Eval
 //  ( Format )
-Z'G': // (G)assoc
-Z'H': // (H)append
+//Z'G': // (G)assoc
+//Z'H': // (H)append
 Z'I': if(POP)p++; // If (== ?skip)
-Z'J': // ?? prog1 - ? Jump?
+//Z'J': // ?? prog1 - ? Jump?
 // KOND? LOL
 //
 // a1=I{11 }{ a2=I{22 }{ a3=I{33    }}}
@@ -129,32 +130,31 @@ Z'J': // ?? prog1 - ? Jump?
 //
 //   J0 = end, J1 = default  [] = nesting
 
-Z'K': //  K ??? progn
-Z'L': // Length
-Z'N': // Nth
+Z'K': *S=iscons(*S); // Konsp
+//Z'L': // Length? List? varargs... use C
+//Z'N': // Nth
 //  Pair?
-Z'Q': // eQual
+//Z'Q': // eQual
 Z'R': al(o,o,A,n,0,0);
-Z'S': // Setq
-Z'T': // Terpri
-Z'U': *S=deq(*S,nil); // nUll
-Z'V': // reVerse
-Z'W': // Write/Princ ?
-Z'X': // X/Princ1 ?
-Z'Y': // Yread ?
-Z'Z': // Zapply
+//Z'S': // Setq
+Z'T': pc('\n'); // Terpri
+Z'U': *S=deq(*S,nil)||deq(*s,undef); // null?
+//Z'V': // reVerse
+Z'W': dprint(POP); // Write/Princ ?
+Z'X': printf("%s", e=sdprinq(0,POP)); free(e); // X/Princ1 ?
+//Z'Y': // Yread ?
+//Z'Z': // Zapply
 //  [
 //Z'\\': // \lambda
 //  ]
 //  ^
-Z'_': // _floor
+//Z'_': // _floor
 // ` back?
-goto next;
+Z'~': *S=!*S; // ~not
 //case'a'...'z': // a-z variables
 // {
 //Z'|': // |or
 // }
-Z'~': *S=!*S; // ~not
 
 Z'@': *S= *(D*)m(*S,A,n); Z'!': *(D*)m(*S,A,n)= S[-1]; S-=2;
 // - stack
@@ -574,7 +574,7 @@ int main(int argc, char** argv) {
   // read-eval
   char* ln= NULL; size_t sz= 0;
   while(getline(&ln, &sz, stdin)>=0) {
-    P("AL :"); pal(ln);
+    P("\nAL :"); pal(ln);
     P("OPT:"); opt(ln); pal(ln);
     al(ln,ln,0,0,0,0);
     DEBUG(printf("\t[%% %ld ops]\n", nn); nn=0);

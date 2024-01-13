@@ -210,7 +210,7 @@ char hp[HPSIZE]= {0}; int nilo=0; D nil, undef, error, proto, __;
 //
 // Returns offset to LEN of string
 // followed by a cstring at offset 1.
-// (-offset returned if created)
+// (-offset-1 returned if created)
 //
 // Extra + (n<<32) atom number
 //
@@ -221,7 +221,7 @@ long nameadd(char* s) {char*p=hp;int l=strlen(s),n=0;while(*p){if(!strcmp(s,p+1)
  return p-hp+((L n)<<22); p+=1+strlen(p+1)+1+sizeof(D);n++;}
   assert(p+l+2-hp < HPSIZE);
   // create new (neg)
-  *p=l; return -(strcpy(p+1,s)-hp-1+((L n)<<22));
+  *p=l; return -(strcpy(p+1,s)-hp-1+((L n)<<22))-1;
 }
 
 void prnames() { char* p= hp; printf("\n"); while(*p) { D* d= (D*)(p+1+strlen(p+1)+1); printf("%5ld: %d v=> %10.7g %5ld\t%s\n", p-hp, *p, *d, d2u(*d), p+1); p+=strlen(p+1)+1+1+sizeof(D); } } // DEBUG
@@ -229,8 +229,8 @@ void prnames() { char* p= hp; printf("\n"); while(*p) { D* d= (D*)(p+1+strlen(p+
 // Return a data atom from String
 // empty string returns nil
 D ofsatom(long ofs, char* s){if(!s||!*s)return nil; ofs+=512; assert(ofs>=0 && ofs<0x3ff);
-  long x=nameadd(s); D a=u2d(BOX(TATM,(x<0?-x:x)|(ofs<<(22+16))));
-  if (x<=0) { x=-x; *G++= a; long n= (x>>22)&0xffff; *G++= n<3?a:undef; }
+  long x=nameadd(s); D a=u2d(BOX(TATM,(x<0?-x-1:x)|(ofs<<(22+16))));
+  if (x<0) { x=-x-1; *G++= a; long n= (x>>22)&0xffff; *G++= n<3?a:undef; }
   if (ofs<512) { *--Y= undef; *--Y= a; } return a; }
 
 D atom(char* s) { return ofsatom(0, s); }
@@ -275,8 +275,9 @@ void* PTR(int t, D o) { return TYP(o)==t?M+DAT(o):0;}
 void inittypes() {
   // Order matters: first 3 == self
   // WARNING: Do NOT change order
-  nil=ofsatom(-512,"nil");undef=atom("undef");
-  assert(DAT(nil)==nilo);
+  //nil=ofsatom(-512,"nil");undef=atom("undef");
+  nil=atom("nil");undef=atom("undef");
+  //assert(DAT(nil)==nilo);
   K[SMAX-2]=K[SMAX-1]=*S=*K=error =atom("*ERROR*");
   // WARNING: Do NOT add above!
 
@@ -395,7 +396,15 @@ D strnconcat(D d, D s, int i, int n) { char* x= dchars(s);
 D cons(D a, D d) { UL o= C-K; *C++= a; *C++= d; return u2d(BOX(TCNS, o)); }
 D car(D c) { return iscons(c)?K[DAT(c)+0]:nil; }
 D cdr(D c) { return iscons(c)?K[DAT(c)+1]:nil; }
-int cprint(D c){return pc('(')+dprint(car(c))+P(" . ")+dprint(cdr(c))+pc(')');}
+int cprint(D c){
+  int n= 0;
+  while(iscons(c)){
+    n+= pc(n?' ':'(');
+    n+= dprint(car(c));
+    c= cdr(c);
+  }
+  if (!deq(c,nil)) n+=P(" . ")+dprint(c);
+  return n+=pc(')');}
 
 ////////////////////////////////////////
 // TFUN: 
