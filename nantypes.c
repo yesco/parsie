@@ -392,19 +392,13 @@ D strnconcat(D d, D s, int i, int n) { char* x= dchars(s);
 //
 //    o= 48 bits offset into K
 
-// TODO: not use C..
 D cons(D a, D d) { UL o= C-K; *C++= a; *C++= d; return u2d(BOX(TCNS, o)); }
 D car(D c) { return iscons(c)?K[DAT(c)+0]:nil; }
 D cdr(D c) { return iscons(c)?K[DAT(c)+1]:nil; }
-int cprint(D c){
-  int n= 0;
-  while(iscons(c)){
-    n+= pc(n?' ':'(');
-    n+= dprint(car(c));
-    c= cdr(c);
-  }
-  if (!deq(c,nil)) n+=P(" . ")+dprint(c);
-  return n+=pc(')');}
+int cprint(D c){ int n= 0; while(iscons(c)){ n+= pc(n?' ':'(')+dprint(car(c));
+    c= cdr(c); }  if (!deq(c,nil)) n+=P(" . ")+dprint(c); return n+=pc(')'); }
+
+
 
 ////////////////////////////////////////
 // TFUN: 
@@ -424,29 +418,24 @@ int cprint(D c){
 //   N doesn't include local added vars
 const UL MF=(1UL<<18)-1, MA=(1UL<<22)-1;
 
-D fun(D f, D* A) {
-  UL fd= DAT(f), s= fd&MF;
-  assert(TYP(f)==TSTR);
-  assert(fd<MF);
-  assert(A>=K);
-  // TODO: size?
-  long z= S-A;
-  long a= A-K;
-  return u2d(BOX(TFUN,z<<(22+18)|a<<18|s));
-}
+D fun(D f, D* A) { UL fd= DAT(f), s= fd&MF; long z= S-A; long a= A-K;
+  assert(TYP(f)==TSTR); assert(fd<MF); assert(A>=K);
+  return u2d(BOX(TFUN,z<<(22+18)|a<<18|s)); }
 
 // when called assumes and args frame on stack, what is this frame then, it's outer function
 D funf(D f){ return TYP(f)==TFUN?u2d(BOX(TSTR,DAT(f)&MF)):0; }
 D* fune(D f){ UL u= (DAT(f)>>18)&MA; return u?K+u:0; }
 
-void funcall(D c) {
+// TODO: remove? see Z'(' for calls...
+
+void funcall(D c) { // DDEBUG
   // TOOD: use str?
-  long u= DAT(c);
-  D f= u2d(BOX(TSTR,u&MF));
-  D* A= K+((u>>18)&MA);
+  long u= DAT(c);  // DEBUG
+  D f= u2d(BOX(TSTR,u&MF)); // DEBUG
+  D* A= K+((u>>18)&MA); // DEBUG
   int z= u>>(22+18); // incl locals
 
-  char* e= dchars(f);
+  char* e= dchars(f); // DEBUG
   // TODO: need to add a prev frame ptr?
   // when called previous frame (A) should be on the stack as beginning of the frame used in this call...
   // But it points to the outer frame...
@@ -456,9 +445,9 @@ void funcall(D c) {
   // TODO: n?
   extern char* alf(char*,D*,int,D*,int); // FORWARD
 
-  alf(e,A,z,0,0);
+  alf(e,A,z,0,0); // DEBUG
   // No cleanup!
-}
+} // DEBUG
 
 // GC for managed strings
 // TODO: TCNS
