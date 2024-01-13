@@ -48,17 +48,41 @@ DEBUG(P("\n===AL >>>%s<<<\n", p))
 next: DEBUG(prstack();P("\t>%.10s ...\n",p));
 x=0;nn++;switch(c=*p++){case 0:case';':case')':case']':return p;Z' ':Z'\n':Z'\t':Z'\r':
 
-// JUMPS
-case (129)...(255): p+=c-128; // JMP: +1..
+case 'l': switch(c=*p++){
+  Z'"': ; // string
+  Z'#': *S=!istyped(*S);
+  Z'$': *S=isstr(*S);
+  Z'%': ; // mod
+  Z'&': ; //  &and
+  Z'\'':; // 'quote
+  Z'(': ; // (list
+  Z')': ; // )
+  Z'*': ; // *mul
+  Z'+': ; // +plus
+  Z',': ; // ??? , (cons for list, or just space?)
+  Z'-': ; // -minus
+  Z'.': *S=isatom(*S); // .atom?
+  Z'/': ; // /div
+  //Z'0-9number
+  Z':': ; // :define
+  Z';': ; // ; end
+  Z'<': ; // <less
+  Z'=': ; // =eq
+  Z'>': ; // >gt
+  Z'?': *S=iscons(*S); // ?if ??? or NULL?/non-zero
+}
+
+// JUMPS (forward only!)
+Z (129)...(255): p+=c-128; // JMP: +1..
 Z 128: p=o; // tail rec
 
 Z'^': return p-1;
 
 //Z'@': // @assoc
-Z'A': *S=K[L*S+SMAX]; // cAr
+Z'A': *S=car(*S);
 Z'B': // memBer
-Z'C': d=C-K-SMAX;C[1]=POP;*C=POP;C+=2;U=d; // Cons
-Z'D': *S=K[L*S+SMAX+1]; // cDr
+Z'C': S--;*S=cons(S[0],S[1]); // Cons
+Z'D': *S=cdr(*S);
 Z'E': e=dchars(POP);al(e,e,A,n,E,0); // Eval
 //  ( Format )
 Z'G': // (G)assoc
@@ -113,7 +137,7 @@ Z'Q': // eQual
 Z'R': al(o,o,A,n,0,0);
 Z'S': // Setq
 Z'T': // Terpri
-Z'U': //  nUll
+Z'U': *S=deq(*S,nil); // nUll
 Z'V': // reVerse
 Z'W': // Write/Princ ?
 Z'X': // X/Princ1 ?
@@ -130,7 +154,7 @@ goto next;
 // {
 //Z'|': // |or
 // }
-Z'~': // ~not
+Z'~': *S=!*S; // ~not
 
 Z'@': *S= *(D*)m(*S,A,n); Z'!': *(D*)m(*S,A,n)= S[-1]; S-=2;
 // - stack
@@ -249,7 +273,7 @@ char* opt(char* p) {
     case 0: return p;
     case'"': p++;while(*p&&*p!='"')p++; break;
       // TODO: list?
-    case'\'' p++; parsename(&p); break;
+    case'\'': p++; parsename(&p); break;
     case'}': *p=' ';return p;
     case'I':  case '{': {
       if (*p=='I')p++;
@@ -266,89 +290,7 @@ char* opt(char* p) {
 }
 // ENDWCOUNT
 
-// ALFabetical (F)orth!
-// ====================
-// as VM for 'parsie"
-
-// D stack!
-// Ops default on Ds (64bit).
-// Cast to long for bit ops.
-// int32 is safe and correct!
-// memory is addressed using offset
-//   (might use NAN-type)
-// 
-// TODO: strings (using pointers?)
-//   but want them tagged as strings
-//
-// StackFrames are maintained using
-//   ( ... ) mark stack parameters
-//   [ ... ] enter stack frame
-//   This enables varargs etc.
-
-// -- 94 ops: (TODO: update)
-// stack:	dup \=drop s=swap o=over
-// delim:       ' '
-// numbers      0-9... integers
-// math:	+ - / * % n=negate
-// logical:	< > = & |
-// read/write:	!=store @=read
-// memory:	a=allot h=here m="malloc" (no free!)
-// user funcs:	A-Z
-// define:	: X ... ;
-// printing     . 'c e "..."==print
-// x=execute
-// conditional:	?{=if-then-else
-// loops:	{ ...?]=break ?}=cont }
-
-// b& b| b^ b~
-// c@ c! ci cd c+ c- c* c/ c< c> c& c| c^
-// w@ w! wi wd w+ w- w* w/ w< w> w& w| w^
-//
-// FREE:    () [] _ f ijkl qr uv y ~
-// PREFIX:  $ ? b c w ? c
-//             128-255
-//    planned: f...
-//
-//   Missing:
-//     pick key key?
-//     math? lib: use ext w dlopen
-//
-//     exit break quit type
-
 /*
-  == ctrl-a -- ctrl-z reserve for edit?
-  0 - end of c-string
-  1 ctrl-a start of heading
-  2 ctrl-b start of text
-  3 ctrl-c end of text
-  4 ctrl-d end of transmission
-  5 ctrl-e enquire
-  6 ctrl-f acknowledge
-( 7 ctrl-g - abort/alarm/interrupt? )
-( 8 ctrl-h - rubout )
-  9 ctrl-i - tab/indent
- 10 j lf - down
- 11 k vt - up
- 12 l ff - new/clear page
- 13 m cr - beginning line
-(14 n shift out )
-(15 o shift in )
- 16 p data link escape
- 17 r device control one (XON)
- 18 s device ccontrol two
- 19 t device control three (XOFF)
- 20 u device control four
- 21 v negative acknowledge
- 22 w sync idle
- 23 x end of transmission block
- 24 y cancel
- 25 z end of medium
- 26   substitue
- 27 [ escpae
- 28   file separator
- 29   group separator
- 30   record separator
- 31   unit separator
   <spc> - delimiter
   ! - store (& prefix by c/w/l)
   " - print string
@@ -632,8 +574,8 @@ int main(int argc, char** argv) {
   // read-eval
   char* ln= NULL; size_t sz= 0;
   while(getline(&ln, &sz, stdin)>=0) {
-    opt(ln);
-    pal(ln);
+    P("AL :"); pal(ln);
+    P("OPT:"); opt(ln); pal(ln);
     al(ln,ln,0,0,0,0);
     DEBUG(printf("\t[%% %ld ops]\n", nn); nn=0);
     if (S<=K) { P("\n%%STACK underflow %ld\n", S-K); } // DEBUG

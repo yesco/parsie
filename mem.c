@@ -1,6 +1,6 @@
 #include <math.h>
 
-const long SMAX=16*1024L,VMAX=1024*1024L,CMAX=VMAX*3,MLIM=1E9L,KSZ=SMAX+VMAX+CMAX;
+const long SMAX=16*1024L,GMAX=1024*1024L,CMAX=GMAX*3,MLIM=1E9L,KSZ=SMAX+GMAX+CMAX;
 
 // -- Memory Layout
 // We use 3 different memory regiops:
@@ -12,11 +12,12 @@ const long SMAX=16*1024L,VMAX=1024*1024L,CMAX=VMAX*3,MLIM=1E9L,KSZ=SMAX+VMAX+CMA
 // K - array of D values
 //     (stack+play+globals)
 // S - the current stack pointer *S=top
-// C - Current "here"
+// G - Global "here"
+// C - Cells "here"
 //
 // K= 0 .. SMAX-1      =  stack
-//    SMAX+2 .. VMAX   =  globals
-//    VMAX .. CMAX     =  conses
+//    SMAX+2 .. GMAX-1 =  globals
+//    GMAX .. CMAX-1   =  conses
 //
 // (as address for ! and @: Moffset+MLIM)
 // See:m() below
@@ -32,7 +33,7 @@ const long SMAX=16*1024L,VMAX=1024*1024L,CMAX=VMAX*3,MLIM=1E9L,KSZ=SMAX+VMAX+CMA
 //   K[0] = error; // detect underrun
 //   K[SMAX] = error; // detect overrun
 //
-double *K,*S,*Y,*C; long mmax=0; char *M=0, *H=0, *F['Z'-'A'+1]={0};
+double *K,*S,*Y,*G,*C; long mmax=0; char *M=0, *H=0, *F['Z'-'A'+1]={0};
 
 #define POP *S--
 #define U *++S
@@ -60,7 +61,7 @@ extern char* dchars(double); // FORWARD
 
 // /stack\ /locs\ /globs\       /Dcells\
 // ^^^^^^^ ^^^^^^ ^^^^^^^       ^^^^^^^^
-// K-<S>-<Y>-(SMAX)-<C>-(SMAX+VMAX)-(KSZ)
+// K-<S>-<Y>-(SMAX)-<G>-(G)--<C>---(KSZ)
 
 extern long atomaddr(double); // FORWARD
 void* m(double d, double* A, int n) {long x=L d;if(isnan(d))return m(atomaddr(d),A,n);
@@ -71,14 +72,14 @@ void* m(double d, double* A, int n) {long x=L d;if(isnan(d))return m(atomaddr(d)
 //  else{printf("\nERROR: w() to address outof bounds: %p", p);}
 
 
-void initmem(size_t sz) { K=calloc(KSZ,SL);S=K+1; C=K+SMAX;Y=C-2;
+void initmem(size_t sz) { K=calloc(KSZ,SL);S=K+1; G=K+SMAX;Y=G-2; C=K+GMAX;
   M=calloc(mmax=sz,1);H=M+1024; }
 
 // ENDWCOUNT
 
 extern int dprint(double); // FORWARD
 
-void dump() { char* M= (void*)C;
+void dump() { char* M= (void*)G;
   for(int i=0; i<*S;) { int n= S[-1]; P("\n%04x ", n);
     for(int j=0;j<8;j++) P("%02x%*s", M[n+j], j==3, "");  P("  ");
     for(int j=0;j<8;j++) P("%c", M[n+j]?(M[n+j]<32||M[n+j]>126?'?':M[n+j]):'.');
@@ -95,8 +96,9 @@ void prK() {
       if (K+a==S+1) P("\n   ^--S"),n=1;
       if (K+a==Y) P("\n   v--Y"),n=1;
       if (K+a==K+SMAX) P("\n   ------globals"),n=1;
+      if (K+a==G) P("\n   ---G"),n=1;
       if (K+a==C) P("\n   ---C"),n=1;
-      if (K+a==K+VMAX) P("\n   ------cells"),n=1;
+      if (K+a==K+GMAX) P("\n   ------cells"),n=1;
       if (K+a==K+KSZ-1) {P("\n   ------END\n"),n=1;return; }
 
       double d= K[a]; // DEBUG

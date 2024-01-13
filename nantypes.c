@@ -190,20 +190,9 @@ UL d2u(D d) { return *(UL*)(&d); } D u2d(UL u) { return *(D*)(&u); }
 #define DAT(x) (d2u(x)&(((1LU<<48))-1))
 #define TYP(x) ((unsigned int)(d2u(x)>>48))
 
-// Typ:s constants (neg if need to be GC:ed)
-//  0 reserved 0xfff8 - plain nan (can be used for more...)
-//  1 inline6  0x7ff9 - inline 6c x 8=48 chars, 8c x 6=A-Za-z0-9_\0
-//  2 = TATM   0x7ffa - atom
-// -3 = TSTR   0xfffb - managed GC strings
-//(-4 = TOBJ   9xfffc - TODO: JS-style objects)
-//(-5 = TENV   0xfffd - TODO: same same?      )
-//(-6 = TCONS  0xfffe - TODO:                 ) 
-//(-7 = TCLOS  0xffff - TODO:                 }
-const long TNAN=0x7ff8,TATM=0x7ffa,TSTR=0xfffb,TOBJ=0xfffc,TCONS=0xfffe,TFUN=0xfffd;
-//,TCONS=0xfffe,TCLOS=0xffff;
+// Typ:s constants (neg if need to be GC:ed
+const long TNAN=0x7ff8,TATM=0x7ffa,TSTR=0xfffb,TOBJ=0xfffc,TCNS=0xfffe,TFUN=0xfffd;
 
-// TODO: isnan isn't working, and atom > number!!!
-int ISNAN(double d) { return (TYP(d)&TNAN)==TNAN; }
 
 // TODO? unify with svar + K + M ???
 
@@ -241,7 +230,7 @@ void prnames() { char* p= hp; printf("\n"); while(*p) { D* d= (D*)(p+1+strlen(p+
 // empty string returns nil
 D ofsatom(long ofs, char* s){if(!s||!*s)return nil; ofs+=512; assert(ofs>=0 && ofs<0x3ff);
   long x=nameadd(s); D a=u2d(BOX(TATM,(x<0?-x:x)|(ofs<<(22+16))));
-  if (x<=0) { x=-x; *C++= a; long n= (x>>22)&0xffff; *C++= n<3?a:undef; }
+  if (x<=0) { x=-x; *G++= a; long n= (x>>22)&0xffff; *G++= n<3?a:undef; }
   if (ofs<512) { *--Y= undef; *--Y= a; } return a; }
 
 D atom(char* s) { return ofsatom(0, s); }
@@ -251,7 +240,7 @@ D atom(char* s) { return ofsatom(0, s); }
 //   2:nd in global vars storage
 // (since they are adj just one linear!) 
 D varatom(char* s) { D a= atom(s); char* c= dchars(a);
-  for(D* x= Y; Y<C; x+=2) if (dchars(*x)==c) return *x;  return a; }
+  for(D* x= Y; Y<G; x+=2) if (dchars(*x)==c) return *x;  return a; }
 
 // global var storage location
 long atomaddr(D a) { return 1+2*((DAT(a)>>22)&0xffff); }
@@ -260,13 +249,18 @@ long atomofs(D a) { return ((DAT(a)>>(22+16))&0x3ff)-512; }
 
 int deq(D a, D b) { return d2u(a)==d2u(b); }
 
+// TODO: isnan isn't working, and atom > number!!!
+int ISNAN(double d) { return (TYP(d)&TNAN)==TNAN; }
+
+int istyped(D v) { int t= TYP(v); return t!=TNAN && (t&TNAN)==TNAN; }
+
 #define TT(nm, t) int nm(D d) { return TYP(d)==t; }
-TT(isatom,TATM);TT(isobj,TOBJ);TT(isstr,TSTR);TT(iscons,TCONS);TT(isfun,TFUN);
+TT(isatom,TATM);TT(isobj,TOBJ);TT(isstr,TSTR);TT(iscons,TCNS);TT(isfun,TFUN);
 
 // lowercase is numeric
 char typ(D d) { int t= TYP(d); return !isnan(d)?(d==L d?'i':'f'):deq(t,nil)?
   'N':deq(t,undef)?'U':deq(d,error)?'E':t==TATM?'A':t==TSTR?'S':t==TOBJ?'O':
-  t==TCONS?'C':t==TNAN?'n':t==TFUN?'F':0; }
+  t==TCNS?'C':t==TNAN?'n':t==TFUN?'F':0; }
 
 // TODO: remove?
 // TODO: it's not aligned
@@ -334,11 +328,11 @@ dstr sncat(dstr s, char* x, int n) {int i=s?strlen(s):0,l=(x||n<0)?strlen(x):n;
 ////////////////////////////////////////////////////////////////////////////////  
 // only %lf %g %s makes sense...
 dstr sdprintf(dstr s, char* f, D d) {char*x=dchars(d);
-  if(x) {int n= snprintf(0,0,f,x); char q[n+1];
+  if (x) {int n= snprintf(0,0,f,x); char q[n+1];
     snprintf(q,sizeof(q),f,x);
     s=sncat(s,q,-1);
     return s;
-  }
+  } else if (iscons(d)) assert(!"TODO: sdprintf TCNS");
   int n= snprintf(0,0,f?f:"%.8g",d); char q[n+1];
   snprintf(q,sizeof(q),f?f:"%.8g",d); return sncat(s,q,-1); }
 
@@ -378,8 +372,10 @@ int dcmp(D a, D b) { UL c,d,e=1; switch (!!isnan(a)*10+!!isnan(b)) {
   if (g&&h) return strcmp(g, h); return (d<c)-(c<d); }
 
 int pobj(D); // FORWARD
+int cprint(D); // FORWARD
 
-int dprint(D f){char*s=dchars(f);int l=pobj(f);return l?l:s?printf("%s",s):printf("%.10g",f);}
+int dprint(D f){char*s=dchars(f);int l=pobj(f);return l?l:s?printf("%s",s):
+  iscons(f)?cprint(f):printf("%.10g",f);}
 
 // Concatenate D + S as new str
 // from Index in S take N chars.
@@ -387,6 +383,21 @@ int dprint(D f){char*s=dchars(f);int l=pobj(f);return l?l:s?printf("%s",s):print
 D strnconcat(D d, D s, int i, int n) { char* x= dchars(s);
   ss[sn]= sncat(sncat(0,dchars(d),-1), x?x+i:0, n); return BOX(TSTR,sn++); }
 
+////////////////////////////////////////
+// TCNS
+//
+//      TCNS............
+//      TCNSoooooooooooo
+//
+//    o= 48 bits offset into K
+
+// TODO: not use C..
+D cons(D a, D d) { UL o= C-K; *C++= a; *C++= d; return u2d(BOX(TCNS, o)); }
+D car(D c) { return iscons(c)?K[DAT(c)+0]:nil; }
+D cdr(D c) { return iscons(c)?K[DAT(c)+1]:nil; }
+int cprint(D c){return pc('(')+dprint(car(c))+P(" . ")+dprint(cdr(c))+pc(')');}
+
+////////////////////////////////////////
 // TFUN: 
 //
 //      TFUN............
@@ -415,12 +426,9 @@ D fun(D f, D* A) {
   return u2d(BOX(TFUN,z<<(22+18)|a<<18|s));
 }
 
-char* alf(char*,D*,int,D*,int); // FORWARD
-
 // when called assumes and args frame on stack, what is this frame then, it's outer function
 D funf(D f){ return TYP(f)==TFUN?u2d(BOX(TSTR,DAT(f)&MF)):0; }
 D* fune(D f){ UL u= (DAT(f)>>18)&MA; return u?K+u:0; }
-
 
 void funcall(D c) {
   // TOOD: use str?
@@ -437,12 +445,14 @@ void funcall(D c) {
   // most function calls would have 0?
   // as end of chain...
   // TODO: n?
+  extern char* alf(char*,D*,int,D*,int); // FORWARD
+
   alf(e,A,z,0,0);
   // No cleanup!
 }
 
 // GC for managed strings
-// TODO: TCONS
+// TODO: TCNS
 void gc() { memset(sr, 0, sizeof(sr));
   // --- MARK: sr[x]++ for each ref
   // stack
