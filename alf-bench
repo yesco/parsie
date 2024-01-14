@@ -1,3 +1,12 @@
+printf '=== AL.c\n'
+
+echo '=up'
+printf '666 42\n0\n\\ a100000000<I{a1+R^}{99^}\nPT PT' | (clang -DalTEST -O3 al.c && time -p ./a.out)
+
+echo '=down'
+printf '666 42\n100000000\n\\ aI{a1-R^}{99^}\nPT PT' | (clang -DalTEST -O3 al.c && time -p ./a.out)
+
+
 printf "BENCHMARK ALF w uALF\n"
 
 printf '=== alf.c\n'

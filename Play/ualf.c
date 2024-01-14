@@ -8,7 +8,10 @@ int s= 0;
 
 char* skip(char* p){ int n=1;while(n&&*p)if(*p=='?'&&p[1]!='{')p+=2;else n+=(*p=='{')-(*p=='}'),p++;return p;}
 
+// TODAY?:  break is faster!!! LOL WTF
 #define Z goto next; case
+// HOWEVER: doesn't work for nested switches... lol
+//#define Z break; case
 
 char* alf(char* p) { int v; char* x;
   //printf("ALF>>> '%s'\n", p);

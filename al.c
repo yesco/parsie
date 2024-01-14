@@ -89,13 +89,16 @@ Z'?': *S=!deq(*S,nil); // !null
 Z (129)...(255): p+=c-128; // JMP: +1..
 Z 128: p=o;
 //pc('\n'); prstack(); pc('\n');
+// somehow not good? isspace
 while(*p && isspace(*p))p++;
 if (*p=='\\') while(*p && !isspace(*p))p++;
+// TODO: doesn't actually improve!!!
+//o=p; // LOL
+//printf("RECURSE: %s\n", p);
 for(int i=0; i<n; i++) A[i+1]=S[-n+i+1];
 S-=n;
 //pc('\n'); prstack(); pc('\n');
 p++;
-//printf("RECURSE: %s\n", p);
  // tail rec
 
 // ===  !"#$%&'()*+,-./0123456789:;<=>?
@@ -149,23 +152,6 @@ Z'X': printf("%s", e=sdprinq(0,POP)); free(e); // X/Princ1 ?
 //Z'Y': // Yread ?
 //Z'Z': // Zapply
 //Z'[': // quotation:
-//
-//    :\\ ab+;
-//    [\\ ab+]
-//    \x\y xy+
-//    \xy:xy+;
-//    \xy xy+
-//    \x\yxy+
-//    \x\y:xy+;
-//    \\ ab+
-//    \x\y xy+
-//
-//Z'\\': 
-// \lambda reverse debruijn index and use letters instead a..z
-//  ]
-//  ^
-//Z'_': // _floor - or long names?
-
 // `backquote
 // - means application f`3
 // - `foo${b}ar` = JS-templates
@@ -183,9 +169,13 @@ Z'~': *S=!*S; // ~not
 //Z'|': // |or
 // } see {
 
+// faster here than at the beginning, LOL
 Z'0'...'9': d=0;p--;while(isdigit(*p))d=d*10+*p++-'0';U=d;
 
 // -- lambda functions and parameters
+// ( \lambda reverse debruijn index
+// and use letters instead a..z )
+
 // named (1) is 25% slower! fib 35
 // TODO: if call al() for loop?
 //   it'll do \x wrong... works
@@ -208,6 +198,8 @@ OP(+,);OP(-,);OP(*,);OP(/,);OP(<,);OP(>,);OP(=,=);OP(|,|);OP(&,&);
 
 // :::BEGIN ALF
 
+// No faster if not included...?
+#ifdef ALF
 Z'F': switch(c=*p++){
 
 Z'@': *S= *(D*)m(*S,A,n); Z'!': *(D*)m(*S,A,n)= S[-1]; S-=2;
@@ -297,6 +289,7 @@ Z'$': x=1; switch(c=*p++){ Z'.':prstack(); case'n':pc('\n'); Z'd':x=S-K;U=x;
   Z'"':case'\'':e=H;while(*p&&*p!=c)*H++=*p++;*H++=0;if(*p)p++;U=e-M;U=H-e-1;
   Z'D':dump(); Z'K': prK(); goto next; default:p--;}/*err*/
 }
+#endif
 /// ::: END ALF
 
 default: error: P("\n[%% Undefined op: '%s']\n", p-1);p++;} goto next;
