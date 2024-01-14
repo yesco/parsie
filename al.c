@@ -43,13 +43,21 @@ long nn=0;
 
 char* alf(char*p,D*A,int n,D*E,int iff){assert(!"not ALF it's AL!\n");}
 
-char* al(char*o,char*p,D*A,int n,D*E,int iff){ long x; char*e=0,*s,c,*a=0; D d;
+char* al(char*o,char*p,D*A,int n,D*E,int iff){ long x; char*e=0,*s,c,*X=0; D d;
+//  8 bytes fib 35 => 5.76s
+// 10 bytes fib 35 => 6.19s
+// 16 bytes fib 35 => 4.37s
+// 20 bytes fib 35 => 4.37s
+// 26 bytes fib 35 => 4.77s
+// 32 bytes fib 35 => 4.47s
+char a[16];*a=0;
 // Temp vars: L x ; *e,*s,c ; D d
 // (a is argument names string)
 
 if(!p)return 0;
 // Make sure a is free:d
-#define RET(r) do{free(a);return r;}while(0)
+//#define RET(r) do{free(a);return r;}while(0)
+#define RET(r) return r
 
 DEBUG(P("\n===AL >>>%s<<<\n", p))
 next: DEBUG(prstack();P("\t>%.10s ...\n",p));
@@ -79,7 +87,16 @@ Z'?': *S=!deq(*S,nil); // !null
 
 // -- JUMPS (forward only!)
 Z (129)...(255): p+=c-128; // JMP: +1..
-Z 128: p=o; // tail rec
+Z 128: p=o;
+//pc('\n'); prstack(); pc('\n');
+while(*p && isspace(*p))p++;
+if (*p=='\\') while(*p && !isspace(*p))p++;
+for(int i=0; i<n; i++) A[i+1]=S[-n+i+1];
+S-=n;
+//pc('\n'); prstack(); pc('\n');
+p++;
+//printf("RECURSE: %s\n", p);
+ // tail rec
 
 // ===  !"#$%&'()*+,-./0123456789:;<=>?
 //      !      ()  ,              ;   ?
@@ -122,7 +139,7 @@ Z'L': x=POP;d=nil; while(x-->0)d=cons(*S--,d); U=d; // List (<n items>... n -- L
 Z'O': x=0; while(iscons(*S) && dprint(++x))*S=cdr(*S); *S=x; // --- Ordinal + lengthO or just fOld?
 Z'P': pc('\n'); dprint(POP); // Print ?
 //Z'Q': // eQual
-Z'R': al(o,o,A,n,0,0);
+Z'R': al(o,o,S,0,0,0);
 //Z'S': // Setq
 Z'T': pc('\n'); // Terpri
 Z'U': *S=deq(*S,nil)||deq(*s,undef); // null?
@@ -169,12 +186,13 @@ Z'~': *S=!*S; // ~not
 Z'0'...'9': d=0;p--;while(isdigit(*p))d=d*10+*p++-'0';U=d;
 
 // -- lambda functions and parameters
-Z'\\': a=strdup(parsename(&p)); // \ambda
- n= *a?strlen(a):n+1; A=S-n;
-P(" [lambda names:%s %d] ", a, n);
-
-Z'a'...'z': e=strchr(a,c);x=e?e-a:-1;U=x<0?A[c-'a'+1]:A[x+1]; // local var
-Z'^': RET(p-1); // return
+// named (1) is 25% slower! fib 35
+// TODO: if call al() for loop?
+//   it'll do \x wrong... works
+//   because jump!
+Z'\\': if(*p>='a') strcpy(a,parsename(&p)); n= *a?strlen(a):n+1; A=S-n; // \ambda
+Z'a'...'z': if(*a) U=A[strchr(a,c)-a+1];else U=A[c-'a'+1]; // local var
+Z'^': S[-n]=*S;S-=n; RET(p-1); // return
 
 // -- Math operators
 Z'%': S--;*S=L*S%L S[1];
@@ -327,7 +345,8 @@ default: error: P("\n[%% Undefined op: '%s']\n", p-1);p++;} goto next;
 
 void pal(char* p) {
   while(p&&*p)
-    if (*p>=128) P("[+%d]",*p++-128);
+    if (*p==128) P("[TailRecurse]"),p++;
+    else if (*p>128) P("[+%d]",*p++-128);
     else pc(*p++);
 }
 
@@ -351,8 +370,11 @@ char* opt(char* p) {
     switch(c=*p){
     case 0: return p;
     case'"': p++;while(*p&&*p!='"')p++; break;
+    case'R': if (p[1]=='^') { // tail rec
+	*p= 128;
+      } break;
     case'\'': p++;parsename(&p);
-      
+     
       break;
     case'}': *p=' ';return p;
     case'I':  case '{': {
@@ -657,8 +679,8 @@ int main(int argc, char** argv) {
   // read-eval
   char* ln= NULL; size_t sz= 0;
   while(getline(&ln, &sz, stdin)>=0) {
-    P("\nAL :"); pal(ln);
-    P("OPT:"); opt(ln); pal(ln);
+    P("\nAL > "); pal(ln);
+    P("OPT> "); opt(ln); pal(ln);
     al(ln,ln,0,0,0,0);
     DEBUG(printf("\t[%% %ld ops]\n", nn); nn=0);
     if (S<=K) { P("\n%%STACK underflow %ld\n", S-K); } // DEBUG

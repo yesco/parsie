@@ -1,0 +1,24 @@
+printf "BENCHMARK ALF w uALF\n"
+
+printf '=== alf.c\n'
+
+echo '=O3'
+echo '0{1+d100000000<?]}' | (clang -DalfTEST -O3 alf.c && time -p ./a.out)
+
+echo '=Ofast'
+echo '0{1+d100000000<?]}' | (clang -DalfTEST -Ofast alf.c && time -p ./a.out)
+
+echo '=down'
+echo '100000000{1-d?]}' | (clang -DalfTEST -Ofast alf.c && time -p ./a.out)
+
+printf '=== Play/ualf.c\n'
+
+echo '=O3'
+echo '0{1+d100000000<?]}' | (clang -O3 Play/ualf.c && time -p ./a.out)
+
+echo '=Ofast'
+echo '0{1+d100000000<?]}' | (clang -Ofast Play/ualf.c && time -p ./a.out)
+
+echo '=down'
+echo '100000000{1-d?]}' | (clang -O3 Play/ualf.c && time -p ./a.out)
+

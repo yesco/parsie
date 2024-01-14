@@ -175,6 +175,11 @@ Comparing with various interpreters and compilers these are rough numbers:
 | ./pas (alf)	|  7.79s | compiled from pascal |
 | ./pas (opt)   |  6.80s | `1@ => $1 |
 | ./js (alf)	|  6.34s | compiled from js |
+| ./al (lisp)	|  4.69s | mixed alf al |
+| ./al (lambda)	|  4.76s | lambda |
+| ./al (lnamed)	|  6.58s | named param lambda |
+| emacs (lisp)	|  103.24s | interpreted |
+| emacs (compiled) | 3.36s | byte-code! |
 | clang -O3	|  0.17s | hand-coded |
 | clang -Ofast	|  0.11s | hand-coded |
 | picolisp	|  5.26s | |

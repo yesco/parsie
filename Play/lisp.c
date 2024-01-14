@@ -1,3 +1,10 @@
+// This was an non-working experiement idea
+// a alpha byte-coded lisp where each function knows
+// how many arguemnts follow, thus no need parenthesis...
+// Difficult to skip.
+//
+// BETTER: al.c - stack bytecoded lisp... (works)
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <ctype.h>
