@@ -22,7 +22,7 @@
 #define P printf
 #define pc putchar
 
-double S[1024]= {0};
+double S[1024*1024]= {0};
 int s= 0;
 
 void prstack() {
@@ -81,6 +81,8 @@ char* al(char* o, char* p) { int v; char* x;
 	S[s++]=A[p[-1]-'a'+1];
 
     Z'$': prstack();
+
+    Z'R': al(o,o);
 
     Z'^':
       //prstack();
