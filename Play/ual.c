@@ -14,6 +14,10 @@
 // something is amiss in al.c
 // also in alf.c
 
+// fib 35
+//  4.15s ./ual
+//  4.70s ./au <fib-lambda.al
+
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
