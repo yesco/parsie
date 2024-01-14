@@ -16,7 +16,10 @@
 
 // fib 35
 //  4.15s ./ual
-//  4.70s ./au <fib-lambda.al
+//  4.70s ./al <fib-lambda.al
+// named:    
+//  4.73s ./ual  +14%
+//  6.23s ./al   +33%
 
 #include <ctype.h>
 #include <stdio.h>
