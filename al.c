@@ -26,9 +26,49 @@ long nn=0;
 
 #define Z goto next; case
 
+// (Map [\vkor ..] '(1 2 3) r-value)
+// TODO: [] and {} iterator obj
+//   TODO: do numbers first?
+//   TOOD: generalize print?
+// [\vkor 1]'(1 2 3)M
+// callback:
+//  \v                       value
+//  \kv                  key value
+//  \rkv             ref key value
+//  \alkv        all ref key value
+//  \ralkv  rest all ref key value
+
+// opt:
+//   'noresult
+//   'foldr
+//   'foldl
+//   'filter
+//   'tree
+//   'flatten
+//   'bottomup
+//   'exist
+//   'every
+//   'none
+char* al(char*o,char*p,D*A,int n,D*E); // FORWARD
+
+D map(D f, D l, D all, D r, D opt, int k) { if (deq(l, nil)) return nil;
+  //P("Map"); dprint(f); dprint(l); dprint(k); P("\n");
+  // hard control params all opt!
+  if (iscons(l)) { D e,*z= S; {U=r;U=all;U=l;U=k;U=car(l);
+      // A,n for access to var?
+      // TODO: how about closure?
+      char* x= dchars(f);
+      //P("\tf=%s\n", x);
+      al(x,x,0,0,0);e=POP;
+    } S= z;
+    // TODO: not recurse... stack
+    // TODO: need setcdr...
+    return cons(e, map(f, cdr(l), all, r, opt, k+1)); } return nil; }
+
 char* alf(char*p,D*A,int n,D*E,int iff){assert(!"not ALF it's AL!\n");}
 
-char* al(char*o,char*p,D*A,int n,D*E,int iff){ long x; char*e=0,*s,c,*X=0; D d;
+char* al(char*o,char*p,D*A,int n,D*E){ long x; char*e=0,*s,c,*X=0; D d;
+  int iff=0; // TODO: remove ALF
 //  8 bytes fib 35 => 5.76s
 // 10 bytes fib 35 => 6.19s
 // 16 bytes fib 35 => 4.37s
@@ -62,7 +102,7 @@ Z'\'': if(*p==' ') { p++; char*s= dchars(POP); U=s?reader(&s):error; }
 //Z'+': ; // +plus
 //Z',': ; // ???
 //Z'-': ; // -minus
-//Z'.': *S=isatom(*S); // .atom?
+//Z'.': ; // O.getprop
 //Z'/': ; // /div
 //Z'0-9number
 //Z':': ; // :define
@@ -90,19 +130,18 @@ p++;
 
 // -- object functions
 Z';': U=obj(); // why not {} or '{}
-Z':': S-=2;set(*S,S[1],S[2]);
+Z':': S-=2;*S=get(*S,atomize(S[1]));
+set(*S,S[1],S[2]);
 Z',': S--;set(*S,dlen(*S),S[1]);
-Z'.': S--;*S=get(S[1],*S);
+Z'.': S--;*S=get(*S,atomize(S[1]));
 //Z'!': S-=3;set(S[3],S[2],S[1]);
-//Z'?': *S=typ(*S);
-
 //Z'@':
 Z'A': *S=car(*S); // cAr
 Z'B': while(iscons(*S)) {if(deq(S[-1],car(*S))){S--;*S=S[1];goto next;}
   *S=cdr(*S);}  S--;*S=nil; // memBer
 Z'C': S--;*S=cons(S[0],S[1]); // Cons
 Z'D': *S=cdr(*S); // cDr
-Z'E': e=dchars(POP);al(e,e,A,n,E,0);// Eval
+Z'E': e=dchars(POP);al(e,e,A,n,E);// Eval
 //Z'F': //  ( Format Function )
 Z'G': while(iscons(*S)&&!deq(car(car(*S)),S[-1]))*S=cdr(*S); S--;*S=S[1]; // (G)assoc
 //Z'H': // (H)append
@@ -110,12 +149,12 @@ Z'I': if(POP)p++; // If (== ?skip)
 //Z'J': // ?? prog1 - ? Jump?
 Z'K': *S=iscons(*S); // Konsp
 Z'L': x=POP;d=nil; while(x-->0)d=cons(*S--,d); U=d; // List (<n items>... n -- L)
-//Z'M': // Map
-//Z'N': // Nth
-Z'O': x=0; while(iscons(*S) && dprint(++x))*S=cdr(*S); *S=x; // --- Ordinal + lengthO or just fOld?
+Z'M': S--;d= map(*S, S[1], S[1], nil, nil, 0);U=d; // Map
+Z'N': S--; while(S[0]-- >0)S[1]=cdr(S[1]); *S=car(S[1]);
+Z'O': x=0; while(iscons(*S)&&++x)*S=cdr(*S); *S=x; // --- Ordinal + lengthO or just fOld?
 Z'P': pc('\n'); dprint(POP); // Print ?
 //Z'Q': // eQual
-Z'R': al(o,o,S,0,0,0);
+Z'R': al(o,o,S,0,0);
 //Z'S': // Setq
 Z'T': pc('\n'); // Terpri
 Z'U': *S=deq(*S,nil)||deq(*s,undef); // null?
@@ -518,7 +557,7 @@ int main(int argc, char** argv) {
   pal(p);
   opt(p);
   pal(p);
-  al(p,p,0,0,0,0); pc('\n');
+  al(p,p,0,0,0); pc('\n');
   
   p= strdup("666666 42 0 I{111}{222}F.F.F\\\n");
   pal(p);
@@ -526,7 +565,7 @@ int main(int argc, char** argv) {
   pal(p);
   opt(p);
   pal(p);
-  al(p,p,0,0,0,0); pc('\n');
+  al(p,p,0,0,0); pc('\n');
 
 
 
@@ -538,7 +577,7 @@ int main(int argc, char** argv) {
   while(getline(&ln, &sz, stdin)>=0) {
     P("\nAL > "); pal(ln);
     P("OPT> "); opt(ln); pal(ln);
-    al(ln,ln,0,0,0,0);
+    al(ln,ln,0,0,0);
     DEBUG(printf("\t[%% %ld ops]\n", nn); nn=0);
     if (S<=K) { P("\n%%STACK underflow %ld\n", S-K); } // DEBUG
     if (S>=K+SMAX) { P("\n%%STACK overrun\n"); } // DEBUG

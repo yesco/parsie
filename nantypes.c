@@ -235,6 +235,9 @@ D ofsatom(long ofs, char* s){if(!s||!*s)return nil; ofs+=512; assert(ofs>=0 && o
 
 D atom(char* s) { return ofsatom(0, s); }
 
+// TODO: set/get??? (JS does...)
+D atomize(D d) { return TYP(d)==TSTR?atom(dchars(d)):d; }
+
 // Search scoped 8atom:
 //   1:st in local scope stack
 //   2:nd in global vars storage
@@ -357,6 +360,9 @@ D reader(char** p);
 
 void spc(char**p) {while(isspace(**p))(*p)++;}
 
+D obj(); // FORWARD
+D set(D,D,D); // FORWARD
+
 D readlist(char** p){
   spc(p);
   // end of line matches any end char...
@@ -367,26 +373,19 @@ D readlist(char** p){
   return cons(a, d?reader(p):readlist(p));
 }
 
-D reader2(char** p){
-  spc(p);
-  switch(**p){
-  case 0:  return nil;
+D reader(char** p){ spc(p); switch(**p){ case 0: return nil;
   case'"': (*p)++; return readstr(p, '"');
   case'(': (*p)++; return readlist(p);
-  case'[':
-  case'{': assert(!"reader JSON");
-  case',': assert(!"template insert expr [...]==bquote?");
+  case'{':  case'[': {char e= **p=='{'?'}':']'; D o=obj(); spc(p);
+  do { (*p)++; D a= reader(p);spc(p); if(**p==':'){ (*p)++;
+      set(o,atomize(a),reader(p));}else set(o,dlen(o),a);
+    spc(p);if(**p==e)break; }while(**p==','); (*p)++; return o; }
+  case',': assert(!"template insert expr [...]==bquote?"); // DEBUG
   case'0'...'9': { D d=0;while(isdigit(**p))d=d*10+*(*p)++-'0'; return d; }
   default: return isalpha(**p)?atom(parsename(p)) :error;
   }
 }
 
-D reader(char** p) {
-//  P("\tREADER: %s\n", *p);
-  D r= reader2(p);
-//  P("\t => "); dprint(r); P(" %s\n", *p);
-  return r;
-}
 
 ////////////////////////////////////////
 // TFUN: 
