@@ -20,21 +20,6 @@ int debug= 0; // DEBUG
 
 #include "obj.c"
 
-// Parse from P a name
-//
-// (P is pointer to char* and updated)
-//
-// Note: this allows any alnum || _
-//
-// Returns a static string (use fast!)
-char* parsename(char** p) { static char s[64], i; i=0; while((isalnum(**p)
-  ||**p=='_') && i<sizeof(s)-1) s[i++]=*(*p)++; s[i]= 0; return s;}
-
-// skips a { block } returns after
-//   TODO: must skip STRINGs!!! lol
-char* skip(char* p){ int n=1;while(n&&*p)if(*p=='?'&&p[1]!='{')p+=2;else n+=(*p=='{')-(*p=='}'),p++;return p;}
-
-void prstack(){P("\t:");for(D* s= K+2; s<=S; s++){dprint(*s);pc(' ');}} // DEBUG
 
 // total tokens processed
 long nn=0;
@@ -61,19 +46,21 @@ if(!p)return 0;
 
 DEBUG(P("\n===AL >>>%s<<<\n", p))
 next: DEBUG(prstack();P("\t>%.10s ...\n",p));
-x=0;nn++;switch(c=*p++){case 0:case';':case')':case']':RET(p);Z' ':Z'\n':Z'\t':Z'\r':
+x=0;nn++;switch(c=*p++){case 0:case')':case']':RET(p);Z' ':Z'\n':Z'\t':Z'\r':
 
-Z'"': ; // string
+Z'"': U= readstr(&p, '"');
+
 Z'#': *S=!istyped(*S);
 Z'$': *S=isstr(*S);
 //Z'%': ; // mod
 //Z'&': ; //  &and
-Z'\'':U=atom(parsename(&p)); // 'quote
+Z'\'': if(*p==' ') { p++; char*s= dchars(POP); U=s?reader(&s):error; }
+  else U=reader(&p);
 //Z'(': ; // (list // TODO: '(a b) ...
 //Z')': ; // )
 //Z'*': ; // *mul
 //Z'+': ; // +plus
-Z',': ; // ??? , (cons for list, or just space?)
+//Z',': ; // ???
 //Z'-': ; // -minus
 //Z'.': *S=isatom(*S); // .atom?
 //Z'/': ; // /div
@@ -83,7 +70,7 @@ Z',': ; // ??? , (cons for list, or just space?)
 //Z'<': ; // <less
 //Z'=': ; // =eq
 //Z'>': ; // >gt
-Z'?': *S=!deq(*S,nil); // !null
+Z'?': c=*p++;while(*p&&*p!=c)putchar(*p++); p++;
 
 // -- JUMPS (forward only!)
 Z (129)...(255): p+=c-128; // JMP: +1..
@@ -101,28 +88,15 @@ S-=n;
 p++;
  // tail rec
 
-// ===  !"#$%&'()*+,-./0123456789:;<=>?
-//      !      ()  ,              ;   ?
-// ===  @ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_
-//      @     FGHIJ  M OP  S  VWXYZ[\] _
-// === `abcdefghijklmnopqrstuvwxyz{|}~
-//     `abcdefghijklmnopqrstuvwxyz   
+// -- object functions
+Z';': U=obj(); // why not {} or '{}
+Z':': S-=2;set(*S,S[1],S[2]);
+Z',': S--;set(*S,dlen(*S),S[1]);
+Z'.': S--;*S=get(S[1],*S);
+//Z'!': S-=3;set(S[3],S[2],S[1]);
+//Z'?': *S=typ(*S);
 
-// Missing:
-// - let let*
-// - lambda \
-// - prog prog* prog1 prog2 progn
-// - fold reduce remove reVerse
-// - set set! setq
-// - max min sqrt
-// - funcall
-
-// how to define variables?
-
-// list of functions
-// - https://homepage.divms.uiowa.edu/~luke/xls/tutorial/techreport/node87.html
-
-Z'@': // @pply, funcall/call/execute
+//Z'@':
 Z'A': *S=car(*S); // cAr
 Z'B': while(iscons(*S)) {if(deq(S[-1],car(*S))){S--;*S=S[1];goto next;}
   *S=cdr(*S);}  S--;*S=nil; // memBer
@@ -130,8 +104,7 @@ Z'C': S--;*S=cons(S[0],S[1]); // Cons
 Z'D': *S=cdr(*S); // cDr
 Z'E': e=dchars(POP);al(e,e,A,n,E,0);// Eval
 //Z'F': //  ( Format Function )
-Z'G': while(iscons(*S)&&!deq(car(car(*S)),S[-1]))*S=cdr(*S); S--;*S=S[1];
-// (G)assoc
+Z'G': while(iscons(*S)&&!deq(car(car(*S)),S[-1]))*S=cdr(*S); S--;*S=S[1]; // (G)assoc
 //Z'H': // (H)append
 Z'I': if(POP)p++; // If (== ?skip)
 //Z'J': // ?? prog1 - ? Jump?
@@ -149,7 +122,8 @@ Z'U': *S=deq(*S,nil)||deq(*s,undef); // null?
 //Z'V': // reVerse
 Z'W': dprint(POP); // Write/Princ ? use P?
 Z'X': printf("%s", e=sdprinq(0,POP)); free(e); // X/Princ1 ?
-//Z'Y': // Yread ?
+Z'Y': {char*ln=0,*p=0;size_t sz=0;
+  if(getline(&ln,&sz, stdin)>=0)p=ln;U=reader(&p); }
 //Z'Z': // Zapply
 //Z'[': // quotation:
 // `backquote
@@ -170,7 +144,9 @@ Z'~': *S=!*S; // ~not
 // } see {
 
 // faster here than at the beginning, LOL
-Z'0'...'9': d=0;p--;while(isdigit(*p))d=d*10+*p++-'0';U=d;
+// inline makes 5.04s instead of 5.70s for fib-l.al...
+Z'0'...'9':{D v=0;p--;while(isdigit(*p))v=v*10+*p++-'0';U=v;}
+//Z'0'...'9': p--;U=reader(&p);
 
 // -- lambda functions and parameters
 // ( \lambda reverse debruijn index
@@ -199,6 +175,7 @@ OP(+,);OP(-,);OP(*,);OP(/,);OP(<,);OP(>,);OP(=,=);OP(|,|);OP(&,&);
 // :::BEGIN ALF
 
 // No faster if not included...?
+#define ALF
 #ifdef ALF
 Z'F': switch(c=*p++){
 
@@ -228,7 +205,7 @@ Z'[': { e=p; while(*p&&*p!=']')p++;U=newstr(e, p++-e);
 //    alf(f?dchars(f):F[L m-'A'],s+1,S-s,c,0); *s=*S;S=s;}
   //DEBUG(P("\n\tCALL: o="); dprint(s[1]); P(" nom="); dprint(nom); P(" m="); dprint(m); pc('\n'););
 // -- numbers / math
-//Z'0'...'9':{D v=0;p--;while(isdigit(*p))v=v*10+*p++-'0';U=v;}
+Z'0'...'9': p--;U=reader(&p);
 //Z'~': S--;*S=deq(*S,S[1]);
 Z'%': S--;*S=L*S%L S[1]; Z'z': *S=!*S;Z'n':*S=-L*S;
 #define OP(op,e) Z #op[0]: S--;*S=*S op##e S[1];
@@ -335,7 +312,6 @@ default: error: P("\n[%% Undefined op: '%s']\n", p-1);p++;} goto next;
 //
 //   J0 = end, J1 = default  [] = nesting
 
-
 void pal(char* p) {
   while(p&&*p)
     if (*p==128) P("[TailRecurse]"),p++;
@@ -357,272 +333,160 @@ void pal(char* p) {
 //at { put jump to } repl w ' '
 //   I{T}    => "I[+4]T "
 //   I{T}{E} => "I[+4]T [+3]F }"
-char* opt(char* p) {
+char* _opt(char*,char); // FORWARD
+char* _sopt=0; void opt(char* p) { _sopt= p; _opt(p, 0); }
+
+char* _opt(char* p, char e) {
   while(p&&*p) { char c;
     //P("OPT:");pal(p);P("\n");
+    if (!*p || *p==e) return p;
     switch(c=*p){
-    case 0: return p;
+    case')':case'}':case']':
+      P("\n%%ERROR: opt expected '%c' (%d) at\n%.*s <--HERE---> %s\n", e, e, (int)(p-_sopt), _sopt, p); abort();
+    case'\'': p++;
+    case'(': case'[':
+      if (isalnum(*p)) { parsename(&p); break; }
+      if (*p=='('||*p=='{'||*p=='[') p= _opt(p+1, *p=='('?')':*p=='{'?'}':']'); break;
     case'"': p++;while(*p&&*p!='"')p++; break;
-    case'R': if (p[1]=='^') { // tail rec
-	*p= 128;
-      } break;
-    case'\'': p++;parsename(&p);
-     
-      break;
-    case'}': *p=' ';return p;
-    case'I':  case '{': {
+    case'R': if (p[1]=='^') { *p= 128; } break;// tail rec
+    case'I': case '{': {
       if (*p=='I')p++;
       if (*p>=128) break; // idempotent
-      char*e=opt(p+1);
+      char*e=_opt(p+1, '}');
+      assert(*e=='}');
+      *e= ' ';
       // => 128...== +1...
       int x=e-p+(c=='I');
       assert(x);
       assert(128+x<=255);
       *p=128+x;
-      p=e;break;}
+      p=e;
+    }break;
     }
 
     p++;
   }
   return p?p-1:0;
 }
+
 // ENDWCOUNT
 
+// Missing:
+// - let let*
+// - prog prog* prog1 prog2 progn
+//    (no need, just need drop!)
+// - fold reduce remove reVerse
+// - max min sqrt
+// - funcall == apply ?
+
+// how to define variables?
+
+// list of functions
+// - https://homepage.divms.uiowa.edu/~luke/xls/tutorial/techreport/node87.html
+
 /*
-  <spc> - delimiter
-  ! - store (& prefix by c/w/l)
-  " - print string
-  # - atom/obj (hash/dict) stuff
-    #abc - make atom (alnum)
-    # - atomify string (ret other)
-
-    #? - type? -> i)nt f)float n)nan N)il A)tom S)tring O)bj C)ons U)ndef
-         lowercase ( >- 'A' is  "num" )
-
-    #@ - obj: get prop value (N O - V)
-    #! - obj: add value,name (V N O -)
-    #^ - obj: new (- O)
-    (obj 11 22)foo - call obj.foo(11, 22)
-      obj becomes $0 $1==1 $2==2 use ^=ret
-  ( #.bar - get o.bar property (- x) )
-  ( #=bar - set o.bar property (x -) )
-
-    (- builder funcs/reverse order)
-    #: - obj: set Value Name (O N V - O)
-    #, - append to array (O V - O)
-  ( #< - push on array/obj )
-  ( #> - pop )
-  ( #{ - unshift )
-  ( #} - shift )
-    cc - returns "len" of obj
-  ( ## - use instead? )
   
-  ( #" - make atom fr string? )
-  ( ## - hash a value? lol )
-  ( #$ - ? )
-    #%
-    #&
-  ( #' - str/char? name? )
-    #( - special formatting lang?
-    #)
-  ( #* - ptr? )
-  ( #+ - insert? )
-  ( #- - remove? )
-  ( #. - print N values? )
-  ( #/ - truncate )
+  & - bit32 and
+  | - bit32 or
+  () - implicitly quoted list
+  
+  Vd - new local var (O) (???)
+  
+  OR just remap # to N and
+  use same as ALF...
+  (these are too funny)
+  ; - new Object (- O)
+  . - get property (O 'foo .)
+  : - put property (O 'foo 3 : - O)
+  , - push (O 3 ; 4 ; - O) [3,4])
+  F\ - TODO: how to drop ?
+  ?"foo" - print foo
 
-    #:
-    #;
-    #=
-    #[
-    #]
-  ( #\ - drop N items )
-  ( #^ - exit N '}' ? )
+   _foo
 
-  $ - rgs/string functions/aux funs
-    (- function args and return)
-    $$ - set number of args (legacy)
-    $# - number of args
-    $1 - $9 - get frame arg N (see `1)
-    $!1 - $!9 - set frame arg N
-    ( see ^ for return )
-    
-   '$ '- print space
-    $s - print N spaces
+  !"#$%&'()*+,-./0123456789:;<=>?
+       & ()  , .           :;   
 
-    $h - print hex
-    $. - print stack (.S normally)
-    $d - depth of stack
+  @ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_
+         GH J  MN    S  V  YZ[ ] _
 
-  ( $p - P? )
-    $D - dump from address / DEBUG
-    $K - dump K mem (stack + globals + obj)
-  ( $F - format number? tra forth? )
-    $q - quit/reset stacks
+  `abcdefghijklmnopqrstuvwxyz{|}~
+  `                           |
 
-    $" - counted mem string
-  ( $c - copy )
-  ( $m - move )
-  ( $\" - ... " parse quoted )
-  ( $sC ... C - parse using C as delim )
-  ( $( - counted string) )
-  ( $[ - another?] )
-  ( $l - strlen - see cc ? )
+  ' '
+   ! - Forth ! (write mem)
+   " - string
+   # - numberp
+   $ - stringp
+   % - mod
+   & - and TODO: short-circuit
+   '
+   ( --
+   ) --
+   * - mul
+   + - plus
+   , --
+   - - minus
+   . --
+   / - div
+   0-9 - number
+   : -- define/defun
+   ; --
+   < - lt
+   = - eq
+   > - gt
+   ? - not eq nil (see U)
+   @ - Forth @ (read mem)
+   A - cAr
+   B - memB (use eq)
+   C - Cons
+   D - cDr
+   E - Eval
+   F - Forth prefix
+   G -- (G)assoc
+   H -- (H)append
+   I - If
+   J -- (prog1/progn)
+   K - Konsp
+   L - n List (<n items> n -- L)
+   M -- Mapcar
+   N -- Nth
+   O - Ordinal (length) 0[1+]Fold
+   P - Print (\n val)
+   Q -- eQual
+   R - Recurse
+   S -- Setq Sa-Sz SA=SetcAr;SD
+     3       `a !  == set! a
+     3 4C    ` @   == car
+     3 4C    ` 1+@ == cdr
+     7 3 4C  ` !   == set! car
+     7 3 4C  ` 1+! == set! cdr
+     3       Sa    == Setq a
+     7 3 4C  SA    == SetcAr
+     7 3 4C  SD    == SetcDr
+   T - Terpri
+   U - Undefined? / nUll
+   V -- reVerse / Var
+   W - princ unquoted
+   X - prin1 quoted""
+   Y -- (Y)read
+   Z -- (Z)apply
+   [ -- closure (?)
+       (means no need to "end")
+   \ - \ambda "\\\ bca" or \xyz zyx
+   ] -- end closure/interpretation
+   ^ - return
+   _ -- long name call (== 'foo @ E)
 
-    $? = find lex var on stack frame
-    
-  % - mod
-  & - and
-  ' - char
-  ( - param start for object method call
-  )nm - look up method 'nm' and call
-  )   - use last valuie as method & call
-  * - mul
-  + - add
-  , - ret aligned here, write word
-  - - minus
-  . - print data w space (see . e t p q)
-  / - div
-  0123456789 - number
-  : - define
-  ; - end define
-  < - number (?) less than
-  = - number equal (?) see ~ for eq!
-  > - number (?) greater than
-  ? - if
-    ?{ - IF-stmt 1?{then}{else}
-    ?] - if true exit {loop} = break
-    ?} - if true begin again = cont
-    ??? TODO: label/goto/continue/break? )
-  @ - read (& prefix by c/w/l)
+   `a-`z -  -stack ref for ! and @
+  "` " - address (of stack item)
+   a-z - var/stack ref how frame?
+   { - jump to '}' 1I{3}{4}=>3
+   | - and TODO: short-circuit
+   } - destination from '{'
+   ~ -- NOT how C: ~
+ DEL -- not visible...
 
-  ABCDEFGHIJKLMNOPQRSTUVWXYZ - UDF
-  [
-  \ - drop
-  ]
-  ^ - exit/return (TODO: ??? break)
-  _
-
-  ` - prefix: addresses?
-    `1-`9 - address of N;th parameter
-    `@    - number of args
-    ( $1-$9 - see this )
-    ` - address of atom global var
-    `foo - address of global var 'foo'
-    
-  a - allot (inc here, from arena)
-
-  b - bit ops:
-    b& - bit & (64 bit)
-    b| - bit | (64 bit)
-    b^ - bit ^ (64 bit)
-    b~ - bit ~ (64 bit)
-
-  c - char ops prefix !@
-    cr - carriage return
-
-    c" - managed null-terminated string
-    c' -    same
-  ( c\" - read quoted )
-  ( c\' -   same )
-    cc - count=length of mngd/"ptr"/#atom
-         TODO: name co?
-
-    // TODO: make chainable
-    ( cae == ce ca )
-    ce - char emit to string
-    cq - quoted
-    cs - stringify to managed string
-    c%1s - snprintf stringify mngd str
-         ( C%8.g C%1s )
-    (- same in append mode )
-  ( ca - ambigious TODO:? )
-    cae - append char
-    caq - append quoted
-    cas - append stringified
-    c%1s - append snprintf...
-    
-  ( cm - cmove ? TODO: )
-  ( c= - compare strings/all -1 0 +1 )
-
-    ( -- Char type operators - TODO: )
-  ( c! - )
-  ( c@ - )
-  ( c, - )
-
-  ( - code written but 'excluded' - )
-  ( cp = get pointer to string ? )
-  ( c# - get nth char? (S N - C) )
-  ( c1 - ORD: get first char f str/chr )
-  ( c? - charclass _ a=alhpa d=digit o=other s=spc )
-         ( CHAR c? 'e' < === alphanum||_ )
-  ( cu - toupper char/str )
-  ( cl - tolower char/str )
-    
-    ci - c++
-    cd - c--
-
-    c+ - c+=T
-    c-
-    c*
-    c/
-    c< - c<<=T -- TODO: c{ update skip
-    c> - c>>=T -- TODO: c} update skip
-
-  ???
-  cons - co cc pc p^
-  car  - ca c0 pa p0
-  cdr  - cd c1 pd p1
-
-  d - dup
-  e - emit (see . e t p q )
-( f - free for malloced ptr??? )
-    fi - f++
-    fd - f--
-
-  ( can put on $ ? )
-    f+ - f+=T
-    f-
-    f*
-    f/
-    f< - f<<=T
-    f> - f>>=T
-  g - aliGn (auto align for , ?)
-  h - here (offset into M)
-  ij
-( k - key key?)
-( l - long )
-  m - here swap malloc (TODO:use heap)
-  n - negate value
-  o - over
-  p - dprint w/o space (see . e t p q )
-  q - quote print (print so can read)
-  r
-  s - swap
-  t - type counted string from M (see .etpq)
-  uv
-  w - word/long ops prefix !@
-    w! - long!
-    w@ - long@
-    w, - TODO
-    wi - w++
-    wd - w--
-
-    w+ - w+=T
-    w-
-    w*
-    w/
-    w< - w<<=T -- TODO: w{ update skip
-    w> - w>>=T -- TODO: w} update skip
-  x - execute (call char f stack)
-  y
-  z - !T or =0? zero?
-  { - loop begin
-  | - or
-  } - loop end
-  ~ - identity eq === (bitpattern)
-( <del> )
-( 128-255 - optimized atomnames/addr )
 */
 
 #ifdef alTEST

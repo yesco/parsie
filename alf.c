@@ -15,22 +15,6 @@
 
 #include "obj.c"
 
-// Parse from P a name
-//
-// (P is pointer to char* and updated)
-//
-// Note: this allows any alnum || _
-//
-// Returns a static string (use fast!)
-char* parsename(char** p) { static char s[64], i; i=0; while((isalnum(**p)
-  ||**p=='_') && i<sizeof(s)-1) s[i++]=*(*p)++; s[i]= 0; return s;}
-
-// skips a { block } returns after
-//   TODO: must skip STRINGs!!! lol
-char* skip(char* p){ int n=1;while(n&&*p)if(*p=='?'&&p[1]!='{')p+=2;else n+=(*p=='{')-(*p=='}'),p++;return p;}
-
-void prstack(){P("\t:");for(D* s= K+2; s<=S; s++){dprint(*s);pc(' ');}} // DEBUG
-
 // Find lexical stack frame reference
 // -100 per new stack frame
 // -3 variable 3 steps above __

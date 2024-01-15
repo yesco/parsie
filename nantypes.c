@@ -191,7 +191,7 @@ UL d2u(D d) { return *(UL*)(&d); } D u2d(UL u) { return *(D*)(&u); }
 #define TYP(x) ((unsigned int)(d2u(x)>>48))
 
 // Typ:s constants (neg if need to be GC:ed
-const long TNAN=0x7ff8,TATM=0x7ffa,TSTR=0xfffb,TOBJ=0xfffc,TCNS=0xfffe,TFUN=0xfffd;
+const UL TNAN=0x7ff8,TATM=0x7ffa,TSTR=0xfffb,TOBJ=0xfffc,TCNS=0xfffe,TFUN=0xfffd;
 
 
 // TODO? unify with svar + K + M ???
@@ -293,62 +293,13 @@ void inittypes() {
   //this=atom("__this__");
 }
 
+#include "common.c"
+
 // how many strings can we handle?
 // TODO: make dynamic?
 #define ZZ 1024
 
-
-typedef char* dstr; dstr ss[ZZ]={0}; char sr[ZZ]={0}; int sn=1;
-
-// Dynamic String dstr append/cat string X N chars
-//
-// dstr: String pointer is resized in chunks
-// of 1024 bytes. Free as normal
-//
-// S= NULL, or malloced destination
-// X= NULL, or string to append from
-// N= chars to copy, or -1=all
-//
-// Note: N string must be zero-terminated
-// the length will be read from it.
-//
-//
-// Returns S or a new pointer.
-//  
-// TODO: not safe if x not ZeroTerminated...
-dstr sncat(dstr s, char* x, int n) {int i=s?strlen(s):0,l=(x||n<0)?strlen(x):n;
-  if (n<0 || n>l) n= l; s= realloc(s, 1024*((i+n+1024)/1024)); s[i+n]= 0;
-  return strncpy(s+i, x?x:"", n), s;
-}
-
-// --- printers
-// s=sdprinc(s,,D)   - stringify
-// s=sdprinq(s,D)    - "foo" if str #atm
-// s=sdprintf(s,f,D) - printf(f,D)
-
-////////////////////////////////////////////////////////////////////////////////  
-// only %lf %g %s makes sense...
-dstr sdprintf(dstr s, char* f, D d) {char*x=dchars(d);
-  if (x) {int n= snprintf(0,0,f,x); char q[n+1];
-    snprintf(q,sizeof(q),f,x);
-    s=sncat(s,q,-1);
-    return s;
-  } else if (iscons(d)) assert(!"TODO: sdprintf TCNS");
-  int n= snprintf(0,0,f?f:"%.8g",d); char q[n+1];
-  snprintf(q,sizeof(q),f?f:"%.8g",d); return sncat(s,q,-1); }
-
-dstr sdprinc(dstr s, D d) {char*x=dchars(d);
-  return x?sncat(s,x,-1):sdprintf(s,0,d); }
-
-// quoted any " in string w \"
-dstr _sdprinq(dstr s, D d) { dstr v= sdprinc(0,d),p=v;
-  while(p&&*p){if(*p=='"')s=sncat(s,"\\",1);s=sncat(s,p++,1);}free(v);return s;}
-
-// TODO: #atom
-dstr sdprinq(dstr s, D d) {if (isatom(d)) s= sncat(s,"#",-1);char* p= dchars(d);
-  if (isstr(d)) s= sncat(s,"c\"",-1); if (!p) s= sdprinc(s,d); else
-    while(*p){ if(*p=='"')s=sncat(s,"\\",1); s=sncat(s,p++,1); }
-  if (isstr(d)) s= sncat(s,"\"",-1); return  s; }
+dstr ss[ZZ]={0}; char sr[ZZ]={0}; int sn=1;
 
 // Return a new str from char* S take N chars.
 // These strings are trimmed.
@@ -398,7 +349,44 @@ D cdr(D c) { return iscons(c)?K[DAT(c)+1]:nil; }
 int cprint(D c){ int n= 0; while(iscons(c)){ n+= pc(n?' ':'(')+dprint(car(c));
     c= cdr(c); }  if (!deq(c,nil)) n+=P(" . ")+dprint(c); return n+=pc(')'); }
 
+D readstr(char** p, char q) {
+  char* e=*p; while(**p&&**p!=q)(*p)++; return newstr(e,(*p)++-e);
+}
 
+D reader(char** p);
+
+void spc(char**p) {while(isspace(**p))(*p)++;}
+
+D readlist(char** p){
+  spc(p);
+  // end of line matches any end char...
+  if ((!**p || **p==')') && (!**p || (*p)++)) return nil;
+  D a= reader(p);
+  spc(p);
+  int d= (**p=='.' && (*p)++);
+  return cons(a, d?reader(p):readlist(p));
+}
+
+D reader2(char** p){
+  spc(p);
+  switch(**p){
+  case 0:  return nil;
+  case'"': (*p)++; return readstr(p, '"');
+  case'(': (*p)++; return readlist(p);
+  case'[':
+  case'{': assert(!"reader JSON");
+  case',': assert(!"template insert expr [...]==bquote?");
+  case'0'...'9': { D d=0;while(isdigit(**p))d=d*10+*(*p)++-'0'; return d; }
+  default: return isalpha(**p)?atom(parsename(p)) :error;
+  }
+}
+
+D reader(char** p) {
+//  P("\tREADER: %s\n", *p);
+  D r= reader2(p);
+//  P("\t => "); dprint(r); P(" %s\n", *p);
+  return r;
+}
 
 ////////////////////////////////////////
 // TFUN: 

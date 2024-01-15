@@ -23,7 +23,12 @@
 // elisp!
 //   103.25s interpreted
 //     3.36s byte-compile:d 
+//     3.95 monday
+//     3.77 monday
 // ual/el-comp =    +23.51%
+//     3.80 monday
+//   SAME-SAME!!!!!!
+//   (al => 5.68s)
 // 
 // ./ual < fib-lambda-elisp.ual
 //     4.48s S D etc

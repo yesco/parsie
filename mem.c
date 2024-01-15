@@ -84,6 +84,8 @@ void initmem(size_t sz) { K=calloc(KSZ,SL);S=K+1; G=K+SMAX;Y=G-2; C=K+GMAX;
 
 extern int dprint(double); // FORWARD
 
+void prstack(){P("\t:");for(double* s= K+2; s<=S; s++){dprint(*s);pc(' ');}} // DEBUG
+
 void dump() { char* M= (void*)G;
   for(int i=0; i<*S;) { int n= S[-1]; P("\n%04x ", n);
     for(int j=0;j<8;j++) P("%02x%*s", M[n+j], j==3, "");  P("  ");
