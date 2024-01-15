@@ -15,12 +15,20 @@
 // also in alf.c
 
 // fib 35
-//  4.15s ./ual
-//  4.70s ./al <fib-lambda.al
+//     4.15s ./ual
+//     4.70s ./al <fib-lambda.al
 // named:    
-//  4.73s ./ual  +14%
-//  6.23s ./al   +33%
-
+//     4.73s ./ual  +14%
+//     6.23s ./al   +33%
+// elisp!
+//   103.25s interpreted
+//     3.36s byte-compile:d 
+// ual/el-comp =    +23.51%
+// 
+// ./ual < fib-lambda-elisp.ual
+//     4.48s S D etc
+//   more expensive than unnamed
+//   ual, because more ops?
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -44,7 +52,10 @@ char* parsename(char** p) { static char s[64], i; i=0; while((isalnum(**p)
 
 char* skip(char* p){ int n=1;while(n&&*p)if(*p=='?'&&p[1]!='{')p+=2;else n+=(*p=='{')-(*p=='}'),p++;return p;}
 
+// -- cheaper:
 #define Z goto next; case
+// -- more expensive:
+//#define Z break; case
 
 char* al(char* o, char* p) { int v; char* x;
   double *A=0; int n=0; char a[32]={0};
@@ -56,7 +67,9 @@ char* al(char* o, char* p) { int v; char* x;
     Z' ': Z'\t': Z'\n': Z'\r':
     Z 0: return p;
 
-    Z'0'...'9': v=0; p--;
+    Z'"': while(*p && *p!='"')pc(*p++);
+    Z'0'...'9':
+      v=0; p--;
       while(isdigit(*p))
 	v= v*10 + *p++-'0';
       S[s++]= v;
@@ -66,12 +79,15 @@ char* al(char* o, char* p) { int v; char* x;
     Z'*': S[s-2]*= S[s-1]; s--;
     Z'/': S[s-2]/= S[s-1]; s--;
 
-    Z'=':  S[s-2]= S[s-2]==S[s-1]; s--;
+    Z'=': S[s-2]= S[s-2]==S[s-1]; s--;
     Z'<': S[s-2]= S[s-2]<S[s-1]; s--;
 
     Z'P': P("\n%.7g ", S[--s]);
     Z'T': P("\n");
 
+    Z'D': S[s]= S[s-1]; s++;
+    Z'S': { double f= S[s-2];
+	S[s-2]= S[s-1]; S[s-1]= f; }
     Z'\\': // \ambda
       if(*p>='a')
 	strcpy(a,parsename(&p));
@@ -93,7 +109,7 @@ char* al(char* o, char* p) { int v; char* x;
 
     Z'^':
       //prstack();
-      S[s-n-1]=S[s-1];s+=-n;
+      A[1]=S[s-1];s=A-S+2;
       //prstack();
       return p-1; // ret
 

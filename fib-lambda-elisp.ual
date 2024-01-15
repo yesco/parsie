@@ -1,0 +1,19 @@
+"---equivalent to elisp"T
+"TODO: how to squeeze more performance to get closer to elisp byte-compile:d?"T
+
+
+666 42
+
+10 10 P
+\ D0=I{0^}{D1=I{1^}{D1-RS2-R+^}}^
+PTT
+
+35 35 P
+\a a0=I{0}{a1=I{1}{a1-Ra2-R+}}^
+PPT
+
+
+
+
+
+
