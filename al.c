@@ -11,7 +11,7 @@
 #ifndef DEBUG
 int debug= 0; // DEBUG
 #define DEBUG(D) if (debug) do{D;}while(0);
-#endif
+#endif // EDEBUG
 
 #include "mem.c"
 
@@ -65,21 +65,20 @@ D map(D f, D l, D all, D r, D opt, int k) { if (deq(l, nil)) return nil;
     // TODO: need setcdr...
     return cons(e, map(f, cdr(l), all, r, opt, k+1)); } return nil; }
 
-char* alf(char*p,D*A,int n,D*E,int iff){assert(!"not ALF it's AL!\n");}
+char* alf(char*p,D*A,int n,D*E,int iff){assert(!"not ALF it's AL!\n");} // DEBUG
 
 char* al(char*o,char*p,D*A,int n,D*E){ long x; char*e=0,*s,c,*X=0; D d;
-  int iff=0; // TODO: remove ALF
 //  8 bytes fib 35 => 5.76s
 // 10 bytes fib 35 => 6.19s
 // 16 bytes fib 35 => 4.37s
 // 20 bytes fib 35 => 4.37s
 // 26 bytes fib 35 => 4.77s
 // 32 bytes fib 35 => 4.47s
-char a[16];*a=0;
+char a[16];*a=0;if(!p)return 0; int iff=0; // TODO: remove ALF
+
 // Temp vars: L x ; *e,*s,c ; D d
 // (a is argument names string)
 
-if(!p)return 0;
 // Make sure a is free:d
 //#define RET(r) do{free(a);return r;}while(0)
 #define RET(r) return r
@@ -89,80 +88,42 @@ next: DEBUG(prstack();P("\t>%.10s ...\n",p));
 x=0;nn++;switch(c=*p++){case 0:case')':case']':RET(p);Z' ':Z'\n':Z'\t':Z'\r':
 
 Z'"': U= readstr(&p, '"');
-
 Z'#': *S=!istyped(*S);
 Z'$': *S=isstr(*S);
-//Z'%': ; // mod
-//Z'&': ; //  &and
 Z'\'': if(*p==' ') { p++; char*s= dchars(POP); U=s?reader(&s):error; }
   else U=reader(&p);
-//Z'(': ; // (list // TODO: '(a b) ...
-//Z')': ; // )
-//Z'*': ; // *mul
-//Z'+': ; // +plus
-//Z',': ; // ???
-//Z'-': ; // -minus
-//Z'.': ; // O.getprop
-//Z'/': ; // /div
-//Z'0-9number
-//Z':': ; // :define
-//Z';': ; // ; end
-//Z'<': ; // <less
-//Z'=': ; // =eq
-//Z'>': ; // >gt
 Z'?': c=*p++;while(*p&&*p!=c)putchar(*p++); p++;
 
-// -- JUMPS (forward only!)
-Z (129)...(255): p+=c-128; // JMP: +1..
-Z 128: p=o;
-//pc('\n'); prstack(); pc('\n');
-// somehow not good? isspace
-while(*p && isspace(*p))p++;
-if (*p=='\\') while(*p && !isspace(*p))p++;
-// TODO: doesn't actually improve!!!
-//o=p; // LOL
-//printf("RECURSE: %s\n", p);
-for(int i=0; i<n; i++) A[i+1]=S[-n+i+1];
-S-=n;
-//pc('\n'); prstack(); pc('\n');
-p++;
- // tail rec
+// -- JUMPS (forward only!) // JMP: +1..
+Z (129)...(255):p+=c-128; Z 128:p=o;spc(&p);if(*p=='\\')while(*p&&!isspace(*p))
+  p++; for(int i=0;i<n;i++)A[i+1]=S[-n+i+1]; S-=n; p++;  // tail rec
 
 // -- object functions
-Z';': U=obj(); // why not {} or '{}
-Z':': S-=2;*S=get(*S,atomize(S[1]));
-set(*S,S[1],S[2]);
-Z',': S--;set(*S,dlen(*S),S[1]);
-Z'.': S--;*S=get(*S,atomize(S[1]));
+Z';': U=obj(); Z':': S-=2;*S=get(*S,atomize(S[1]));set(*S,S[1],S[2]);
+Z',': S--;set(*S,dlen(*S),S[1]); Z'.': S--;*S=get(*S,atomize(S[1]));
 //Z'!': S-=3;set(S[3],S[2],S[1]);
-//Z'@':
-Z'A': *S=car(*S); // cAr
+
 Z'B': while(iscons(*S)) {if(deq(S[-1],car(*S))){S--;*S=S[1];goto next;}
-  *S=cdr(*S);}  S--;*S=nil; // memBer
-Z'C': S--;*S=cons(S[0],S[1]); // Cons
-Z'D': *S=cdr(*S); // cDr
-Z'E': e=dchars(POP);al(e,e,A,n,E);// Eval
+  *S=cdr(*S);}  S--;*S=nil; Z'E': e=dchars(POP);al(e,e,A,n,E);// memBer Eval
+Z'A':*S=car(*S); Z'C':S--;*S=cons(S[0],S[1]); Z'D':*S=cdr(*S); // cAr Cons CDr
 //Z'F': //  ( Format Function )
-Z'G': while(iscons(*S)&&!deq(car(car(*S)),S[-1]))*S=cdr(*S); S--;*S=S[1]; // (G)assoc
-//Z'H': // (H)append
-Z'I': if(POP)p++; // If (== ?skip)
+Z'G': while(iscons(*S)&&!deq(car(car(*S)),S[-1]))*S=cdr(*S); S--;*S=S[1];// (G)assoc
+//Z'H': // (H)append */
 //Z'J': // ?? prog1 - ? Jump?
-Z'K': *S=iscons(*S); // Konsp
+Z'I': if(POP)p++; Z'K': *S=iscons(*S); Z'R': al(o,o,S,0,0); // If Konsp Recurse
 Z'L': x=POP;d=nil; while(x-->0)d=cons(*S--,d); U=d; // List (<n items>... n -- L)
-Z'M': S--;d= map(*S, S[1], S[1], nil, nil, 0);U=d; // Map
-Z'N': S--; while(S[0]-- >0)S[1]=cdr(S[1]); *S=car(S[1]);
-Z'O': x=0; while(iscons(*S)&&++x)*S=cdr(*S); *S=x; // --- Ordinal + lengthO or just fOld?
-Z'P': pc('\n'); dprint(POP); // Print ?
+Z'M':S--;d=map(*S,S[1],S[1],nil,nil,0);U=d; Z'^':S[-n]=*S;S-=n;RET(p-1);//retMap
+Z'N': S--;while(S[0]-- >0)S[1]=cdr(S[1]); *S=car(S[1]);
+Z'O': x=0;while(iscons(*S)&&++x)*S=cdr(*S); *S=x; // --- Ordinal + lengthO or just fOld?
+Z'P': pc('\n');dprint(POP); Z'T':pc('\n'); Z'W':dprint(POP); // Print Terpri Pc
+
 //Z'Q': // eQual
-Z'R': al(o,o,S,0,0);
 //Z'S': // Setq
-Z'T': pc('\n'); // Terpri
-Z'U': *S=deq(*S,nil)||deq(*s,undef); // null?
 //Z'V': // reVerse
-Z'W': dprint(POP); // Write/Princ ? use P?
-Z'X': printf("%s", e=sdprinq(0,POP)); free(e); // X/Princ1 ?
-Z'Y': {char*ln=0,*p=0;size_t sz=0;
-  if(getline(&ln,&sz, stdin)>=0)p=ln;U=reader(&p); }
+// prin1 (Y)read null?
+Z'X': P("%s",e=sdprinq(0,POP));free(e); Z'Y': {e=0;s=0;size_t z=0; if(getline(
+  &e,&z,stdin)>=0)p=e;U=reader(&p);free(e);} Z'U':*S=deq(*S,nil)||deq(*s,undef);
+
 //Z'Z': // Zapply
 //Z'[': // quotation:
 // `backquote
@@ -176,16 +137,9 @@ Z'Y': {char*ln=0,*p=0;size_t sz=0;
 // 
 //Z'`' back? => addr?
 
-Z'~': *S=!*S; // ~not
-//case'a'...'z': // a-z variables
-// {} use in IF but gone during interpret
-//Z'|': // |or
-// } see {
-
 // faster here than at the beginning, LOL
 // inline makes 5.04s instead of 5.70s for fib-l.al...
 Z'0'...'9':{D v=0;p--;while(isdigit(*p))v=v*10+*p++-'0';U=v;}
-//Z'0'...'9': p--;U=reader(&p);
 
 // -- lambda functions and parameters
 // ( \lambda reverse debruijn index
@@ -195,17 +149,13 @@ Z'0'...'9':{D v=0;p--;while(isdigit(*p))v=v*10+*p++-'0';U=v;}
 // TODO: if call al() for loop?
 //   it'll do \x wrong... works
 //   because jump!
-Z'\\': if(*p>='a') strcpy(a,parsename(&p)); n= *a?strlen(a):n+1; A=S-n; // \ambda
-Z'a'...'z': if(*a) U=A[strchr(a,c)-a+1];else U=A[c-'a'+1]; // local var
-Z'^': S[-n]=*S;S-=n; RET(p-1); // return
+Z'\\': if(*p>='a')strcpy(a,parsename(&p));n=*a?strlen(a):n+1;A=S-n; // \ambda
+Z'a'...'z':if(*a)U=A[strchr(a,c)-a+1];else U=A[c-'a'+1]; // local var
 
 // -- Math operators
-Z'%': S--;*S=L*S%L S[1];
-//Z'z': *S=!*S;
-//Z'n':*S=-L*S;
+Z'%': S--;*S=L*S%L S[1]; Z'~': *S=!*S; // % ~not
 #define OP(op,e) Z #op[0]: S--;*S=*S op##e S[1];
 OP(+,);OP(-,);OP(*,);OP(/,);OP(<,);OP(>,);OP(=,=);OP(|,|);OP(&,&);
-
 
 
 ////////////////////////////////////////
@@ -247,7 +197,7 @@ Z'[': { e=p; while(*p&&*p!=']')p++;U=newstr(e, p++-e);
   //DEBUG(P("\n\tCALL: o="); dprint(s[1]); P(" nom="); dprint(nom); P(" m="); dprint(m); pc('\n'););
 // -- numbers / math
 Z'0'...'9': p--;U=reader(&p);
-//Z'~': S--;*S=deq(*S,S[1]);
+Z'~': S--;*S=deq(*S,S[1]);
 Z'%': S--;*S=L*S%L S[1]; Z'z': *S=!*S;Z'n':*S=-L*S;
 #define OP(op,e) Z #op[0]: S--;*S=*S op##e S[1];
 OP(+,);OP(-,);OP(*,);OP(/,);OP(<,);OP(>,);OP(=,=);OP(|,|);OP(&,&);
