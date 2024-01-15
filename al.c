@@ -214,8 +214,10 @@ OP(+,);OP(-,);OP(*,);OP(/,);OP(<,);OP(>,);OP(=,=);OP(|,|);OP(&,&);
 // :::BEGIN ALF
 
 // No faster if not included...?
-#define ALF
-#ifdef ALF
+#ifndef NOALF // DEBUG
+  #define ALF NOALF // DEBUG
+#endif // DEBUG
+#ifdef ALF // DEBUG
 Z'F': switch(c=*p++){
 
 Z'@': *S= *(D*)m(*S,A,n); Z'!': *(D*)m(*S,A,n)= S[-1]; S-=2;
