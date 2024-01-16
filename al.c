@@ -87,11 +87,14 @@ DEBUG(P("\n===AL >>>%s<<<\n", p))
 next: DEBUG(prstack();P("\t>%.10s ...\n",p));
 x=0;nn++;switch(c=*p++){case 0:case')':case']':RET(p);Z' ':Z'\n':Z'\t':Z'\r':
 
-Z'"': U= readstr(&p, '"');
-Z'#': *S=!istyped(*S);
-Z'$': *S=isstr(*S);
-Z'\'': if(*p==' ') { p++; char*s= dchars(POP); U=s?reader(&s):error; }
-  else U=reader(&p);
+Z'`': switch(*p++) { Z'#': U=n; Z'0'...'9': U='0'-p[-1]-1; Z'A'...'Z':
+ case'a'...'z':case'_':p--;U=atom(parsename(&p));
+  case'$': *S=atomaddr(*S);break;default:goto error;}
+
+Z'"':U=readstr(&p,'"'); Z'#':*S=!istyped(*S); Z'$':*S=isstr(*S);// "" nup strp
+Z'\'': if(*p=='?'&& p++)*S=isatom(*S); else if(*p=='$'){p++;char*s=dchars(*S);
+  *S=s?reader(&s):error; } else U=reader(&p);
+
 Z'?': c=*p++;while(*p&&*p!=c)putchar(*p++); p++;
 
 // -- JUMPS (forward only!) // JMP: +1..
@@ -101,7 +104,8 @@ Z (129)...(255):p+=c-128; Z 128:p=o;spc(&p);if(*p=='\\')while(*p&&!isspace(*p))
 // -- object functions
 Z';': U=obj(); Z':': S-=2;*S=get(*S,atomize(S[1]));set(*S,S[1],S[2]);
 Z',': S--;set(*S,dlen(*S),S[1]); Z'.': S--;*S=get(*S,atomize(S[1]));
-//Z'!': S-=3;set(S[3],S[2],S[1]);
+// -- setq get-val
+Z'@': *S= *(D*)m(*S,A,n); Z'!': *(D*)m(*S,A,n)= S[-1]; S-=2;
 
 Z'B': while(iscons(*S)) {if(deq(S[-1],car(*S))){S--;*S=S[1];goto next;}
   *S=cdr(*S);}  S--;*S=nil; Z'E': e=dchars(POP);al(e,e,A,n,E);// memBer Eval
@@ -324,26 +328,30 @@ void pal(char* p) {
 //at { put jump to } repl w ' '
 //   I{T}    => "I[+4]T "
 //   I{T}{E} => "I[+4]T [+3]F }"
-char* _opt(char*,char); // FORWARD
-char* _sopt=0; void opt(char* p) { _sopt= p; _opt(p, 0); }
+char* _opt(char*,char,int); // FORWARD
+char* _sopt=0; void opt(char* p) { _sopt= p; _opt(p,0,0); }
 
-char* _opt(char* p, char e) {
+char* _opt(char* p, char e, int obj) {
   while(p&&*p) { char c;
-    //P("OPT:");pal(p);P("\n");
+    //P("OPT:");pal(p);P("\n"); // DEBUG
     if (!*p || *p==e) return p;
     switch(c=*p){
     case')':case'}':case']':
       P("\n%%ERROR: opt expected '%c' (%d) at\n%.*s <--HERE---> %s\n", e, e, (int)(p-_sopt), _sopt, p); abort();
-    case'\'': p++;
+    case'\'': p++; obj=1;
+    case'{': if (!obj) goto jump;
     case'(': case'[':
       if (isalnum(*p)) { parsename(&p); break; }
-      if (*p=='('||*p=='{'||*p=='[') p= _opt(p+1, *p=='('?')':*p=='{'?'}':']'); break;
+      if (*p=='('||*p=='{'||*p=='[') p= _opt(p+1, *p=='('?')':*p=='{'?'}':']',1);
+printf("\nQUOTE.after:%s\n",p);
+break;
     case'"': p++;while(*p&&*p!='"')p++; break;
     case'R': if (p[1]=='^') { *p= 128; } break;// tail rec
-    case'I': case '{': {
+    case'I': jump: { 
+      printf("\nJUMP:%s",p);
       if (*p=='I')p++;
       if (*p>=128) break; // idempotent
-      char*e=_opt(p+1, '}');
+      char*e=_opt(p+1, '}',0);
       assert(*e=='}');
       *e= ' ';
       // => 128...== +1...
@@ -395,8 +403,8 @@ char* _opt(char* p, char e) {
 
    _foo
 
-  !"#$%&'()*+,-./0123456789:;<=>?
-       & ()  , .           :;   
+   !"#$%&'()*+,-./0123456789:;<=>?
+        & ()  , .           :;   
 
   @ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_
          GH J  MN    S  V  YZ[ ] _
@@ -404,35 +412,40 @@ char* _opt(char* p, char e) {
   `abcdefghijklmnopqrstuvwxyz{|}~
   `                           |
 
-  ' '
+  ' ' -- space/delimiter
    ! - Forth ! (write mem)
    " - string
    # - numberp
    $ - stringp
    % - mod
    & - and TODO: short-circuit
-   '
+   ' - quoting functions
+   '? - atomp symbolp atom
+   '32 - number (no need)
+   'atm - atom
+   '{} - obj/array
+   '[] - array/obj
    ( --
    ) --
    * - mul
    + - plus
-   , --
+   , - push (O v -- O)
    - - minus
-   . --
+   . - getprop (O A -- v)
    / - div
    0-9 - number
-   : -- define/defun
-   ; --
+   : - setprop (O A v--O)
+   ; - new Obj TODO: use '{} ???
    < - lt
    = - eq
    > - gt
-   ? - not eq nil (see U)
-   @ - Forth @ (read mem)
+   ?"foo" - print string
+   @ - Forth @ (read mem f addr/atm)
    A - cAr
-   B - memB (use eq)
+   B - memB (uses eq)
    C - Cons
    D - cDr
-   E - Eval
+   E - Eval (al)
    F - Forth prefix
    G -- (G)assoc
    H -- (H)append

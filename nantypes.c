@@ -224,7 +224,7 @@ long nameadd(char* s) {char*p=hp;int l=strlen(s),n=0;while(*p){if(!strcmp(s,p+1)
   *p=l; return -(strcpy(p+1,s)-hp-1+((L n)<<22))-1;
 }
 
-void prnames() { char* p= hp; printf("\n"); while(*p) { D* d= (D*)(p+1+strlen(p+1)+1); printf("%5ld: %d v=> %10.7g %5ld\t%s\n", p-hp, *p, *d, d2u(*d), p+1); p+=strlen(p+1)+1+1+sizeof(D); } } // DEBUG
+void prnames() { char* p= hp; P("\n"); while(*p) { D* d= (D*)(p+1+strlen(p+1)+1); P("%5ld: %d v=> %10.7g %5ld\t%s\n", p-hp, *p, *d, d2u(*d), p+1); p+=strlen(p+1)+1+1+sizeof(D); } } // DEBUG
 
 // Return a data atom from String
 // empty string returns nil
@@ -329,8 +329,8 @@ int dcmp(D a, D b) { UL c,d,e=1; switch (!!isnan(a)*10+!!isnan(b)) {
 int pobj(D); // FORWARD
 int cprint(D); // FORWARD
 
-int dprint(D f){char*s=dchars(f);int l=pobj(f);return l?l:s?printf("%s",s):
-  iscons(f)?cprint(f):printf("%.10g",f);}
+int dprint(D f){char*s=dchars(f);int l=pobj(f);return l?l:s?P("%s",s):
+  iscons(f)?cprint(f):P("%.10g",f);}
 
 // Concatenate D + S as new str
 // from Index in S take N chars.
@@ -363,9 +363,9 @@ void spc(char**p) {while(isspace(**p))(*p)++;}
 D obj(); // FORWARD
 D set(D,D,D); // FORWARD
 
+// end of line matches any end char...
 D readlist(char** p){
   spc(p);
-  // end of line matches any end char...
   if ((!**p || **p==')') && (!**p || (*p)++)) return nil;
   D a= reader(p);
   spc(p);
@@ -373,13 +373,18 @@ D readlist(char** p){
   return cons(a, d?reader(p):readlist(p));
 }
 
+// NOTE: commas are optional!
+//   [11 22 33] {a:1 b:2} ok!    
+// NOTE: on errors *p is SET to 0
+//   this to not continue execute
+//   after error parsing code
 D reader(char** p){ spc(p); switch(**p){ case 0: return nil;
   case'"': (*p)++; return readstr(p, '"');
   case'(': (*p)++; return readlist(p);
-  case'{':  case'[': {char e= **p=='{'?'}':']'; D o=obj(); spc(p);
-  do { (*p)++; D a= reader(p);spc(p); if(**p==':'){ (*p)++;
-      set(o,atomize(a),reader(p));}else set(o,dlen(o),a);
-    spc(p);if(**p==e)break; }while(**p==','); (*p)++; return o; }
+  case'{':  case'[': {char e= **p=='{'?'}':']'; D o=obj(); (*p)++;
+  while(**p&&**p!=e) {D a= reader(p);spc(p); if(**p==':'){(*p)++;
+    set(o,atomize(a),reader(p));}else set(o,dlen(o),a);if(**p==',')(*p)++;}
+  if (*p) (*p)++; return o; }
   case',': assert(!"template insert expr [...]==bquote?"); // DEBUG
   case'0'...'9': { D d=0;while(isdigit(**p))d=d*10+*(*p)++-'0'; return d; }
   default: return isalpha(**p)?atom(parsename(p)) :error;
@@ -449,7 +454,7 @@ void gc() { memset(sr, 0, sizeof(sr));
   // --- SWEEP - prefer lower first
   for(int i=sn;i;i--)if(!sr[i]){free(ss[i]);ss[i]=ss[0];ss[0]=(char*)(long)i;}
   
-  DEBUG({long f= 0; printf("Free: "); do printf("%lu=>", f); while((f=(long)ss[f]));printf("\n");});
+  DEBUG({long f= 0; P("Free: "); do P("%lu=>", f); while((f=(long)ss[f]));P("\n");});
   
 }
 
