@@ -369,8 +369,14 @@ D readlist(char** p){
   if ((!**p || **p==')') && (!**p || (*p)++)) return nil;
   D a= reader(p);
   spc(p);
-  int d= (**p=='.' && (*p)++);
-  return cons(a, d?reader(p):readlist(p));
+  D d;
+  if (**p=='.') {
+    (*p)++; 
+    d=reader(p);
+    spc(p);
+    (*p)++; // skip ')'
+  } else d= readlist(p);
+  return cons(a, d);
 }
 
 // NOTE: commas are optional!

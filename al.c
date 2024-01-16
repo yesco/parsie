@@ -343,12 +343,10 @@ char* _opt(char* p, char e, int obj) {
     case'(': case'[':
       if (isalnum(*p)) { parsename(&p); break; }
       if (*p=='('||*p=='{'||*p=='[') p= _opt(p+1, *p=='('?')':*p=='{'?'}':']',1);
-printf("\nQUOTE.after:%s\n",p);
 break;
     case'"': p++;while(*p&&*p!='"')p++; break;
     case'R': if (p[1]=='^') { *p= 128; } break;// tail rec
     case'I': jump: { 
-      printf("\nJUMP:%s",p);
       if (*p=='I')p++;
       if (*p>=128) break; // idempotent
       char*e=_opt(p+1, '}',0);
@@ -508,9 +506,12 @@ int main(int argc, char** argv) {
   //   TODO: -v = variable size
   //   TODO: -h = heap size
   //   TODO: -m = mem size
-  do{
-    if (0==strcmp("-d", argv++[0])) debug++;
-  } while(--argc);
+  int errstop=0;
+
+  while(--argc && argv++) { if(0);
+    else if (0==strcmp("-d", *argv)) debug++;
+    else if (0==strcmp("-E", *argv)) errstop=1; else {P("%%ERROR: alf - no such option '%s'\n", *argv);abort();}
+  }
 
   initmem(16*1024); inittypes();
 
@@ -539,14 +540,16 @@ int main(int argc, char** argv) {
   
   // read-eval
   char* ln= NULL; size_t sz= 0;
+  int err=0;
   while(getline(&ln, &sz, stdin)>=0) {
     P("\nAL > "); pal(ln);
     P("OPT> "); opt(ln); pal(ln);
     al(ln,ln,0,0,0);
     DEBUG(printf("\t[%% %ld ops]\n", nn); nn=0);
-    if (S<=K) { P("\n%%STACK underflow %ld\n", S-K); } // DEBUG
-    if (S>=K+SMAX) { P("\n%%STACK overrun\n"); } // DEBUG
-    if (!deq(K[SMAX-1],error)) { P("\n%%STACK corrupted/overrun to cons/var storage\n"); } // DEBUG
+    if (S<=K) { P("\n%%STACK underflow %ld\n", S-K); err=1; } // DEBUG
+    if (S>=K+SMAX) { P("\n%%STACK overrun\n"); err=1; } // DEBUG
+    if (!deq(K[SMAX-1],error)) { P("\n%%STACK corrupted/overrun to cons/var storage\n"); err=1; } // DEBUG
+    if (err && errstop) abort();
   }
 }
 #endif

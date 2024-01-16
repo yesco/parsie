@@ -146,9 +146,9 @@
 3 3 > P
 
 ?"-- ?"
-?"foo'bar"P
-?'foo"bar'P
-?xfoozbarxP
+?"foo'bar"
+?'foo"bar'
+?xfoozbarx
 
 ?"-- @"
 64	@ P
@@ -159,7 +159,7 @@
 "*error*" '$	@ P
 
 'foo	@P
-42 'foo	! 'foo	@p
+42 'foo	! 'foo	@P
 
 ?"-- A"
 'nil		A P
