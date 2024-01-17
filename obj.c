@@ -45,10 +45,13 @@ D obj() { align(); Obj* o= (Obj*)H; H+= sizeof(Obj); memset(o,0,sizeof(Obj));
 // Set in direct obj
 // if val is undef, name is removed
 D set(D d, D name, D val) {Obj*o=PTR(TOBJ,d),*last=0,*p=o;if(!o)return undef;
-  if (deq(name,proto)) return p->proto=val; if (!ISNAN(name) && name >= o->n) o->n=name+1;
+  if(deq(name,proto))return p->proto=val;if(!ISNAN(name)&&name>=o->n)o->n=name+1;
   while(1){for(int i=0;i<NPN;i++){D n=p->np[i].name; if(deq(n,name)||deq(n,
       undef)){p->np[i]=(struct np){val==undef?undef:name,val};return val;
     }} last=p;p=PTR(TOBJ,p->next);if (!p){p=PTR(TOBJ,last->next=obj());}}}
+
+// TODO: .length set and get
+//   only set on Array not Object
 
 // Search obj first, then proto...
 D get(D d, D name) {Obj *o=PTR(TOBJ,d),*p=o; if(deq(name,proto))return p->proto;

@@ -1,3 +1,4 @@
+not used
 // cons.c
 //
 // Javascript prototype style objects
@@ -31,33 +32,6 @@ D cons(D car, D cdr) {
 
 D car(D c) { D* p= PTR(TCONS, c); return p?p[0]:error; }
 D cdr(D c) { D* p= PTR(TCONS, c); return p?p[1]:error; }
-  
-// Set in direct obj
-// if val is undef, name is removed
-D set(D d, D name, D val) {
-  D* c= PTR(TCONS,d),*last=0,*p=c;
-  if(!c)return undef; // HMMM
-  while(p){
-    if(deq(*p,name)) {
-      p[0]= val==undef?undef:name;
-      p[1]= val;
-      return val;
-    }
-    last=p; p=PTR(TCONS,cdr(*p));
-  }
-  // insert new one?
-  // TODO:
-}
-
-// Search obj first, then proto...
-D get(D d, D name) {
-  D *c= PTR(TOBJ, d), *p=o;
-  while(p) {
-    if(deq(car(p),name)) return p->np[i].val;
-    p= PTR(TOBJ,p->next);
-  }
-  return o?get(o->proto, name):undef;
-}
 
 // ENDWCOUNT
 

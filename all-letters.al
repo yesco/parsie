@@ -1,6 +1,6 @@
 ?"---Simple Test for each Lunction"
 
-?"-- ' '"
+?"--  "
  
 
 ?"-- !"
@@ -151,9 +151,10 @@
 3 3 > P
 
 ?"-- ?"
-?"foo'bar"
-?'foo"bar'
-?xfoozbarx
+?"foo'bar"T
+?'foo"bar'T
+?[fooz'bar"fie\\fum]T
+?">"?_"<"T
 
 ?"-- @"
 64	@ P
@@ -281,7 +282,15 @@ nil	P	nil	P
 
 
 ?"-- S"
+'(a . b) Fd	3 SA P  P
+'(a . b) Fd	4 SD P  P
+'(a . b) FdFdFd	3 SA P  4 SD P  P
 
+?"setting arguments"T
+666 42
+11 22 33
+\xyz xSyxSz xPyWzW xy+z+^
+PPF\
 
 ?"-- T"
 "foo"T"bar"

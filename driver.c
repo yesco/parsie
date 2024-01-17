@@ -23,30 +23,35 @@
 // Variables/Letters used
 //
 // A - (inside alf: Arguments)
-// B (from M?)
+// B -- (from M?)
 // C - Cells here (rename to G)
 // D - type double
 // E - prev stackframe F-- lol
 // F - alf: functions
-// G - Globals (renamed from C)
+// G - Globals
 // H - here for M (hmmm)
 // I
 // J
 // K - K storage
-// L - macro "(long)"
-// M - byte Memory storage rename to B?
+// L - "(long)"
+// UL - "unsigned long"
+// M - byte Memory storage, rename to B?
 // N
-//(O)
-// P - printf
+//(O) -- NEVER USE looks like 0O??
+// P - "printf"
+// pc - "putchar"
 // Q 
 // R - Rules of parser
-// S - (alf) stack pointer top
-// T
+//
+// S - (alf) stack pointer top ptr
+// S1 -- S[1]
+// T -- *S top of stack
 // U - pUsh
+//
 // V
 // X
 // Y - parse; magic calls stack 
-// Z
+// Z - "goto next; case"
 
 
 #include <stdio.h>

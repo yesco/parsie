@@ -349,6 +349,8 @@ D strnconcat(D d, D s, int i, int n) { char* x= dchars(s);
 D cons(D a, D d) { UL o= C-K; *C++= a; *C++= d; return u2d(BOX(TCNS, o)); }
 D car(D c) { return iscons(c)?K[DAT(c)+0]:nil; }
 D cdr(D c) { return iscons(c)?K[DAT(c)+1]:nil; }
+D setcar(D c, D a) { return iscons(c)?K[DAT(c)+0]=a:error; }
+D setcdr(D c, D d) { return iscons(c)?K[DAT(c)+1]=d:error; }
 
 int cprint(D c){ int n= 0; while(iscons(c)){ n+= pc(n?' ':'(')+dprint(car(c));
     c= cdr(c); }  if (!deq(c,nil)) n+=P(" . ")+dprint(c); return n+=pc(')'); }
