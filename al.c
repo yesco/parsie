@@ -129,7 +129,7 @@ Z'P': pc('\n');dprint(POP); Z'T':pc('\n'); Z'W':dprint(POP); // Print Terpri Pc
 // prin1 (Y)read null?
 Z'X': P("%s",e=sdprinq(0,POP));free(e); Z'Y':e=0;z=0;if(getline(&e,&z,stdin)
   >=0)s=e,U=reader(&s,0);else U=error;free(e);
-Z'U':*S=deq(*S,nil)||deq(*s,undef);
+Z'U':*S=deq(*S,nil)||deq(*S,undef);
 
 //Z'Z': // Zapply
 //Z'[': // quotation:
