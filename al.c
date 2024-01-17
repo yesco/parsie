@@ -512,8 +512,8 @@ int main(int argc, char** argv) {
   char* ln= NULL; size_t sz= 0;
   int err=0;
   while(putc('>', stderr) && getline(&ln, &sz, stdin)>=0) {
-    P("\nAL > "); pal(ln);
-    P("OPT> "); opt(ln); pal(ln);
+    //P("\nAL > "); pal(ln);
+    //P("OPT> "); opt(ln); pal(ln);
     al(ln,ln,0,0,0);
     DEBUG(printf("\t[%% %ld ops]\n", nn); nn=0);
     if (S<=K) { P("\n%%STACK underflow %ld\n", S-K); err=1; } // DEBUG

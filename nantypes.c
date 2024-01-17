@@ -364,20 +364,9 @@ D obj(); // FORWARD
 D set(D,D,D); // FORWARD
 
 // end of line matches any end char...
-D readlist(char** p){
-  spc(p);
-  if ((!**p || **p==')') && (!**p || (*p)++)) return nil;
-  D a= reader(p);
-  spc(p);
-  D d;
-  if (**p=='.') {
-    (*p)++; 
-    d=reader(p);
-    spc(p);
-    (*p)++; // skip ')'
-  } else d= readlist(p);
-  return cons(a, d);
-}
+D readlist(char** p) {spc(p);if((!**p||**p==')')&&(!**p||(*p)++))return nil;
+  D d,a=reader(p);spc(p);if(**p=='.'){(*p)++;d=reader(p);spc(p);(*p)++;}
+    else d=readlist(p); return cons(a,d); }
 
 // NOTE: commas are optional!
 //   [11 22 33] {a:1 b:2} ok!    
