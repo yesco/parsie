@@ -1,3 +1,10 @@
+// Common misc functions
+//
+// most about strings/parsing
+// #include directly
+
+void spc(char**p) {while(isspace(**p))(*p)++;}
+
 // Parse from P a name
 //
 // (P is pointer to char* and updated)

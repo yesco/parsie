@@ -67,7 +67,7 @@ D map(D f, D l, D all, D r, D opt, int k) { if (deq(l, nil)) return nil;
 
 char* alf(char*p,D*A,int n,D*E,int iff){assert(!"not ALF it's AL!\n");} // DEBUG
 
-char* al(char*o,char*p,D*A,int n,D*E){ long x; char*e=0,*s,c,*X=0; D d;
+char* al(char*o,char*p,D*A,int n,D*E){ long x;char*e=0,*s,c,*X=0;D d;size_t z;
 //  8 bytes fib 35 => 5.76s
 // 10 bytes fib 35 => 6.19s
 // 16 bytes fib 35 => 4.37s
@@ -92,8 +92,9 @@ Z'`': switch(*p++) { Z'#': U=n; Z'0'...'9': U='0'-p[-1]-1; Z'A'...'Z':
   case'$': *S=atomaddr(*S);break;default:goto error;}
 
 Z'"':U=readstr(&p,'"'); Z'#':*S=!istyped(*S); Z'$':*S=isstr(*S);// "" nup strp
+// -- quote
 Z'\'': if(*p=='?'&& p++)*S=isatom(*S); else if(*p=='$'){p++;char*s=dchars(*S);
-  *S=s?reader(&s):error; } else U=reader(&p);
+  *S=s?reader(&s,0):error; } else U=reader(&p,1);
 
 Z'?': c=*p++;while(*p&&*p!=c)putchar(*p++); p++;
 
@@ -117,16 +118,18 @@ Z'G': while(iscons(*S)&&!deq(car(car(*S)),S[-1]))*S=cdr(*S); S--;*S=S[1];// (G)a
 Z'I': if(POP)p++; Z'K': *S=iscons(*S); Z'R': al(o,o,S,0,0); // If Konsp Recurse
 Z'L': x=POP;d=nil; while(x-->0)d=cons(*S--,d); U=d; // List (<n items>... n -- L)
 Z'M':S--;d=map(*S,S[1],S[1],nil,nil,0);U=d; Z'^':S[-n]=*S;S-=n;RET(p-1);//retMap
-Z'N': S--;while(S[0]-- >0)S[1]=cdr(S[1]); *S=car(S[1]);
-Z'O': x=0;while(iscons(*S)&&++x)*S=cdr(*S); *S=x; // --- Ordinal + lengthO or just fOld?
+Z'N': S--;if(isobj(S[1]))*S=get(S[1],*S);else{while(S[0]-- >0)S[1]=cdr(S[1]); *S=car(S[1]);} // Nth
+// --- Ordinal + lengthO or just fOld?
+Z'O': if(isobj(*S))*S=dlen(*S);else{x=0;while(iscons(*S)&&++x)*S=cdr(*S);*S=x;}
 Z'P': pc('\n');dprint(POP); Z'T':pc('\n'); Z'W':dprint(POP); // Print Terpri Pc
 
 //Z'Q': // eQual
 //Z'S': // Setq
 //Z'V': // reVerse
 // prin1 (Y)read null?
-Z'X': P("%s",e=sdprinq(0,POP));free(e); Z'Y': {e=0;s=0;size_t z=0; if(getline(
-  &e,&z,stdin)>=0)p=e;U=reader(&p);free(e);} Z'U':*S=deq(*S,nil)||deq(*s,undef);
+Z'X': P("%s",e=sdprinq(0,POP));free(e); Z'Y':e=0;z=0;if(getline(&e,&z,stdin)
+  >=0)s=e,U=reader(&s,0);else U=error;free(e);
+Z'U':*S=deq(*S,nil)||deq(*s,undef);
 
 //Z'Z': // Zapply
 //Z'[': // quotation:
@@ -200,7 +203,7 @@ Z'[': { e=p; while(*p&&*p!=']')p++;U=newstr(e, p++-e);
 //    alf(f?dchars(f):F[L m-'A'],s+1,S-s,c,0); *s=*S;S=s;}
   //DEBUG(P("\n\tCALL: o="); dprint(s[1]); P(" nom="); dprint(nom); P(" m="); dprint(m); pc('\n'););
 // -- numbers / math
-Z'0'...'9': p--;U=reader(&p);
+Z'0'...'9': p--;U=reader(&p,0); // slow
 Z'~': S--;*S=deq(*S,S[1]);
 Z'%': S--;*S=L*S%L S[1]; Z'z': *S=!*S;Z'n':*S=-L*S;
 #define OP(op,e) Z #op[0]: S--;*S=*S op##e S[1];
@@ -264,7 +267,7 @@ Z'$': x=1; switch(c=*p++){ Z'.':prstack(); case'n':pc('\n'); Z'd':x=S-K;U=x;
 #endif
 /// ::: END ALF
 
-default: error: P("\n[%% Undefined op: '%s']\n", p-1);p++;} goto next;
+default: error: P("\n[%% Undefined op: '%c' >>%s\n", p[-1], p-1);p++;} abort();
 }
 
 // KOND? LOL
@@ -402,6 +405,9 @@ void pal(char* p) {
    'atm - atom
    '{} - obj/array
    '[] - array/obj
+   '(1 ; 3)' - get value from stack 2'(1;3) => (1 2 3)
+     like lisp `(1 ,(pop) 3)
+     TODO: only allow in ` ?
    ( --
    ) --
    * - mul
@@ -430,9 +436,9 @@ void pal(char* p) {
    J -- (prog1/progn)
    K - Konsp
    L - n List (<n items> n -- L)
-   M -- Mapcar
-   N -- Nth
-   O - Ordinal (length) 0[1+]Fold
+   M -- Mapcar [\raekv ...] L
+   N -- Nth (of list/arr)
+   O - Ordinal (length list/arr)
    P - Print (\n val)
    Q -- eQual
    R - Recurse
@@ -482,12 +488,13 @@ int main(int argc, char** argv) {
   // -d - increase debug level with 1 !
   //   TODO: -q = exit on error
   //   TODO: -s = stack size
-  //   TODO: -v = variable size
+  //   TODO: -v? = variable size
   //   TODO: -h = heap size
   //   TODO: -m = mem size
-  int errstop=0;
+  int errstop=0,verbose=0;
 
   while(--argc && argv++) { if(0);
+    else if (0==strcmp("-v", *argv)) verbose++;
     else if (0==strcmp("-d", *argv)) debug++;
     else if (0==strcmp("-E", *argv)) errstop=1; else {P("%%ERROR: alf - no such option '%s'\n", *argv);abort();}
   }
@@ -511,9 +518,11 @@ int main(int argc, char** argv) {
   // read-eval
   char* ln= NULL; size_t sz= 0;
   int err=0;
-  while(putc('>', stderr) && getline(&ln, &sz, stdin)>=0) {
-    //P("\nAL > "); pal(ln);
-    //P("OPT> "); opt(ln); pal(ln);
+  while(P("\n> ") && getline(&ln, &sz, stdin)>=0) {
+    if (verbose) {P("\nAL > "); pal(ln);}
+    opt(ln);
+    if (verbose) {P("OPT> "); pal(ln);}
+
     al(ln,ln,0,0,0);
     DEBUG(printf("\t[%% %ld ops]\n", nn); nn=0);
     if (S<=K) { P("\n%%STACK underflow %ld\n", S-K); err=1; } // DEBUG

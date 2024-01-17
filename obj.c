@@ -62,11 +62,13 @@ D probj(D); // FORWARD
 // TODO: not fully correct
 // TODO: technically node has holes
 int pobj(D d){Obj*o=PTR(TOBJ,d),*p=o;if(!o)return 0;int i=0,n=P(o->n?"[":"{");
-  if (o->n) { D last=nil; int u=0; for(int i=0; i<o->n; i++) {D v= get(d, i);
-    if(deq(v,undef)&&++u>0)continue; if(u>1)n+=P("<%d empty items>, %d:",u,i);
-    u=0;n+=dprint(v)+P(", ");last=v;}}  while(p){i=0;for(D*x;x=&(p->np[i].name),
-      i<NPN;i++)if(!deq(*x,undef)&&ISNAN(*x)){n+=dprint(*x)+P(":")+dprint(x[1])
-      +P(" ");} p=PTR(TOBJ,p->next);}n+=P(o->n?"]":"}");return n;}
+  int s=0; if(o->n){ D last=nil;int u=0;for(int i=0;i<o->n;i++){D v=get(d,i);
+  if(deq(v,undef)&&++u>0&&i+1!=o->n)continue; if(u>1){n+=(s?P(" "):0)
+   +P("<%d empty items>",u);s=1;if(i+1==o->n)break;P(" %d:",i);}
+   u=0;n+=(s?P(" "):0)+dprint(v);s=1;last=v;}}
+   while(p){i=0;for(D*x;x=&(p->np[i].name),i<NPN;i++)if(!deq(*x,undef)&&ISNAN(*x
+     )){n+=(s?P(" "):0)+dprint(*x)+P(":")+dprint(x[1]);s=1;}
+     p=PTR(TOBJ,p->next);}n+=P(o->n?"]":"}");return n;}
 
 // ENDWCOUNT
 

@@ -19,3 +19,8 @@ P
 \fli ?"call "lWT  lUI{i^}  lKI{?"foo="lAWT  1P lDRfEfFdP^}
 P
 
+?"---DIY MAPCAR"T
+
+"1+^" '(11 22 33 44)
+\fl lUI{l^}{lAfElDRC^}
+P

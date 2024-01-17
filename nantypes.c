@@ -349,6 +349,7 @@ D strnconcat(D d, D s, int i, int n) { char* x= dchars(s);
 D cons(D a, D d) { UL o= C-K; *C++= a; *C++= d; return u2d(BOX(TCNS, o)); }
 D car(D c) { return iscons(c)?K[DAT(c)+0]:nil; }
 D cdr(D c) { return iscons(c)?K[DAT(c)+1]:nil; }
+
 int cprint(D c){ int n= 0; while(iscons(c)){ n+= pc(n?' ':'(')+dprint(car(c));
     c= cdr(c); }  if (!deq(c,nil)) n+=P(" . ")+dprint(c); return n+=pc(')'); }
 
@@ -356,33 +357,31 @@ D readstr(char** p, char q) {
   char* e=*p; while(**p&&**p!=q)(*p)++; return newstr(e,(*p)++-e);
 }
 
-D reader(char** p);
-
-void spc(char**p) {while(isspace(**p))(*p)++;}
-
+D reader(char** p,int bq); // FORWARD
 D obj(); // FORWARD
 D set(D,D,D); // FORWARD
 
 // end of line matches any end char...
-D readlist(char** p) {spc(p);if((!**p||**p==')')&&(!**p||(*p)++))return nil;
-  D d,a=reader(p);spc(p);if(**p=='.'){(*p)++;d=reader(p);spc(p);(*p)++;}
-    else d=readlist(p); return cons(a,d); }
+D readlist(char** p, int bq) {spc(p);if(!**p||(**p==')'&&(*p)++))return nil;
+  D d,a=reader(p,bq);spc(p);if(**p=='.'){(*p)++;d=reader(p,bq);spc(p);(*p)++;}
+    else d=readlist(p,bq); return cons(a,d); }
 
 // NOTE: commas are optional!
 //   [11 22 33] {a:1 b:2} ok!    
 // NOTE: on errors *p is SET to 0
 //   this to not continue execute
 //   after error parsing code
-D reader(char** p){ spc(p); switch(**p){ case 0: return nil;
+D reader(char** p, int bq){ spc(p); switch(**p){ case 0: return nil;
+  case'\'': return cons(atom("quote"), reader(p,bq));
+  case';': if(!bq)assert(!"not backquote mode"); (*p)++;return POP;
   case'"': (*p)++; return readstr(p, '"');
-  case'(': (*p)++; return readlist(p);
-  case'{':  case'[': {char e= **p=='{'?'}':']'; D o=obj(); (*p)++;
-  while(**p&&**p!=e) {D a= reader(p);spc(p); if(**p==':'){(*p)++;
-    set(o,atomize(a),reader(p));}else set(o,dlen(o),a);if(**p==',')(*p)++;}
-  if (*p) (*p)++; return o; }
-  case',': assert(!"template insert expr [...]==bquote?"); // DEBUG
+  case'(': (*p)++; return readlist(p,bq);
+  case'{':case'[':{char e=**p=='{'?'}':']';D o=obj();(*p)++;while(**p&&**p!=e){
+    spc(p);D a=(**p==',')?undef:reader(p,bq);spc(p);if(**p==':'){(*p)++;
+    set(o,atomize(a),reader(p,bq));}else set(o,dlen(o),a);if(**p==',')(*p)++;}
+  if(*p)(*p)++; return o; }
   case'0'...'9': { D d=0;while(isdigit(**p))d=d*10+*(*p)++-'0'; return d; }
-  default: return isalpha(**p)?atom(parsename(p)) :error;
+  default:return isalpha(**p)?atom(parsename(p)) :error;
   }
 }
 
