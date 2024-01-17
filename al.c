@@ -307,13 +307,6 @@ default: error: P("\n[%% Undefined op: '%s']\n", p-1);p++;} goto next;
 //
 //   J0 = end, J1 = default  [] = nesting
 
-void pal(char* p) {
-  while(p&&*p)
-    if (*p==128) P("[TailRecurse]"),p++;
-    else if (*p>128) P("[+%d]",*p++-128);
-    else pc(*p++);
-}
-
 // Simple peep-hole optimization
 // 
 // Actually, it's more an "compiler"
@@ -331,42 +324,28 @@ void pal(char* p) {
 char* _opt(char*,char,int); // FORWARD
 char* _sopt=0; void opt(char* p) { _sopt= p; _opt(p,0,0); }
 
-char* _opt(char* p, char e, int obj) {
-  while(p&&*p) { char c;
+char* _opt(char* p, char e, int obj){while(p&&*p){char c;if(!*p||*p==e)return p;
     //P("OPT:");pal(p);P("\n"); // DEBUG
-    if (!*p || *p==e) return p;
-    switch(c=*p){
-    case')':case'}':case']':
-      P("\n%%ERROR: opt expected '%c' (%d) at\n%.*s <--HERE---> %s\n", e, e, (int)(p-_sopt), _sopt, p); abort();
-    case'\'': p++; obj=1;
-    case'{': if (!obj) goto jump;
-    case'(': case'[':
-      if (isalnum(*p)) { parsename(&p); break; }
-      if (*p=='('||*p=='{'||*p=='[') p= _opt(p+1, *p=='('?')':*p=='{'?'}':']',1);
-break;
-    case'"': p++;while(*p&&*p!='"')p++; break;
-    case'R': if (p[1]=='^') { *p= 128; } break;// tail rec
-    case'I': jump: { 
-      if (*p=='I')p++;
-      if (*p>=128) break; // idempotent
-      char*e=_opt(p+1, '}',0);
-      assert(*e=='}');
-      *e= ' ';
-      // => 128...== +1...
-      int x=e-p+(c=='I');
-      assert(x);
-      assert(128+x<=255);
-      *p=128+x;
-      p=e;
-    }break;
-    }
-
-    p++;
-  }
-  return p?p-1:0;
-}
+  switch(c=*p){case')':case'}':case']':P("\n%%ERROR: opt ");
+    e?P("expected '%c' (%d)",e,e):P("unexpected '%c", c);
+    P(" at\n%.*s <--HERE---> %s\n", (int)(p-_sopt), _sopt, p); abort();
+  case'"':p++;while(*p&&*p!='"')p++; break; case'\'':p++;if(isalnum(*p)){
+   parsename(&p);break;} obj=1; case'{':if(!obj)goto jump; case'(':case'[':
+    {char*x=strchr("(){}[]",*p); if(x)p= _opt(p+1,x[1],1);break;}
+  case'R': if (p[1]=='^') { *p= 128; } break;// tail rec
+  case'I': jump: { if(*p=='I')p++; if(*p>=128) break; // idempotent
+    char*e=_opt(p+1, '}',0); *e=' '; int x=e-p+(c=='I'); *p=128+x; p=e;
+    assert(128+x<=255);
+  }break; } p++; } return p?p-1:0; }
 
 // ENDWCOUNT
+
+void pal(char* p) {
+  while(p&&*p)
+    if (*p==128) P("[TailRecurse]"),p++;
+    else if (*p>128) P("[+%d]",*p++-128);
+    else pc(*p++);
+}
 
 // Missing:
 // - let let*
@@ -521,27 +500,18 @@ int main(int argc, char** argv) {
   pal(p);
   opt(p);
   pal(p);
-  opt(p);
-  pal(p);
   al(p,p,0,0,0); pc('\n');
   
   p= strdup("666666 42 0 I{111}{222}F.F.F\\\n");
   pal(p);
   opt(p);
   pal(p);
-  opt(p);
-  pal(p);
   al(p,p,0,0,0); pc('\n');
 
-
-
-  P("\n---REPL:\n");
-  
-  
   // read-eval
   char* ln= NULL; size_t sz= 0;
   int err=0;
-  while(getline(&ln, &sz, stdin)>=0) {
+  while(putc('>', stderr) && getline(&ln, &sz, stdin)>=0) {
     P("\nAL > "); pal(ln);
     P("OPT> "); opt(ln); pal(ln);
     al(ln,ln,0,0,0);
