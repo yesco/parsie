@@ -8,13 +8,14 @@ o=$(./wcode obj.c)
 #s=$(./wcode str.c)
 a=$(./wcode alf.c)
 l=$(./wcode al.c)
+alfbody=$(./wcode alf-body.c)
 
 js=$(grep '^.=' js.bnf | wc -l)
 pas=$(grep '^.=' pas.bnf | wc -l)
 
 tot=$(echo "$p+$d+$c+$m+$t+$v+$o+$a"|bc -l)
 
-al=$(echo "$l-$a"|bc -l)
+alalf=$(echo "$l+$alfbody"|bc -l)
 
 printf "PARSE:\t$p\nDRIVER:\t$d\nCOMMON:\t$c\nMEM:\t$m\nTYPE:\t$t\nVAR:\t$v\nOBJ:\t$o\nALF:\t$a\n=============\nTOTAL:\t$tot\n"
 printf "STMTS:\t`./wc-statements`\n"
@@ -23,10 +24,10 @@ printf "ALF#F:\t`clang -E alf.c | sed 's/goto next/\ngoto next/g' | grep -in '^g
 #printf "full#F:\t`clang -E alf-full.c | sed 's/goto next/\ngoto next/g' | grep -in '^goto next' | wc -l`\n"
 
 echo
-printf "\nAL/F:\t$l\n"
-printf "AL/F#F:\t`clang -E al.c | sed 's/goto next/\ngoto next/g' | grep -in '^goto next' | wc -l`\n"
+printf "\nAL/F:\t$alalf\n"
+printf "AL/F#F:\t`clang -E al.c alf-body.c | sed 's/goto next/\ngoto next/g' | grep -in '^goto next' | wc -l`\n"
 
-printf "\nAL:\t$al\n"
+printf "\nAL:\t$l\n"
 printf "AL#F:\t`clang -DNOALF -E al.c | sed 's/goto next/\ngoto next/g' | grep -in '^goto next' | tee .al-f.case | wc -l`\n"
 
 printf "\nPASCAL:\t$pas\nJS:\t$js\n"

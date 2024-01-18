@@ -21,6 +21,10 @@ P
 
 ?"---DIY MAPCAR"T
 
-"1+^" '(11 22 33 44)
-\fl lUI{l^}{lAfElDRC^}
+"\a ?aa1+^" '(11 22 33 44)
+\fl T?llUI{l^}{lAfE FdP f lD FdP RFdP C FdP^}
+P
+
+"1+" '(11 22 33 44)
+\fl lUI{l^}{lAfE flDR C^}
 P

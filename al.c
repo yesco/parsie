@@ -1,5 +1,212 @@
 //80----------------------------------------------------------------------------
-// ALphabetical Forth byte code
+// Alphabetical Lisp byte code
+//
+// (c) 2014 Jonas S Karlsson
+//      (jsk@yesco.org)
+
+// This file defines a "LISP-in-Forth".
+//
+// It's built as an alternative to
+// ALF-The ALphabetical Forth byte code.
+//
+// It's a stack-machine language and
+// each word is typically one letter
+// or symbol.
+//
+// For a full reference see:
+// - ALphabetical LISP list at end
+// - Source code, words grouped by type
+// - all-letters.al - a test file
+//
+// As ALF, AL uses NaN-encoding of
+// other data types. Values have types.
+// 
+// The following value (types) exist:
+// - C double numbers; int54 NaN Inf
+// - Symbols, immutable, interned
+// - Strings, immutable, managed
+// - Objects, prototypical, ala JS
+//   these can behave like an array
+//   and/or a property/record collection
+// - Cons, lisp list data type
+// - Closure/Function, callable
+//
+// The system is prepared for a GC.
+// The garbage collector will do simple
+// mark and sweep, at well-defined
+// moments.
+//
+// As Forth-style words don't know how
+// many arguemnts are provided. Most
+// functions take a fixed number.
+//
+//     3 4 + 7 +  => 14
+//     1  2  C    => (1 . 2)
+//     'a 'b C    => (a . b)
+//     'a'bCD     => b
+//
+//  1 2 3 4 5 'nil CCCCC => (1 2 3 4 5)
+//
+// An exception is L(ist) that takes
+// an additonal argument being number
+// of elements on the stack.
+//
+//  'a 'b 'c 'd 'e 5 L => (a b c d e)
+//  '(a [1 2] 3 e)     => (a [1 2] 3 e)
+//  '{1 a:2 3 c:4 5}=>[1 3 5 a:2 c:4]
+//
+// The quote: '-reader can read all
+// data-types (except closures?),
+// and will use the appropriate
+// constructors.
+//
+// === \ambda and Functions
+//
+// Consider:
+//
+//   > 3 4 5 * + P
+//   23
+//
+// How do we write this as a function?
+//
+// One way is just plain string:
+//
+//   > 3 4 5 " * + " E P
+//   23
+//
+// E stands for Eval. This is crude and
+// it just pops values of the stack.
+//
+// We can store it in a variable:
+// 
+//   > " * + " 'foo !
+//
+//   > 3 4 5 'foo @ E P
+//   21
+//
+//   > 1 7 10 'foo @ E P
+//   71
+//
+// A simplified form of lambda is
+// provided:
+//
+//   > 3 4 \\ ab+^    | reads till EOL
+//   > P
+//   7
+//
+// Notice how there is a \ for each
+// implicit parameter--essentially,
+// just counting how many. Also,
+// NOTE: a ^ marks a return. There
+// can be several of these. What it
+// does it removes the arguments,
+// moves the single result down
+//
+// The very same can be written as
+//
+//   > 3 4 \\xy xy+^
+//
+// === Recursion
+//
+// That's all dandy, now hwo about
+// something more real?
+//
+// Let's calculate the length of a list!
+//
+//  > '(a 2 [3 4] 7) \l lKI{lDR1+^}{0^}
+//  > P
+//  4
+//
+// WTF? Ok, let's dissect this line-noise...
+//
+//   \l lKI{lDR1+^}{0^}
+// 
+//   \l   - (lambda (l) ...
+//   l    - get value of parameter l
+//   K    - Kons? (is it a cons-cell?)
+//   I    - If (not 0)
+//   {    - { .. } is the THEN block
+//     l    - get value of l
+//     D    - cDr of it
+//     R    - Recurse  (Recurse (cDr l))
+//     1    - push 1 on the stack
+//     +    - add them
+//     ^    - return the sum
+//   }    - end of THEN
+//   {    - start of ELSE
+//     0    - put 0 on stack
+//     ^    - return it
+//   }    - end of ELSE
+//
+// This is a prefix encoding of LISP:
+//
+//   (\ambda (l)
+//     (If (Kons? l)
+//         (return (+ (Recurse (cDr l)) 1))
+//        (return 0) ) )
+//
+// AL's 18 characters represent 62 in LISP.
+// LISP uses 18 cons:es, and 13 symbols.
+// (maybe a bit easier to read though...)
+//
+// Here is a simple Mapcar function:
+//
+//   
+// Try to decode it on your own, using
+// the summary below.
+
+
+// /===================================\
+// | Cheatsheet AL - Alphabetical Lisp |
+// =====================================
+//
+//  assoc/G    \ambda          Recurse
+//  append/H   Ordinal/length  read/Y
+//  cAr        nList           SetcAr
+//  cDr        Mapcar          SetcDr
+//  Cons       memBer          setq/!
+//  Eval       not/~           Setq/Sa-Sz
+//  eq/=       Nth             Terpri
+//  eQual      Print           nUll/Undef
+//  If         prin1/X
+//  Konsp      princ/Write
+// 
+//      + - * / %  &=bitand |=bitor
+//
+//            -- If --
+// 1 1 = I{"Then"}{"Else"}P => Then
+// 1 0 = I{"Then"}{"Else"}P => Else
+// 3 4 {This works like a comment!} + P
+//
+//          -- \ambda --
+// 3 4 5  *+       3 4 5 \\\  bc*a+ ^
+// 3 4 5 "*+" E    3 4 5 \xyz yz*x+ ^
+// 3 4 5 [*+] E    3 4 5 \xyz *+    ^
+//
+//          READ      SET
+// Args:    a b c     3 Sa 4 Sc
+// Globals: 'foo @    42 'foo !
+//
+//        -- by data type --
+// Testers:  #/number? Kons? nUll ?'=atom
+// Numbers:  # + - * / % & |
+// Strings:  "a string" 
+// Atoms:    'a  "foo"#$  
+// IO:       33P       ==  T3W3W  
+//           ?["foo"]  ==  "foo"X
+// Lists:    Kons? Cons cAr cDr nList
+//           Nth Ord/length Mapcar
+//           memBer G/assoc H/append
+// Control:  Eval I{Then}{Else} I{Then}
+//           Recurse ^/return
+// Address   `foo == 'foo`$ 
+// Args:     a-z == '0-`9 42Sc `# =#args
+// Objects:  '(1 [2 3 {a:4 5 6}] 7 8)
+//      ==   "(1 [2 3 {a:4 5 6}] 7 8)" '$
+// Template  7'b 33'{a: ; ;:42 [1 ; 42]}
+//       ==        '{a:33 b:42 [1 7 42]}
+//           '(3 4) '(1 2 @   5 6)
+//       ==         '(1 2 3 4 5 6)
 
 #include <ctype.h>
 #include <stdio.h>
@@ -15,6 +222,9 @@
 // total tokens processed
 long nn=0;
 
+char* alf(char*p,D*A,int n,D*E,int iff){assert(!"not ALF it's AL!\n");} // DEBUG
+
+char* al(char*o,char*p,D*A,int n,D*E);// FORWARD
 // (Map [\vkor ..] '(1 2 3) r-value)
 // TODO: [] and {} iterator obj
 //   TODO: do numbers first?
@@ -27,7 +237,7 @@ long nn=0;
 //  \alkv        all ref key value
 //  \ralkv  rest all ref key value
 
-// opt:
+// TODO: ??? opt:
 //   'noresult
 //   'foldr
 //   'foldl
@@ -38,31 +248,20 @@ long nn=0;
 //   'exist
 //   'every
 //   'none
-char* al(char*o,char*p,D*A,int n,D*E); // FORWARD
+// TODO: not recurse... stack
+// TODO: need setcdr...
+// TODO: A,n for access to var?
+D map(D f, D l, D all, D r, D opt, int k) {if(!iscons(l))RET nil;
+  D e,*z= S; {U=r;U=all;U=l;U=k;U=car(l); char*x=dchars(f);
+  al(x,x,0,0,0);e=POP;}S=z; RET cons(e,map(f,cdr(l),all,r,opt,k+1));}
 
-D append(D a, D b) {if(!iscons(a))RET b;D r=nil,c=r;do{D n=cons(car(a),b);
-  if(deq(r,nil))r=c=n;else c=setcdr(c,n);}while(iscons((a=cdr(a))));RET r;}
 
-D map(D f, D l, D all, D r, D opt, int k) { if (deq(l, nil)) RET nil;
-  //P("Map"); dprint(f); dprint(l); dprint(k); P("\n");
-  // hard control params all opt!
-  if (iscons(l)) { D e,*z= S; {U=r;U=all;U=l;U=k;U=car(l);
-      // A,n for access to var?
-      // TODO: how about closure?
-      char* x= dchars(f);
-      //P("\tf=%s\n", x);
-      al(x,x,0,0,0);e=POP;
-    } S= z;
-    // TODO: not recurse... stack
-    // TODO: need setcdr...
-    RET cons(e, map(f, cdr(l), all, r, opt, k+1)); } RET nil; }
-
-char* alf(char*p,D*A,int n,D*E,int iff){assert(!"not ALF it's AL!\n");} // DEBUG
-
+// al parses code/a function/lambda
+// o=p when call first; "R" resets p=o
 char* al(char*o,char*p,D*A,int n,D*E){ long x;char*e=0,*s,c,*X=0;D d;size_t z;
-// Temp vars: L x ; *e,*s,c ; D d
-// (a is argument names string)
+// Temp vars: L x ; char*e,*s,c ; D d ; size_t z ;
 
+// Argument names string: xyz=3 args
 //  8 bytes fib 35 => 5.76s
 // 10 bytes fib 35 => 6.19s
 // 16 bytes fib 35 => 4.37s
@@ -78,239 +277,82 @@ char a[16];*a=0;if(!p)RET 0; int iff=0; // TODO: remove ALF
 
 DEBUG(P("\n===AL >>>%s<<<\n", p))
 next: DEBUG(prstack();P("\t>%.10s ...\n",p));
+
 x=0;nn++;switch(c=*p++){case 0:case')':case']':RET(p);Z' ':Z'\n':Z'\t':Z'\r':
 
+// Address  `atm-addr  `$=addr-of-TOPatom  `#=num-args  `0-`9=addr-argN
 Z'`': switch(*p++) { Z'#': U=n; Z'0'...'9': U='0'-p[-1]-1; Z'A'...'Z':
- case'a'...'z':case'_':p--;U=atom(parsename(&p));
-  case'$': T=atomaddr(T);break;default:goto error;}
+  case'a'...'z':case'_':p--;U=atom(parsename(&p));
+  case'$': T=atomaddr(T); goto next;default:goto error; }
 
-Z'"':U=readstr(&p,'"'); Z'#':T=!istyped(T); Z'$':T=isstr(T);// "" nup strp
-// -- quote
+// -- $stringp  "a string"
+Z'$':T=isstr(T); Z'"':U=readstr(&p,'"');
+
+// -- `atom  '?=atomp/symbolp  '$=atom-from-str
 Z'\'': if(*p=='?'&& p++)T=isatom(T); else if(*p=='$'){p++;char*s=dchars(T);
   T=s?reader(&s,0):error; } else U=reader(&p,1);
 
-//Z'?': c=*p++;while(*p&&*p!=c)putchar(*p++); p++;
-Z'?':switch(c=*p++){ Z'[':c=']';case'"':case'\'':while(*p&&*p!=c)pc(*p++);p++;
-  Z'a'...'z':P(" %c=",c);dprint(VAR);case'_':pc(' ');
-    goto next;default:p--;goto error;
-}
-
-// -- JUMPS (forward only!) // JMP: +1..
-Z (129)...(255):p+=c-128; Z 128:p=o;spc(&p);if(*p=='\\')while(*p&&!isspace(*p))
-  p++; for(int i=0;i<n;i++)A[i+1]=S[-n+i+1]; S-=n; p++;  // tail rec
-
-// -- object functions
-Z';': U=obj(); Z':': S-=2;set(T,atomize(S1),S[2]);
-Z',': S--;set(T,dlen(T),S1); Z'.': S--;T=get(T,atomize(S1));
-// -- setq get-val
+// -- (Global Variables)  !  @  SetcAr  SetcDr  Sa-Sz
 Z'@': T= *(D*)m(T,A,n); Z'!': *(D*)m(T,A,n)= S[-1]; S-=2;
-
-Z'B':while(iscons(T)) {if(deq(S[-1],car(T))){S--;T=S1;goto next;}
-  T=cdr(T);}  S--;T=nil; Z'E': e=dchars(POP);al(e,e,A,n,E);// memBer Eval
-Z'A':T=car(T); Z'C':S--;T=cons(T,S1); Z'D':T=cdr(T); // cAr Cons CDr
-//Z'F': //  ( Format Function )
-Z'G':while(iscons(T)&&!deq(car(car(T)),S[-1]))T=cdr(T); S--;T=S1;//Gassoc
-Z'H': S--;T=append(T,S1); // (H)append */
-//Z'J': // ?? prog1 - ? Jump?
-Z'I': if(POP)p++; Z'K': T=iscons(T); Z'R': al(o,o,S,0,0); // If Konsp Recurse
-Z'L': x=POP;d=nil; while(x-->0)d=cons(T--,d); U=d; // List (<n items>... n -- L)
-Z'M':S--;d=map(T,S1,S1,nil,nil,0);U=d; Z'^':A++;*A=T;S=A;RET(p-1);//retMap
-
-// TODO:
-//Z'N': S--;if(isobj(S1)T=get(S1,T);else{while(T-- >0)S1=cdr(S1); T=car(S1);} // Nth
-
-Z'N': S--;if(isobj(S1))T=get(S1,T);else{while(T-- >0)S1=cdr(S1); T=car(S1);} // Nth
-// --- Ordinal + lengthO or just fOld?
-Z'O': if(isobj(T))T=dlen(T);else{x=0;while(iscons(T)&&++x)T=cdr(T);T=x;}
-Z'P': pc('\n');dprint(POP); Z'T':pc('\n'); Z'W':dprint(POP); // Print Terpri Pc
-
-//Z'Q': // eQual
 Z'S': switch(c=*p++){ Z'A':S--;T=setcar(T,S1); Z'D':S--;T=setcdr(T,S1);
-Z'a'...'z':VAR=T--; goto next; default: p--; goto error; }
+Z'a'...'z':VAR=T--; goto next;default:p--;goto error; }
 
-//Z'V': // reVerse
-Z'X': P("%s",e=sdprinq(0,POP));free(e); Z'Y':e=0;z=0;if(getline(&e,&z,stdin)
-  >=0)s=e,U=reader(&s,0);else U=error;free(e);
-Z'U':T=deq(T,nil)||deq(T,undef);
+// -- ?"printme" ?'..' ?[..]   ?a=print" a=... " (debug)
+Z'?':switch(c=*p++){
+  default:if(!isalpha(c)){p--;goto error;} P(" %c=",c);dprint(VAR);
+  case'_':P(" "); Z'?':P(" [");dprint(T);P("] ");
+  Z'[':c=']';case'"':case'\'':while(*p&&*p!=c)pc(*p++);p++; }
 
-//Z'Z': // Zapply
-//Z'[': // quotation:
-// `backquote
-// - means application f`3
-// - `foo${b}ar` = JS-templates
-// - common lisp macros 
-// - `(progn (setq ,v1 ,e) (setq ,v2 ,e))
-//   ^ backquote   ^   ^  insert here    
-// APPLY: f $ g $ h == f`g`h 
-//   how about h@ g@ f@ in AL?
+// -- Konsp? Cons cAr cDr nList memBer Gassoc Happend Mapcar Nth Ordina/length
+Z'K': T=iscons(T); Z'C':S--;T=cons(T,S1); Z'A':T=car(T); Z'D':T=cdr(T);
+Z'M': S--;d=map(T,S1,S1,nil,nil,0);U=d;   Z'U':T=deq(T,nil)||deq(T,undef);
+Z'L': x=POP;d=nil; while(x-->0)d=cons(T--,d); U=d; Z'H':S--;T=append(T,S1);
+Z'O': if(isobj(T))T=dlen(T);else{x=0;while(iscons(T)&&++x)T=cdr(T);T=x;}
+Z'N': S--;if(isobj(S1))T=get(S1,T);else{while(T-- >0)S1=cdr(S1);T=car(S1);}
+Z'G': while(iscons(T)&&!deq(car(car(T)),S[-1]))T=cdr(T); S--;T=S1;
+Z'B': while(iscons(T)) {if(deq(S[-1],car(T))){S--;T=S1;goto next;}
+  T=cdr(T);}  S--;T=nil; //Z'Q': // eQual
+
+// -- Control flow:  Eval  If  Recurse  128=tailrecurse  >128=skipchars 
+Z'E': e=dchars(POP);al(e,e,A,n,E); Z'I': if(POP)p++; Z'R': al(o,o,S,0,0);
+Z'^': A++;*A=T;S=A;RET(p-1); //Z'J': // ?? prog1 - ? Jump? Loop?
+Z(129)...(255):p+=c-128; Z 128:p=o;spc(&p);if(*p=='\\')while(*p&&!isspace(*p))
+  p++; for(int i=0;i<n;i++)A[i+1]=S[-n+i+1]; S-=n;p++;
+
+// -- Print Terpri Write/princ X/prin1 (not return val)
+Z'P': pc('\n'); case'W': dprint(POP); Z'T':pc('\n');
+Z'X': P("%s",e=sdprinq(0,POP));free(e);
+Z'Y':e=0;z=0;if(getline(&e,&z,stdin)>=0)s=e,U=reader(&s,0);else U=error;free(e);
+
+// -- Objects: ;create :set .get Ordinal/length
+Z',': S--;set(T,dlen(T),S1);    Z':': S-=2;set(T,atomize(S1),S[2]); 
+Z'.': S--;T=get(T,atomize(S1)); Z';': U=obj(); 
 
 // faster here than at the beginning, LOL
 // inline makes 5.04s instead of 5.70s for fib-l.al...
-Z'0'...'9':{D v=0;p--;while(isdigit(*p))v=v*10+*p++-'0';U=v;}
+Z'0'...'9':{D v=0;p--;while(isdigit(*p))v=v*10+*p++-'0';U=v;} Z'a'...'z':U=VAR;
 
-// -- lambda functions and parameters
-// ( \lambda reverse debruijn index
-// and use letters instead a..z )
+// -- \ lambda functions and parameters  a-z vars ------------^
+Z'\\': o=p-1;if(*p>='a')strcpy(a,parsename(&p));n=*a?strlen(a):n+1;A=S-n;
 
-// named (1) is 25% slower! fib 35
-// TODO: if call al() for loop?
-//   it'll do \x wrong... works
-//   because jump!
-
-// TODO: BUG: if remove value from stack: then will miss it, it's like S isn't A-n at "^" time???
-Z'\\': if(*p>='a')strcpy(a,parsename(&p));n=*a?strlen(a):n+1;A=S-n; // \ambda
-Z'a'...'z':U=VAR;
-
-// -- Math operators
-Z'%': S--;T=L T%L S1; Z'~': T=!T; // % ~not
+// -- Numbers and Math operators AND or &bit, OR or |bit, NOT or ~inv
 #define OP(op,e) Z #op[0]: S--;T=T op##e S1;
-OP(+,);OP(-,);OP(*,);OP(/,);OP(<,);OP(>,);OP(=,=);OP(|,|);OP(&,&);
+Z'#':T=!istyped(T); Z'%': S--;T=L T%L S1; Z'~':T=!T; Z'&': S--;T=L T&L S1;
+OP(+,);OP(-,);OP(*,);OP(/,);OP(<,);OP(>,);OP(=,=);   Z'|': S--;T=L T|L S1;
 
-
-////////////////////////////////////////
-// ALF (legacy) TODO: use include?
-
-// :::BEGIN ALF
-
-// No faster if not included...?
+// -- include the body of alf.c
+// There is no slowdown even if switch is bigger...
 #ifndef NOALF // DEBUG
-  #define ALF NOALF // DEBUG
+  #define ALF // DEBUG
 #endif // DEBUG
 #ifdef ALF // DEBUG
-Z'F': switch(c=*p++){
+Z'F': switch(c=*p++){ // DEBUG
+  #include "alf-body.c" // DEBUG
+} // DEBUG
+#endif // DEBUG
 
-Z'@': T= *(D*)m(T,A,n); Z'!': *(D*)m(T,A,n)= S[-1]; S-=2;
-// - stack
-Z'd':S1=T;S++;Z'\\':S--;Z'o':S1=S[-1];S++;Z's':{D d=T;T=S[-1];S[-1]=d;}
-// - numbers / functions call/define
-//Z'A'...'Z': al(F[p[-1]-'A'],0,0,0,0); Z'^': A[1]= T; S=A+1; RET p-1;
-Z':': e=strchr(p,';'); if(e) F[*p-'A']=strndup(p+1,e-p),p=e+1;
-Z'[': { e=p; while(*p&&*p!=']')p++;U=newstr(e, p++-e);
-  {D f=POP; D c=obj(); Obj* o= PTR(TOBJ, c); D* pars=&(o->np[0].name);
-    //o->proto=OCLOS;
-    // Can store 12 values/frame!
-    // TODO: copy from current frame
-    // For each frame UP
-    // - coppy to new obj()
-    // - change frameptr stack values
-    // - chain up each frame as next
-    // (not using proto)
-    // alt: use actual names in closure!
-  }
- }
-// TODO: error if no method?
-//Z'(':{x=S-K;U=E?E-K:0;D*s=S;p=alf(p,A,n,E,1);D n=atom(parsename(&p));
-//    D m=deq(n,nil)?POP:get(s[1],n),f=funf(m),*c=fune(m);
-//    P(" [FUN:");dprint(n);P(" '");dprint(m); P("' %ld] ", c?c-K:0);
-//    alf(f?dchars(f):F[L m-'A'],s+1,S-s,c,0); *s=T;S=s;}
-  //DEBUG(P("\n\tCALL: o="); dprint(s[1]); P(" nom="); dprint(nom); P(" m="); dprint(m); pc('\n'););
-// -- numbers / math
-Z'0'...'9': p--;U=reader(&p,0); // slow
-Z'~': S--;T=deq(T,S1);
-Z'%': S--;T=L T%L S1; Z'z': T=!T;Z'n':T=-L T;
-#define OP(op,e) Z #op[0]: S--;T=T op##e S1;
-OP(+,);OP(-,);OP(*,);OP(/,);OP(<,);OP(>,);OP(=,=);OP(|,|);OP(&,&);
-// -- memory
-Z'h': U=H-M; Z'm':x=T;T=H-M;H+=x; Z'a':H+=L POP;
-Z'g': case ',': align(); if (p[-1]=='g') goto next; memcpy(H,&POP,SL); H+=SL;
-//Z'@': T= *(D*)m(T,A,n); Z'!': *(D*)m(T,A,n)= S[-1]; S-=2;
-// -- cX - char | string
-/*
-Z'c': s=0;switch(c=*p++){ Z'r':pc('\n'); Z'c':T=dlen(T); Z'=':S--;T=dcmp(T, S1);
-  Z'"':case'\'':x=p[-1];e=p;while(*p&&*p!=x)p++;U=newstr(e,p++-e);
-  // c?=charclass c1=first char
-  // Z'?':case'1':x=T;if(isnan(T)){e=dchars(T);x=e?*e:0;};if(c=='1'){U=x;break;}
-  // T= isalpha(x)?'a':isdigit(x)?'d':isspace(x)?'s':x=='_'?'_':'o';
-
-  // TODO: need to free e???
-
-  /// > ./alf -d <alf-printers.tst
-
-  // but for ca% ???? errro
-  //#define SP(P) do{T=newstr(e=P,-1);}while(0)
-
-  #define SP(P) do{T=newstr(e=P,-1);free(e);}while(0)
-
-  // TODO: buffer "type" to not create things for the GC?
-  Z'a':{d=POP;s=sncat(0,dchars(POP),-1);U=d;c=*p++;case'e':case's':case'q':case'%':switch(c){
-    Z'b':{char a[]={' ',0};SP(sncat(s,a,-1));} // TODO: use c fix sncat
-    Z'e':{char a[]={T,0};SP(sncat(s,a,-1));} // TODO: use c fix sncat
-    Z'q':SP(sdprinq(s,T)); Z'%':{e=--p;while(*p&&!isspace(*p))p++;
-	char* f=strndup(e,p-e);SP(sdprintf(s,f,T));free(f);}
-    case's':p++;default:p--;SP(sdprinc(s,T));}}}
-      //    goto next;default:p-=2;goto error;}}}
-*/
-// -- printing
-Z'.': dprint(POP);pc(' '); Z'e':pc(POP); Z't':P("%*s.",(int)T,M+L S[-1]);S-=2;
-Z'p': dprint(POP); Z'\'': U= *p++; Z'"': while(*p&&*p!='"')pc(*p++); p++;
-// -- hash/atoms/dict
-Z'#': switch(*p++){ Z'a'...'z':case'A'...'Z':case'_':p--;U=atom(parsename(&p));
-  Z',': S--;set(T,dlen(T),S1); Z':': S-=2;set(T,S1,S[2]);
-  Z'@': S--;T=get(S1,T); Z'!': S-=3;set(S[3],S[2],S1);
-  Z' ': case'\n': case 0: if ((e=dchars(T))) T=atom(e);
-  Z'?': T=typ(T); Z'^': U=obj(); goto next; default: goto error; }
-// -- loop/if
-Z'}': RET(iff?p:0); Z'{': while(!((e=alf(p, A, n, E, 0)))){}; p= e;
-// -- bitops
-//#define LOP(op,e) Z#op[0]: S--; T=(L S1) op##e L T;
-//Z'b': switch(*p++){ LOP(&,);LOP(|,);LOP(^,); Z'~': T= ~L T; }
-// -- ` address of stuff
-Z'`': switch(*p++) { Z'#': U=n; Z'0'...'9': U='0'-p[-1]-1; Z'A'...'Z':
- case'a'...'z':case'_':p--;U=atom(parsename(&p)); case' ':case 0:case'\n':
-   T=atomaddr(T);break;default:goto error;}
-// string/stack/misc functions
-////////////////////////////////////////////////////////////////////////////////
-Z'$': x=1; switch(c=*p++){ Z'.':prstack(); case'n':pc('\n'); Z'd':x=S-K;U=x;
-  Z'$':n=POP;A=S-n; Z'0'...'9':U=A[p[-1]-'0']; Z'h':P("%lx\n",L POP);Z'q':S=1+K;
-  Z'!':A[*p++-'0']=POP; Z's':x=POP;case' ':while(x-->=0)pc(' ');
-  Z'"':case'\'':e=H;while(*p&&*p!=c)*H++=*p++;*H++=0;if(*p)p++;U=e-M;U=H-e-1;
-  Z'D':dump(); Z'K': prK(); goto next; default:p--;}/*err*/
-}
-#endif
-/// ::: END ALF
-
-default: error: P("\n[%% Undefined op: '%c' >>%s\n", p[-1], p-1);p++;} abort();
-}
-
-// KOND? LOL
-//
-// a1=I{11 }{ a2=I{22 }{ a3=I{33    }}}
-// a1=I{11 K} a2=I{22 K}{a3=I{33 K} ]
-//         >---------->---------->--*
-
-// SWITCH w break
-//
-// a1=I{11 }{a2=I{22[}}}a3=I{]33 [} ]
-
-// SWITCH 11 fallthrough
-// 
-// switch(a){
-// case 1: printf("11 ");
-// case 2: printf("22 "); break;
-// case 3: printf("33 ");
-// default: printf("44 ");
-// }
-
-// K = break
-//
-// a1=I{11.   [ }
-//     {a2=I{ ]  22. K [ }
-//          {a3=I{     ] 33. [ }
-//               {           ] 44. [
-//               }
-//          }
-//     }                           ]
-
-// a1=I{0}{a2=I{1}{a2=I{2}{1n}}}
-// [11.][22.K][33.]\0[44.] \
-// d0zI{...}1-
-//     >-^  -1
-// 0    1     2    3
-
-// [ a1=I{J2}{ a2=I{J3}{ a3=I{J4}{ J1}}} J0
-//   _1 11. _2 22. J0 _3 33. _1 44. _0]
-//
-//   J0 = end, J1 = default  [] = nesting
+default: error: P("\n[%% Undefined op: '%c' >>%s\n", p[-1], p-1);p++; abort();
+}}
 
 // Simple peep-hole optimization
 // 
@@ -319,11 +361,10 @@ default: error: P("\n[%% Undefined op: '%c' >>%s\n", p[-1], p-1);p++;} abort();
 // 
 // This destructively changes the str.
 //
-// NOTE: don't use result!
-//
 //   "..." skip
 //   {...}   => "[+4]... ""
-//at { put jump to } repl w ' '
+//at { put jump to } replace w ' '
+//
 //   I{T}    => "I[+4]T "
 //   I{T}{E} => "I[+4]T [+3]F }"
 //
@@ -357,20 +398,54 @@ void pal(char* p) {
 }
 
 // Missing:
-// - let let*
+// - let let* Variables?
 // - prog prog* prog1 prog2 progn
-//    (no need, just need drop!)
 // - fold reduce remove reVerse
 // - max min sqrt
-// - funcall == apply ?
 
-// how to define variables?
-
-// list of functions
+// list of lisp functions
 // - https://homepage.divms.uiowa.edu/~luke/xls/tutorial/techreport/node87.html
 
 /*
-  
+
+  == List of all LISP op=codes
+  ( used are  : " L - ")
+  ( unused are: " L --  ")
+
+  ^@ - 0 - end zero terminated string
+  ^a -- 1 -- TODO: 7 object types?
+  ^b -- 2
+  ^c -- 3
+  ^d -- 4
+  ^e -- 5
+  ^f -- 6
+  ^g -- 7
+  ^h -- 8 \b -- backspace
+  ^i -  9 \t - tab in code
+  ^j -  10 \n - in code ?
+  ^k -- 11 -- 
+  ^l -  12 form feed - new page in code ?
+  ^m -  13 \r - in code ?
+  ^n -- 14 -- free
+  ^o -- 15 -- free
+  ^p -- 16 >>>> TODO: 16 codes 16-31
+  ^q -- 17 
+  ^r -- 18 
+  ^s -- 19 
+  ^t -- 20 
+  ^u -- 21
+  ^v -- 22
+  ^w -- 23
+  ^x -- 24
+  ^y -- 25
+  ^z -- 26
+  ^[ - 27
+  ^\ - 28
+  ^] - 29 (ESC)
+  ^^ - 30
+  ^_ - 31 <<<<< 16 codes
+ ' ' - 32 in code
+
   & - bit32 and
   | - bit32 or
   () - implicitly quoted list
@@ -390,13 +465,13 @@ void pal(char* p) {
    _foo
 
    !"#$%&'()*+,-./0123456789:;<=>?
-        & ()  , .           :;   
+          ()                 ;   
 
   @ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_
-         GH J  MN    S  V  YZ[ ] _
+            J           V   Z[ ] _
 
   `abcdefghijklmnopqrstuvwxyz{|}~
-  `                           |
+  `                            
 
   ' ' -- space/delimiter
    ! - Forth ! (write mem)
@@ -406,7 +481,7 @@ void pal(char* p) {
    % - mod
    & - and TODO: short-circuit
    ' - quoting functions
-   '? - atomp symbolp atom
+   '? - atomp symbolp
    '32 - number (no need)
    'atm - atom
    '{} - obj/array
@@ -428,7 +503,11 @@ void pal(char* p) {
    < - lt
    = - eq
    > - gt
-   ?"foo" - print string
+   ?"foo'bar" - print string
+   ?'foo"bar"
+   ?[foo'"bar]
+   ?a-?c debug print " a=42 "
+   ?? debug print TOP " [42] "
    @ - Forth @ (read mem f addr/atm)
    A - cAr
    B - memB (uses eq)
@@ -436,14 +515,14 @@ void pal(char* p) {
    D - cDr
    E - Eval (al)
    F - Forth prefix
-   G -- (G)assoc
-   H -- (H)append
+   G - (G)assoc
+   H - (H)append
    I - If
    J -- (prog1/progn)
    K - Konsp
    L - n List (<n items> n -- L)
-   M -- Mapcar [\raekv ...] L
-   N -- Nth (of list/arr)
+   M - Mapcar [\raekv ...] L
+   N - Nth (of list/arr)
    O - Ordinal (length list/arr)
    P - Print (\n val)
    Q -- eQual
@@ -463,7 +542,7 @@ void pal(char* p) {
    V -- reVerse / Var
    W - princ unquoted
    X - prin1 quoted""
-   Y -- (Y)read
+   Y - (Y)read
    Z -- (Z)apply
    [ -- closure (?)
        (means no need to "end")
@@ -480,6 +559,8 @@ void pal(char* p) {
    } - destination from '{'
    ~ -- NOT how C: ~
  DEL -- not visible...
+ 128 - TailRecursion
+ 129-255 - skipNchars
 
 --- TODO: possibly ???
 
@@ -512,7 +593,7 @@ F[]
     ?n - isalnum
       ?a - isalpha
         ?l - islower
-	?u - isupper
+        ?u - isupper
       ?d - isdigit
     ?s - isspace
     ?. - ispunct
@@ -562,17 +643,19 @@ int main(int argc, char** argv) {
 
   char *p;
 
-  p= strdup("666666 42 1 I{111}{222}F.F.F\\\n");
-  pal(p);
-  opt(p);
-  pal(p);
-  al(p,p,0,0,0); pc('\n');
+  if (0) {
+    p= strdup("666666 42 1 I{111}{222}F.F.F\\\n");
+    pal(p);
+    opt(p);
+    pal(p);
+    al(p,p,0,0,0); pc('\n');
   
-  p= strdup("666666 42 0 I{111}{222}F.F.F\\\n");
-  pal(p);
-  opt(p);
-  pal(p);
-  al(p,p,0,0,0); pc('\n');
+    p= strdup("666666 42 0 I{111}{222}F.F.F\\\n");
+    pal(p);
+    opt(p);
+    pal(p);
+    al(p,p,0,0,0); pc('\n');
+  }
 
   // read-eval
   char* ln= NULL; size_t sz= 0;

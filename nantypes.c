@@ -359,23 +359,36 @@ D readstr(char** p, char q) {
   char* e=*p; while(**p&&**p!=q)(*p)++; RET newstr(e,(*p)++-e);
 }
 
+D append(D a, D b) {if(!iscons(a))RET b;D r=nil,c=r;do{D n=cons(car(a),b);
+  if(deq(r,nil))r=c=n;else c=setcdr(c,n);}while(iscons((a=cdr(a))));RET r;}
+
+////////////////////////////////////////
+/// Readers & Writers
+//
+
 D reader(char** p,int bq); // FORWARD
 D obj(); // FORWARD
 D set(D,D,D); // FORWARD
 
+
 // end of line matches any end char...
 D readlist(char** p, int bq) {spc(p);if(!**p||(**p==')'&&(*p)++))RET nil;
-  D d,a=reader(p,bq);spc(p);if(**p=='.'){(*p)++;d=reader(p,bq);spc(p);(*p)++;}
+  if(**p=='@'){assert(bq||!"@ !bq-mode");(*p)++;RET append(POP,readlist(p,bq));}
+  D d,a=(**p=='@')?(*p)++,append(POP,readlist(p,bq)):reader(p,bq);spc(p);
+
+if(**p=='.'){(*p)++;d=reader(p,bq);spc(p);(*p)++;}
     else d=readlist(p,bq); RET cons(a,d); }
 
 // NOTE: commas are optional!
-//   [11 22 33] {a:1 b:2} ok!    
+//   [11 22 33] {a:1 b:2} ok!
 // NOTE: on errors *p is SET to 0
 //   this to not continue execute
 //   after error parsing code
 D reader(char** p, int bq){ spc(p); switch(**p){ case 0: RET nil;
   case'\'': RET cons(atom("quote"), reader(p,bq));
-  case';': if(!bq)assert(!"not backquote mode"); (*p)++;RET POP;
+  case';': if(!bq)assert(!" ; =not bq mode"); (*p)++;RET POP;
+// TODO: for obj... copy all
+//  case'@': {assert(bq||!"@ !bq-mode"); (*p)++;RET append(POP,reader(p,bq));
   case'"': (*p)++; RET readstr(p, '"');
   case'(': (*p)++; RET readlist(p,bq);
   case'{':case'[':{char e=**p=='{'?'}':']';D o=obj();(*p)++;while(**p&&**p!=e){
@@ -383,7 +396,7 @@ D reader(char** p, int bq){ spc(p); switch(**p){ case 0: RET nil;
     set(o,atomize(a),reader(p,bq));}else set(o,dlen(o),a);if(**p==',')(*p)++;}
   if(*p)(*p)++; RET o; }
   case'0'...'9': { D d=0;while(isdigit(**p))d=d*10+*(*p)++-'0'; RET d; }
-  default:RET isalpha(**p)?atom(parsename(p)) :error;
+  default:(*p)++;RET isalpha(**p)?atom(parsename(p)) :(*p=0,error);
   }
 }
 
