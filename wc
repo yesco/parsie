@@ -30,5 +30,5 @@ printf "AL/F#F:\t`clang -E al.c alf-body.c | sed 's/goto next/\ngoto next/g' | g
 printf "\nAL:\t$l\n"
 printf "AL#F:\t`clang -DNOALF -E al.c | sed 's/goto next/\ngoto next/g' | grep -in '^goto next' | tee .al-f.case | wc -l`\n"
 
-printf "\nPASCAL:\t$pas\nJS:\t$js\n"
+printf "\nPAS#R:\t$pas\nJS#R:\t$js\n"
 
