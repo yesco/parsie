@@ -20,7 +20,7 @@
 // -3 variable 3 steps above __
 // see alf-lxfind.tst
 D lxfind(D q){D*s=S,a=atomaddr(q),n=0,l=0;char*x=dchars(q);while(--s>K+2&&a>=0)
- !isatom(*s)?0:deq(*s,__)?l?a=-n-l:(n+=100):l||dchars(*s)==x?l++:0;return a;}
+ !isatom(*s)?0:deq(*s,__)?l?a=-n-l:(n+=100):l||dchars(*s)==x?l++:0;RET a;}
 
 
 #define Z goto next; case
@@ -32,16 +32,16 @@ long nn=0;
 // starting that stack position with
 // N items, IFF=1 if running ?{}{}
 //
-// Returns next position to parse from
+// returns next position to parse from
 //   NULL if done/fail (loop/if)
-char* alf(char*p,D*A,int n,D*E,int iff){long x;char*e=0,*s,c;D d;if(!p)return 0;
+char* alf(char*p,D*A,int n,D*E,int iff){long x;char*e=0,*s,c;D d;if(!p)RET 0;
 DEBUG(P("\n===ALF >>>%s<<<\n", p))
 next: DEBUG(prstack();P("\t>%.10s ...\n",p));
-x=0;nn++;switch(*p++){case 0:case';':case')':case']':return p;Z' ':Z'\n':Z'\t':Z'\r':
+x=0;nn++;switch(*p++){case 0:case';':case')':case']':RET p;Z' ':Z'\n':Z'\t':Z'\r':
 // - stack
 Z'd':S1=T;S++;Z'\\':S--;Z'o':S1=S[-1];S++;Z's':{D d=T;T=S[-1];S[-1]=d;}
 // - numbers / functions call/define
-Z'A'...'Z': alf(F[p[-1]-'A'],0,0,0,0); Z'^': A[1]= T; S=A+1; return p-1;
+Z'A'...'Z': alf(F[p[-1]-'A'],0,0,0,0); Z'^': A[1]= T; S=A+1; RET p-1;
 Z':': e=strchr(p,';'); if(e) F[*p-'A']=strndup(p+1,e-p),p=e+1;
 Z'x':{D d=POP;char x[]={d,0};alf(TYP(d)==TSTR?dchars(d):x,A,n,E,0);}
 Z'[': { e=p; while(*p&&*p!=']')p++;U=newstr(e, p++-e);
@@ -107,11 +107,11 @@ Z'#': switch(*p++){ Z'a'...'z':case'A'...'Z':case'_':p--;U=atom(parsename(&p));
   Z' ': case'\n': case 0: if ((e=dchars(T))) T=atom(e);
   Z'?': T=typ(T); Z'^': U=obj(); goto next; default: goto error; }
 // -- loop/if
-Z'}': return iff?p:NULL; Z'{': while(!((e=alf(p, A, n, E, 0)))){}; p= e;
-Z'?': if (POP) { switch(*p++){ Z'}': return p; Z']': return 0;
+Z'}': RET iff?p:NULL; Z'{': while(!((e=alf(p, A, n, E, 0)))){}; p= e;
+Z'?': if (POP) { switch(*p++){ Z'}': RET p; Z']': RET 0;
   Z'{': p=alf(p,A,n,E,1);if(*p=='{')p=skip(p+1); default:p=alf(p,A,n,E,1);
  }} else { // IF==false
-  if (*p=='{') { p=skip(p+1); } if (p) p= alf(p+1,A,n,E,1); else return 0; }
+  if (*p=='{') { p=skip(p+1); } if (p) p= alf(p+1,A,n,E,1); else RET 0; }
 // -- bitops
 #define LOP(op,e) Z#op[0]: S--; T=(L S1) op##e L T;
 Z'b': switch(*p++){ LOP(&,);LOP(|,);LOP(^,); Z'~': T= ~L T; }
@@ -145,7 +145,7 @@ char* opt(char* p) { char *s= p; while(s&&s[0]&&s[1]&&s[2]){switch(s[0]){
   case'c': if (s[1]=='a')s++; if(s[1]=='%'){while(*s&&!isspace(*s))s++;break;} if(isspace(s[1]))s++; break;
   case'`': break; case'0'...'9': if(isdigit(s[2]))break;
   default: if(!isspace(s[1])) break; memmove(s+1, s+2, strlen(s+2)+1);continue;
-  } s++; } DEBUG(P("\n%s\n", p)); return p; }
+  } s++; } DEBUG(P("\n%s\n", p)); RET p; }
 
 // ENDWCOUNT
 
@@ -283,7 +283,7 @@ char* opt(char* p) { char *s= p; while(s&&s[0]&&s[1]&&s[2]){switch(s[0]){
   ( #^ - exit N '}' ? )
 
   $ - rgs/string functions/aux funs
-    (- function args and return)
+    (- function args and returns)
     $$ - set number of args (legacy)
     $# - number of args
     $1 - $9 - get frame arg N (see `1)

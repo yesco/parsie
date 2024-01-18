@@ -52,6 +52,7 @@ double *K,*S,*Y,*G,*C; long mmax=0; char *M=0, *H=0, *F['Z'-'A'+1]={0};
 
 #define align() while((H-M)%SL)H++
 
+#define RET return
 #define P printf
 #define pc(a) putchar(a)
 
@@ -72,8 +73,8 @@ extern char* dchars(double); // FORWARD
 // K-<S>-<Y>-(SMAX)-<G>-(G)-(@GMAX)-<C>-(KSZ)
 
 extern long atomaddr(double); // FORWARD
-void* m(double d, double* A, int n) {long x=L d;if(isnan(d))return m(atomaddr(d),A,n);
-  return x<0?A-x-1:(x>=MLIM?M+x-MLIM:x<KSZ-SMAX?(void*)(K+SMAX+x):0); }
+void* m(double d, double* A, int n) {long x=L d;if(isnan(d))RET m(atomaddr(d),A,n);
+  RET x<0?A-x-1:(x>=MLIM?M+x-MLIM:x<KSZ-SMAX?(void*)(K+SMAX+x):0); }
 
 // TODO: hmmm, not so useful for debug?
 //void w(void* p,double v){if(p&&(p>=(void*)K&&p<(void*)(K+KSZ))||(p>=(void*)M&&p<(void*)(M+mmax)))*(D*)p=v;
@@ -110,7 +111,7 @@ void prK() {
       if (K+a==G) P("\n   ---G"),n=1;
       if (K+a==C) P("\n   ---C"),n=1;
       if (K+a==K+GMAX) P("\n   ------cells"),n=1;
-      if (K+a==K+KSZ-1) {P("\n   ------END\n"),n=1;return; }
+      if (K+a==K+KSZ-1) {P("\n   ------END\n"),n=1;RET; }
 
       double d= K[a]; // DEBUG
       if (!n && d==0 && !K[a+1]) { a++;  continue; }
@@ -125,7 +126,7 @@ void prK() {
       a++;
     }
     fputc('>', stderr);
-    // just return to continue
+    // just RET to continue
   } while(getline(&e,&z,stdin)); 
 }
 

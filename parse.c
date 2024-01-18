@@ -6,7 +6,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 // not as generic as I like to think?
 //int till(char c, char** p, char q) { int n=0;
-//  while(*p && **p && *(*p)++!=c) if (**p==q)(*p)++,n++; n++; return n; }
+//  while(*p && **p && *(*p)++!=c) if (**p==q)(*p)++,n++; n++; RET n; }
 
 // Results and Attributes
 #define NV 256
@@ -17,9 +17,9 @@ void newV(int nr) { nv++; assert(nv<NV); free(V[nr]); V[nr]=0;
   P("\nnewV: %d DELETE '%s'\n", nr, A[nr]);
   free(A[nr]); A[nr]= 0; }
 
-//int eor(char* r) { return !r || !*r || *r=='\n' || *r=='\r' || *r=='|' && r[-1]!='\\'; }
+//int eor(char* r) { RET !r || !*r || *r=='\n' || *r=='\r' || *r=='|' && r[-1]!='\\'; }
 
-int eor(char* r) { return !r || !*r || *r=='|' && r[-1]!='\\'; }
+int eor(char* r) { RET !r || !*r || *r=='|' && r[-1]!='\\'; }
 
 // find start of attr val string
 char* attrval(int nr, char a) {
@@ -29,14 +29,14 @@ char* attrval(int nr, char a) {
   for(int i=nr+2;i<NV;i++){ char* s= A[i];
     // TODO: not MAXRES...
     DEBUG(if (debug) if (s) printf("find:%c A[%d] = '%s'\n", a, i, s));
-    while(s&&*s&&(s=strchr(s, ' ')))if(s[1]==a&&s[2]=='=') return s+3; else s++;
+    while(s&&*s&&(s=strchr(s, ' ')))if(s[1]==a&&s[2]=='=') RET s+3; else s++;
   }
-  return 0;
+  RET 0;
 }
 
 // Using named Rule, parse String do only N matches
 char* parseR(char r, char* s, int n); // FORWARD
-char* pR(char* r, char* s, int n) { nv++; return parseR(*r, s, n); }
+char* pR(char* r, char* s, int n) { nv++; RET parseR(*r, s, n); }
 
 // Generate (add to *G) from [Rule] stop at ENDchar nr being $0 V[NR]
 int gen(char** g, char* r, char end, int nr) { int n, l; char *or=r, *v, *e;
@@ -54,7 +54,7 @@ while(*r && *++r!=end && *r) {
     }
     else if (*r=='#') { char e[]={ ln+'0', 0 }; *g=sncat(*g,e,-1); break; }
     else if (*r==':') { char s[10]= {0}; r++; v= V[*r-'0'+nr+1]; n= findvar(v);
-      if (!n) {	printf("\nReferenceError: %s is not defined\n", v); return 0; } //exit(1); } // TODOL: longjmp(err);
+      if (!n) {	printf("\nReferenceError: %s is not defined\n", v); RET 0; } //exit(1); } // TODOL: longjmp(err);
       if (n>0) sprintf(s, "%d", n); else sprintf(s, "`%d", ln+n+1); // DEBUG
       *g=sncat(*g,s,-1); break;
     } else if(isdigit(*r)){ v=V[*r-'0'+nr+1]; l=-1; } else if (isalpha(*r)||*r=='$') {
@@ -74,7 +74,7 @@ while(*r && *++r!=end && *r) {
   DEBUG(if (debug>2) printf("  [%d]='%s'\n", nr, *g));
   }
  debug-=5;
-  return r-or;
+  RET r-or;
 }
 
 // Error diagnostics:
@@ -100,7 +100,7 @@ char* parse(char* r,char* s,int n, int nr,char cur){char *p=0, *os=s, *t, *m;
   // TODO: move while below next?
   while(n-- && r && s) {while(isspace(*r))r++;if(*r)while(isspace(*s))s++;
 DEBUG(if (debug>3)printf("     next '%s' (%d)\n\t   of '%s' left=%d\n",r,*r,s,n));
-switch(*r){case 0: case '|': return s;
+switch(*r){case 0: case '|': RET s;
 #define Z goto next; case 
   Z'[':r+=1+gen(V+nr,r,']',nr); Z'(':
   Z'{':t=0;r+=1+gen(&t,r,'}',nr);alf(t,S,n,0,0);free(t);
@@ -131,7 +131,7 @@ Z'A'...'Z': if ((p=pR(r++, s, -1))) s= p; else goto fail;
 Z'\\': r++; default: if (*s==*r++) {s++; goto next;} else fail: {
   if(s>=xs){xr=cur;xp=r-1;xs=s;}//printf("\nEXPECT s='%.10s'\nr='%.10s'\n", s, r);}
   DEBUG(if (debug>2) printf("     FAIL '%s' '%s'\n", r-1, s));
-  while(*r&&!eor(r++)){}; if (r[-1]!='|') return 0; // FAIL
+  while(*r&&!eor(r++)){}; if (r[-1]!='|') RET 0; // FAIL
   // OR
   if(s-os>=0)prog[s-toparse+1]=tolower(cur); s=os;n=on;nv=onr;
   DEBUG(if (debug>2) printf("     |OR  '%s' '%s'\n", r-1, s));
@@ -139,7 +139,7 @@ Z'\\': r++; default: if (*s==*r++) {s++; goto next;} else fail: {
 } // switch
   next:if (s-os>=0) if (prog[s-toparse+1]!='\n')  prog[s-toparse+1]=cur;
 }// while
-  return s;
+  RET s;
 }
 
 // --- rules
@@ -203,7 +203,7 @@ Z'\\': r++; default: if (*s==*r++) {s++; goto next;} else fail: {
 //
 
 char* parseR(char r, char* s, int n){ int nr=++nv; nv--; newV(nr); char *x;
-  x=parse(R[r],s,n,nr,r); if(!V[nr])V[nr]=x?strndup(s,x-s):x; nv=nr-1;return x;}
+  x=parse(R[r],s,n,nr,r); if(!V[nr])V[nr]=x?strndup(s,x-s):x; nv=nr-1;RET x;}
 
 // Blank out comments
 // ... // c/c++ comment
@@ -212,7 +212,7 @@ char* parseR(char r, char* s, int n){ int nr=++nv; nv--; newV(nr); char *x;
 // ... (* comm- \n lisp   -ent *)
 
 // TODO: parametrice/config/input 9 loc
-char* comments(char* os) { int c= 0; char *e= 0, *s= os; if (!s) return os;
+char* comments(char* os) { int c= 0; char *e= 0, *s= os; if (!s) RET os;
   while(*s) { c=0; e=0; switch(*s++) {
     case'\'':case'"': c=s[-1]; while(*s!=c){if(*s=='\\')s++; s++;break;c=0;}
     case'(': if (*s!='*') break;  c=1; e="*)";
@@ -221,5 +221,5 @@ char* comments(char* os) { int c= 0; char *e= 0, *s= os; if (!s) return os;
       if (!e) break; s--; while(*s&&e&&strncmp(s, e, strlen(e))) *s++= ' '; c=0;
       for(int i=0;i<strlen(e);i++){if(*s&&!isspace(*s))*s++=' ';else s++;} e=0;
     } }
-  return os;
+  RET os;
 }

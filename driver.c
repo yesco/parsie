@@ -68,9 +68,9 @@ int debug= 0; // DEBUG
 
 int xalf=0; char rule=0,last=0; int dlm= '\n';
 
-void alfie(char* a) { if (!a) return;
+void alfie(char* a) { if (!a) RET;
   if (xalf || debug>1) printf("\talf>>>%s<<<\n", a);
-  if (xalf>1) return;
+  if (xalf>1) RET;
   D* s= S; alf(opt(a),0,0,0,0);
   if (s!=S) { P("\nResult: "); for(s++;s<=S;s++) dprint(*s); pc('\n'); }
   DEBUG(printf("\n\tstack "); prstack(); pc('\n'););
@@ -90,29 +90,29 @@ char* test(char r, char* s) { xp=xs=0;nv=xr=0;prog=calloc(strlen(toparse=s)+5,1)
     {P("\n---INPUT:\n");char*x=s;int n=1;while(x<=xs)pc((*x=='\n'?n++:0, *x++)); P("<<<WRONG HERE!\n...\n%% LINE: %d\n\n", n);}
   }
   if(!e||*e)P("\n\t%% %s %c->'%s'",e?(*e?"UNPARSED":"OK!"):"FAIL",r,e);
-  int d=debug--;if(debug<0)debug=0;alfie(V[nv+1]);pc('\n');debug=d;return e;}
+  int d=debug--;if(debug<0)debug=0;alfie(V[nv+1]);pc('\n');debug=d;RET e;}
 
 void readparser(FILE* f); // FORWARD
 
-void oneline(char* ln, int n) { if(!ln)return; if(ln[n-1]=='\n') ln[n-1]=0;
+void oneline(char* ln, int n) { if(!ln)RET; if(ln[n-1]=='\n') ln[n-1]=0;
   // TODO: why cannot keep \n when concat?
   // remove here and add if append?
   // maybe rule cannot end with \n???
-  if (isupper(*ln) && ln[1]=='=') {R[last=ln[0]]=strdup(ln+2); return;}
+  if (isupper(*ln) && ln[1]=='=') {R[last=ln[0]]=strdup(ln+2); RET;}
   DEBUG(printf("%c> %s\n", rule?rule:'?',ln));
 
-  #define Q return; case
+  #define Q RET; case
   switch(*ln){case 0:case'#':case'\n':case'\r':;Q'<':readparser(fopen(ln+1,"r"));
   Q' ':if(ln[1]=='|') case'|':R[last]= sncat(sncat(R[last],"\n",-1),ln,-1);
   Q'=': if (isupper(ln[1])) printf("\n%c=%s\n\n", ln[1], R[ln[1]]);
     P("Free:\t");for(char c='A';c<='Z';c++)pc(R[c]?'.':c); P("\n\n");
   Q'@':alfie(ln+1);Q'*':if(ln[1])dlm=0;case '?':rule=ln[1];if(*ln=='?')dlm='\n';
       if(!rule){for(char c='A';c<='Z';c++)if(R[c])printf("%c=%s\n",c,R[c]);
-	P("\n\nParse Usage:\n\t# comment\n\tR=...|foo|bar|\n\t |...\t- define rule\n\t?R \t- set rule to match\n\t*R\t- set match ALL to rule\n\t3+4*2\t- match this\n\n\t?\t- list rules\n\t=R\t- list rule R\n\t=\t- list free rules\n\t<file\t- include file\n\t-d\t- inc debug level\n\t@ 3 4+.\t- run alf\n");}return;}
+	P("\n\nParse Usage:\n\t# comment\n\tR=...|foo|bar|\n\t |...\t- define rule\n\t?R \t- set rule to match\n\t*R\t- set match ALL to rule\n\t3+4*2\t- match this\n\n\t?\t- list rules\n\t=R\t- list rule R\n\t=\t- list free rules\n\t<file\t- include file\n\t-d\t- inc debug level\n\t@ 3 4+.\t- run alf\n");}RET;}
   DEBUG(if (debug>1) printf("\tTEST>%s<\n", ln));
   test(rule, comments(ln)); }
 
-void readparser(FILE* f) { char *ln= 0; size_t z= 0; int n; if (!f) return;
+void readparser(FILE* f) { char *ln= 0; size_t z= 0; int n; if (!f) RET;
   while( (f!=stdin || fprintf(stderr,"%c> ", rule?rule:'?')) && (n=getdelim(&ln, &z, dlm, f))>0)
     oneline(ln, n);
   free(ln);

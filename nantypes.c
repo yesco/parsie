@@ -175,7 +175,7 @@
 
 // alias to clarify extended meaning
 typedef double D;
-UL d2u(D d) { return *(UL*)(&d); } D u2d(UL u) { return *(D*)(&u); }
+UL d2u(D d) { RET *(UL*)(&d); } D u2d(UL u) { RET *(D*)(&u); }
 
 // 1 sign, 7 types, 48(47?) bits of data
 // Use Typ:2B = sIII IIII IIII Ittt
@@ -208,9 +208,9 @@ char hp[HPSIZE]= {0}; int nilo=0; D nil, undef, error, proto, __;
 // (size==-1 doesn't check overflow)
 // Adding string if needed.
 //
-// Returns offset to LEN of string
+// RETs offset to LEN of string
 // followed by a cstring at offset 1.
-// (-offset-1 returned if created)
+// (-offset-1 RETed if created)
 //
 // Extra + (n<<32) atom number
 //
@@ -218,50 +218,50 @@ char hp[HPSIZE]= {0}; int nilo=0; D nil, undef, error, proto, __;
 //   len=0 means end of list
 //   note: assumes zeroed HeaP
 long nameadd(char* s) {char*p=hp;int l=strlen(s),n=0;while(*p){if(!strcmp(s,p+1))
- return p-hp+((L n)<<22); p+=1+strlen(p+1)+1+sizeof(D);n++;}
+ RET p-hp+((L n)<<22); p+=1+strlen(p+1)+1+sizeof(D);n++;}
   assert(p+l+2-hp < HPSIZE);
   // create new (neg)
-  *p=l; return -(strcpy(p+1,s)-hp-1+((L n)<<22))-1;
+  *p=l; RET -(strcpy(p+1,s)-hp-1+((L n)<<22))-1;
 }
 
 void prnames() { char* p= hp; P("\n"); while(*p) { D* d= (D*)(p+1+strlen(p+1)+1); P("%5ld: %d v=> %10.7g %5ld\t%s\n", p-hp, *p, *d, d2u(*d), p+1); p+=strlen(p+1)+1+1+sizeof(D); } } // DEBUG
 
-// Return a data atom from String
-// empty string returns nil
-D ofsatom(long ofs, char* s){if(!s||!*s)return nil; ofs+=512; assert(ofs>=0 && ofs<0x3ff);
+// RET a data atom from String
+// empty string RETs nil
+D ofsatom(long ofs, char* s){if(!s||!*s)RET nil; ofs+=512; assert(ofs>=0 && ofs<0x3ff);
   long x=nameadd(s); D a=u2d(BOX(TATM,(x<0?-x-1:x)|(ofs<<(22+16))));
   if (x<0) { x=-x-1; *G++= a; long n= (x>>22)&0xffff; *G++= n<3?a:undef; }
-  if (ofs<512) { *--Y= undef; *--Y= a; } return a; }
+  if (ofs<512) { *--Y= undef; *--Y= a; } RET a; }
 
-D atom(char* s) { return ofsatom(0, s); }
+D atom(char* s) { RET ofsatom(0, s); }
 
 // TODO: set/get??? (JS does...)
-D atomize(D d) { return TYP(d)==TSTR?atom(dchars(d)):d; }
+D atomize(D d) { RET TYP(d)==TSTR?atom(dchars(d)):d; }
 
 // Search scoped 8atom:
 //   1:st in local scope stack
 //   2:nd in global vars storage
 // (since they are adj just one linear!) 
 D varatom(char* s) { D a= atom(s); char* c= dchars(a);
-  for(D* x= Y; Y<G; x+=2) if (dchars(*x)==c) return *x;  return a; }
+  for(D* x= Y; Y<G; x+=2) if (dchars(*x)==c) RET *x;  RET a; }
 
 // global var storage location
-long atomaddr(D a) { return 1+2*((DAT(a)>>22)&0xffff); }
-long atomofs(D a) { return ((DAT(a)>>(22+16))&0x3ff)-512; }
-// return 1+2*(d2u(a)>32)&0x1ffff; }
+long atomaddr(D a) { RET 1+2*((DAT(a)>>22)&0xffff); }
+long atomofs(D a) { RET ((DAT(a)>>(22+16))&0x3ff)-512; }
+// RET 1+2*(d2u(a)>32)&0x1ffff; }
 
-int deq(D a, D b) { return d2u(a)==d2u(b); }
+int deq(D a, D b) { RET d2u(a)==d2u(b); }
 
 // TODO: isnan isn't working, and atom > number!!!
-int ISNAN(double d) { return (TYP(d)&TNAN)==TNAN; }
+int ISNAN(double d) { RET (TYP(d)&TNAN)==TNAN; }
 
-int istyped(D v) { int t= TYP(v); return t!=TNAN && (t&TNAN)==TNAN; }
+int istyped(D v) { int t= TYP(v); RET t!=TNAN && (t&TNAN)==TNAN; }
 
-#define TT(nm, t) int nm(D d) { return TYP(d)==t; }
+#define TT(nm, t) int nm(D d) { RET TYP(d)==t; }
 TT(isatom,TATM);TT(isobj,TOBJ);TT(isstr,TSTR);TT(iscons,TCNS);TT(isfun,TFUN);
 
 // lowercase is numeric
-char typ(D d) { int t= TYP(d); return !isnan(d)?(d==L d?'i':'f'):deq(t,nil)?
+char typ(D d) { int t= TYP(d); RET !isnan(d)?(d==L d?'i':'f'):deq(t,nil)?
   'N':deq(t,undef)?'U':deq(d,error)?'E':t==TATM?'A':t==TSTR?'S':t==TOBJ?'O':
   t==TCNS?'C':t==TNAN?'n':t==TFUN?'F':0; }
 
@@ -273,7 +273,7 @@ char typ(D d) { int t= TYP(d); return !isnan(d)?(d==L d?'i':'f'):deq(t,nil)?
 
 // Get M pointer from offset TYP
 // TODO: use m() ???
-void* PTR(int t, D o) { return TYP(o)==t?M+DAT(o):0;}
+void* PTR(int t, D o) { RET TYP(o)==t?M+DAT(o):0;}
 
 void inittypes() {
   // Order matters: first 3 == self
@@ -304,17 +304,17 @@ void inittypes() {
 
 dstr ss[ZZ]={0}; char sr[ZZ]={0}; int sn=1;
 
-// Return a new str from char* S take N chars.
+// RET a new str from char* S take N chars.
 // These strings are trimmed.
 //
 // TODO: GC and freelist... LOL
-D newstr(char* s,int n){int i=0;if(s&&*s)ss[i=sn++]=strndup(s,n);return u2d(BOX(TSTR,i));}
+D newstr(char* s,int n){int i=0;if(s&&*s)ss[i=sn++]=strndup(s,n);RET u2d(BOX(TSTR,i));}
 
 char* dchars(D d) { int t=TYP(d), x=DAT(d);
-  return t==TATM? (x&0x3fffff)+hp+1: t==TSTR? (char*)ss[x]: 0;}
+  RET t==TATM? (x&0x3fffff)+hp+1: t==TSTR? (char*)ss[x]: 0;}
 
 // TODO: length of $" char* ?
-int dlen(D f) { char* r= dchars(f); return r?strlen(r):TYP(f)==TOBJ?((D*)PTR(TOBJ,f))[3]:0;}
+int dlen(D f) { char* r= dchars(f); RET r?strlen(r):TYP(f)==TOBJ?((D*)PTR(TOBJ,f))[3]:0;}
 
 // compare anything
 // - if both numbers        => <=>
@@ -322,21 +322,21 @@ int dlen(D f) { char* r= dchars(f); return r?strlen(r):TYP(f)==TOBJ?((D*)PTR(TOB
 // - num,nan < obj          => -1 (+1) 
 // - nan and number
 int dcmp(D a, D b) { UL c,d,e=1; switch (!!isnan(a)*10+!!isnan(b)) {
- case 00:return(a>b)-(a<b);case 01:e=-e;case 10:return DAT(e>0?a:b)?+256:-256;}
-  c=d2u(a),d=d2u(b);if (c==d) return 0;  char *g=dchars(a), *h=dchars(b);
-  if (g&&h) return strcmp(g, h); return (d<c)-(c<d); }
+ case 00:RET(a>b)-(a<b);case 01:e=-e;case 10:RET DAT(e>0?a:b)?+256:-256;}
+  c=d2u(a),d=d2u(b);if (c==d) RET 0;  char *g=dchars(a), *h=dchars(b);
+  if (g&&h) RET strcmp(g, h); RET (d<c)-(c<d); }
 
 int pobj(D); // FORWARD
 int cprint(D); // FORWARD
 
-int dprint(D f){char*s=dchars(f);int l=pobj(f);return l?l:s?P("%s",s):
+int dprint(D f){char*s=dchars(f);int l=pobj(f);RET l?l:s?P("%s",s):
   iscons(f)?cprint(f):P("%.10g",f);}
 
 // Concatenate D + S as new str
 // from Index in S take N chars.
 // TODO: optimize?
 D strnconcat(D d, D s, int i, int n) { char* x= dchars(s);
-  ss[sn]= sncat(sncat(0,dchars(d),-1), x?x+i:0, n); return BOX(TSTR,sn++); }
+  ss[sn]= sncat(sncat(0,dchars(d),-1), x?x+i:0, n); RET BOX(TSTR,sn++); }
 
 ////////////////////////////////////////
 // TCNS
@@ -346,17 +346,17 @@ D strnconcat(D d, D s, int i, int n) { char* x= dchars(s);
 //
 //    o= 48 bits offset into K
 
-D cons(D a, D d) { UL o= C-K; *C++= a; *C++= d; return u2d(BOX(TCNS, o)); }
-D car(D c) { return iscons(c)?K[DAT(c)+0]:nil; }
-D cdr(D c) { return iscons(c)?K[DAT(c)+1]:nil; }
-D setcar(D c, D a) { return iscons(c)?K[DAT(c)+0]=a:error; }
-D setcdr(D c, D d) { return iscons(c)?K[DAT(c)+1]=d:error; }
+D cons(D a, D d) { UL o= C-K; *C++= a; *C++= d; RET u2d(BOX(TCNS, o)); }
+D car(D c) { RET iscons(c)?K[DAT(c)+0]:nil; }
+D cdr(D c) { RET iscons(c)?K[DAT(c)+1]:nil; }
+D setcar(D c, D a) { RET iscons(c)?K[DAT(c)+0]=a:error; }
+D setcdr(D c, D d) { RET iscons(c)?K[DAT(c)+1]=d:error; }
 
 int cprint(D c){ int n= 0; while(iscons(c)){ n+= pc(n?' ':'(')+dprint(car(c));
-    c= cdr(c); }  if (!deq(c,nil)) n+=P(" . ")+dprint(c); return n+=pc(')'); }
+    c= cdr(c); }  if (!deq(c,nil)) n+=P(" . ")+dprint(c); RET n+=pc(')'); }
 
 D readstr(char** p, char q) {
-  char* e=*p; while(**p&&**p!=q)(*p)++; return newstr(e,(*p)++-e);
+  char* e=*p; while(**p&&**p!=q)(*p)++; RET newstr(e,(*p)++-e);
 }
 
 D reader(char** p,int bq); // FORWARD
@@ -364,26 +364,26 @@ D obj(); // FORWARD
 D set(D,D,D); // FORWARD
 
 // end of line matches any end char...
-D readlist(char** p, int bq) {spc(p);if(!**p||(**p==')'&&(*p)++))return nil;
+D readlist(char** p, int bq) {spc(p);if(!**p||(**p==')'&&(*p)++))RET nil;
   D d,a=reader(p,bq);spc(p);if(**p=='.'){(*p)++;d=reader(p,bq);spc(p);(*p)++;}
-    else d=readlist(p,bq); return cons(a,d); }
+    else d=readlist(p,bq); RET cons(a,d); }
 
 // NOTE: commas are optional!
 //   [11 22 33] {a:1 b:2} ok!    
 // NOTE: on errors *p is SET to 0
 //   this to not continue execute
 //   after error parsing code
-D reader(char** p, int bq){ spc(p); switch(**p){ case 0: return nil;
-  case'\'': return cons(atom("quote"), reader(p,bq));
-  case';': if(!bq)assert(!"not backquote mode"); (*p)++;return POP;
-  case'"': (*p)++; return readstr(p, '"');
-  case'(': (*p)++; return readlist(p,bq);
+D reader(char** p, int bq){ spc(p); switch(**p){ case 0: RET nil;
+  case'\'': RET cons(atom("quote"), reader(p,bq));
+  case';': if(!bq)assert(!"not backquote mode"); (*p)++;RET POP;
+  case'"': (*p)++; RET readstr(p, '"');
+  case'(': (*p)++; RET readlist(p,bq);
   case'{':case'[':{char e=**p=='{'?'}':']';D o=obj();(*p)++;while(**p&&**p!=e){
     spc(p);D a=(**p==',')?undef:reader(p,bq);spc(p);if(**p==':'){(*p)++;
     set(o,atomize(a),reader(p,bq));}else set(o,dlen(o),a);if(**p==',')(*p)++;}
-  if(*p)(*p)++; return o; }
-  case'0'...'9': { D d=0;while(isdigit(**p))d=d*10+*(*p)++-'0'; return d; }
-  default:return isalpha(**p)?atom(parsename(p)) :error;
+  if(*p)(*p)++; RET o; }
+  case'0'...'9': { D d=0;while(isdigit(**p))d=d*10+*(*p)++-'0'; RET d; }
+  default:RET isalpha(**p)?atom(parsename(p)) :error;
   }
 }
 
@@ -408,11 +408,11 @@ const UL MF=(1UL<<18)-1, MA=(1UL<<22)-1;
 
 D fun(D f, D* A) { UL fd= DAT(f), s= fd&MF; long z= S-A; long a= A-K;
   assert(TYP(f)==TSTR); assert(fd<MF); assert(A>=K);
-  return u2d(BOX(TFUN,z<<(22+18)|a<<18|s)); }
+  RET u2d(BOX(TFUN,z<<(22+18)|a<<18|s)); }
 
 // when called assumes and args frame on stack, what is this frame then, it's outer function
-D funf(D f){ return TYP(f)==TFUN?u2d(BOX(TSTR,DAT(f)&MF)):0; }
-D* fune(D f){ UL u= (DAT(f)>>18)&MA; return u?K+u:0; }
+D funf(D f){ RET TYP(f)==TFUN?u2d(BOX(TSTR,DAT(f)&MF)):0; }
+D* fune(D f){ UL u= (DAT(f)>>18)&MA; RET u?K+u:0; }
 
 // TODO: remove? see Z'(' for calls...
 
@@ -467,14 +467,14 @@ typedef union data {
 // More than 6 chars are truncated
 data char6nan(char* s) { data r= BOX(0, 1, 0);
   strncpy((char*)&r.str.ch, s, sizeof(r.str.ch));
-  return r;
+  RET r;
 }
 
-// Return a static string copy of
+// RET a static string copy of
 // string encoded as NaN.
-//   Returns NULL if not string (T!=0)
-char* nanchar6(data d) { static char s[7]= {0}; if (TYP(d)!=1) return NULL;
-  return memcpy((char*)s, d.str.ch, sizeof(d.str.ch));
+//   RETs NULL if not string (T!=0)
+char* nanchar6(data d) { static char s[7]= {0}; if (TYP(d)!=1) RET NULL;
+  RET memcpy((char*)s, d.str.ch, sizeof(d.str.ch));
 }
 
 */

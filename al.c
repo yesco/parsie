@@ -8,23 +8,12 @@
 // enable to trace memory allocations
 //#include "malloc-trace.c"
 
-#ifndef DEBUG
-int debug= 0; // DEBUG
-#define DEBUG(D) if (debug) do{D;}while(0);
-#endif // EDEBUG
-
 #include "mem.c"
-
-// Variable Name Bindings on Stack
 #include "nantypes.c"
-
 #include "obj.c"
-
 
 // total tokens processed
 long nn=0;
-
-#define Z goto next; case
 
 // (Map [\vkor ..] '(1 2 3) r-value)
 // TODO: [] and {} iterator obj
@@ -51,10 +40,10 @@ long nn=0;
 //   'none
 char* al(char*o,char*p,D*A,int n,D*E); // FORWARD
 
-D append(D a, D b) {if(!iscons(a))return b;D r=nil,c=r;do{D n=cons(car(a),b);
-  if(deq(r,nil))r=c=n;else c=setcdr(c,n);}while(iscons((a=cdr(a))));return r;}
+D append(D a, D b) {if(!iscons(a))RET b;D r=nil,c=r;do{D n=cons(car(a),b);
+  if(deq(r,nil))r=c=n;else c=setcdr(c,n);}while(iscons((a=cdr(a))));RET r;}
 
-D map(D f, D l, D all, D r, D opt, int k) { if (deq(l, nil)) return nil;
+D map(D f, D l, D all, D r, D opt, int k) { if (deq(l, nil)) RET nil;
   //P("Map"); dprint(f); dprint(l); dprint(k); P("\n");
   // hard control params all opt!
   if (iscons(l)) { D e,*z= S; {U=r;U=all;U=l;U=k;U=car(l);
@@ -66,25 +55,23 @@ D map(D f, D l, D all, D r, D opt, int k) { if (deq(l, nil)) return nil;
     } S= z;
     // TODO: not recurse... stack
     // TODO: need setcdr...
-    return cons(e, map(f, cdr(l), all, r, opt, k+1)); } return nil; }
+    RET cons(e, map(f, cdr(l), all, r, opt, k+1)); } RET nil; }
 
 char* alf(char*p,D*A,int n,D*E,int iff){assert(!"not ALF it's AL!\n");} // DEBUG
 
 char* al(char*o,char*p,D*A,int n,D*E){ long x;char*e=0,*s,c,*X=0;D d;size_t z;
+// Temp vars: L x ; *e,*s,c ; D d
+// (a is argument names string)
+
 //  8 bytes fib 35 => 5.76s
 // 10 bytes fib 35 => 6.19s
 // 16 bytes fib 35 => 4.37s
 // 20 bytes fib 35 => 4.37s
 // 26 bytes fib 35 => 4.77s
 // 32 bytes fib 35 => 4.47s
-char a[16];*a=0;if(!p)return 0; int iff=0; // TODO: remove ALF
+char a[16];*a=0;if(!p)RET 0; int iff=0; // TODO: remove ALF
 
-// Temp vars: L x ; *e,*s,c ; D d
-// (a is argument names string)
-
-// Make sure a is free:d
-//#define RET(r) do{free(a);return r;}while(0)
-#define RET(r) return r
+#define Z goto next; case
 
 // access local/arguemnt var using c
 #define VAR A[(*a)?strchr(a,c)-a+1:c-'a'+1]
@@ -196,7 +183,7 @@ Z'@': T= *(D*)m(T,A,n); Z'!': *(D*)m(T,A,n)= S[-1]; S-=2;
 // - stack
 Z'd':S1=T;S++;Z'\\':S--;Z'o':S1=S[-1];S++;Z's':{D d=T;T=S[-1];S[-1]=d;}
 // - numbers / functions call/define
-//Z'A'...'Z': al(F[p[-1]-'A'],0,0,0,0); Z'^': A[1]= T; S=A+1; return p-1;
+//Z'A'...'Z': al(F[p[-1]-'A'],0,0,0,0); Z'^': A[1]= T; S=A+1; RET p-1;
 Z':': e=strchr(p,';'); if(e) F[*p-'A']=strndup(p+1,e-p),p=e+1;
 Z'[': { e=p; while(*p&&*p!=']')p++;U=newstr(e, p++-e);
   {D f=POP; D c=obj(); Obj* o= PTR(TOBJ, c); D* pars=&(o->np[0].name);
@@ -346,7 +333,7 @@ default: error: P("\n[%% Undefined op: '%c' >>%s\n", p[-1], p-1);p++;} abort();
 char* _opt(char*,char,int); // FORWARD
 char* _sopt=0; void opt(char* p) { _sopt= p; _opt(p,0,0); }
 
-char* _opt(char* p, char e, int obj){while(p&&*p){char c;if(!*p||*p==e)return p;
+char* _opt(char* p, char e, int obj){while(p&&*p){char c;if(!*p||*p==e)RET p;
     //P("OPT:");pal(p);P("\n"); // DEBUG
   switch(c=*p){case')':case'}':case']':P("\n%%ERROR: opt ");
     e?P("expected '%c' (%d)",e,e):P("unexpected '%c", c);
@@ -358,7 +345,7 @@ char* _opt(char* p, char e, int obj){while(p&&*p){char c;if(!*p||*p==e)return p;
   case'I': jump: { if(*p=='I')p++; if(*p>=128) break; // idempotent
     char*e=_opt(p+1, '}',0); *e=' '; int x=e-p+(c=='I'); *p=128+x; p=e;
     assert(128+x<=255);
-  }break; } p++; } return p?p-1:0; }
+  }break; } p++; } RET p?p-1:0; }
 
 // ENDWCOUNT
 

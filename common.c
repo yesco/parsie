@@ -13,11 +13,11 @@ void spc(char**p) {while(isspace(**p))(*p)++;}
 //
 // Returns a static string (use fast!)
 char* parsename(char** p) { static char s[64], i; i=0; while((isalnum(**p)
-  ||**p=='_') && i<sizeof(s)-1) s[i++]=*(*p)++; s[i]= 0; return s;}
+  ||**p=='_') && i<sizeof(s)-1) s[i++]=*(*p)++; s[i]= 0; RET s;}
 
 // skips a { block } returns after
 //   TODO: must skip STRINGs!!! lol
-char* skip(char* p){ int n=1;while(n&&*p)if(*p=='?'&&p[1]!='{')p+=2;else n+=(*p=='{')-(*p=='}'),p++;return p;}
+char* skip(char* p){ int n=1;while(n&&*p)if(*p=='?'&&p[1]!='{')p+=2;else n+=(*p=='{')-(*p=='}'),p++;RET p;}
 
 typedef char* dstr;
 
@@ -39,7 +39,7 @@ typedef char* dstr;
 // TODO: not safe if x not ZeroTerminated...
 dstr sncat(dstr s, char* x, int n) {int i=s?strlen(s):0,l=(x||n<0)?strlen(x):n;
   if (n<0 || n>l) n= l; s= realloc(s, 1024*((i+n+1024)/1024)); s[i+n]= 0;
-  return strncpy(s+i, x?x:"", n), s;
+  RET strncpy(s+i, x?x:"", n), s;
 }
 
 // --- printers
@@ -53,20 +53,20 @@ dstr sdprintf(dstr s, char* f, D d) {char*x=dchars(d);
   if (x) {int n= snprintf(0,0,f,x); char q[n+1];
     snprintf(q,sizeof(q),f,x);
     s=sncat(s,q,-1);
-    return s;
+    RET s;
   } else if (iscons(d)) assert(!"TODO: sdprintf TCNS");
   int n= snprintf(0,0,f?f:"%.8g",d); char q[n+1];
-  snprintf(q,sizeof(q),f?f:"%.8g",d); return sncat(s,q,-1); }
+  snprintf(q,sizeof(q),f?f:"%.8g",d); RET sncat(s,q,-1); }
 
 dstr sdprinc(dstr s, D d) {char*x=dchars(d);
-  return x?sncat(s,x,-1):sdprintf(s,0,d); }
+  RET x?sncat(s,x,-1):sdprintf(s,0,d); }
 
 // quoted any " in string w \"
 dstr _sdprinq(dstr s, D d) { dstr v= sdprinc(0,d),p=v;
-  while(p&&*p){if(*p=='"')s=sncat(s,"\\",1);s=sncat(s,p++,1);}free(v);return s;}
+  while(p&&*p){if(*p=='"')s=sncat(s,"\\",1);s=sncat(s,p++,1);}free(v);RET s;}
 
 // TODO: #atom
 dstr sdprinq(dstr s, D d) {if (isatom(d)) s= sncat(s,"#",-1);char* p= dchars(d);
   if (isstr(d)) s= sncat(s,"c\"",-1); if (!p) s= sdprinc(s,d); else
     while(*p){ if(*p=='"')s=sncat(s,"\\",1); s=sncat(s,p++,1); }
-  if (isstr(d)) s= sncat(s,"\"",-1); return  s; }
+  if (isstr(d)) s= sncat(s,"\"",-1); RET s; }
