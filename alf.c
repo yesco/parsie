@@ -13,8 +13,6 @@
 // Variable Name Bindings on Stack
 #include "nantypes.c"
 
-#include "obj.c"
-
 // Find lexical stack frame reference
 // -100 per new stack frame
 // -3 variable 3 steps above __

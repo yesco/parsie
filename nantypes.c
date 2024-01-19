@@ -314,7 +314,7 @@ char* dchars(D d) { int t=TYP(d), x=DAT(d);
   RET t==TATM? (x&0x3fffff)+hp+1: t==TSTR? (char*)ss[x]: 0;}
 
 // TODO: length of $" char* ?
-int dlen(D f) { char* r= dchars(f); RET r?strlen(r):TYP(f)==TOBJ?((D*)PTR(TOBJ,f))[3]:0;}
+int dlen(D f) { char* r= dchars(f); RET r?strlen(r):TYP(f)==TOBJ?K[DAT(f)+3]:0;}
 
 // compare anything
 // - if both numbers        => <=>
@@ -396,7 +396,7 @@ D reader(char** p, int bq){ spc(p); switch(**p){ case 0: RET nil;
     set(o,atomize(a),reader(p,bq));}else set(o,dlen(o),a);if(**p==',')(*p)++;}
   if(*p)(*p)++; RET o; }
   case'0'...'9': { D d=0;while(isdigit(**p))d=d*10+*(*p)++-'0'; RET d; }
-  default:(*p)++;RET isalpha(**p)?atom(parsename(p)) :(*p=0,error);
+  default:RET isalpha(**p)?atom(parsename(p)) :(*p=0,error);
   }
 }
 
@@ -450,19 +450,53 @@ void funcall(D c) { // DDEBUG
   // No cleanup!
 } // DEBUG
 
-// GC for managed strings
-// TODO: TCNS
+#include "obj.c"
+
+// GC for managed strings,cons,obj
+
+// TODO: use bits in long?
+char *kr= 0;
+
+// TODO: 255++ => 0  haha...
+void mark(D *v, int n) { if(!v)return;  UL d= DAT(*v);
+  if (!isnan(*v)) return;
+  if (v<K || v>=K+KSZ){P("%%GC:Pointer out of bounds i=%ld p=%p\n",v-K,v);abort();}
+  if (kr[v-K]){P("%.*s- already marked\n",n,"");RET;}
+  P("%.*sMARK[%ld]:",n,"",v-K);dprint(*v);P("\n");
+  switch(TYP(*v)){
+  case TSTR: sr[d]++; break;
+  case TCNS: while(iscons(*v)) {
+      mark(K+d+0,n+1); kr[d+0]++;
+      v=K+d+1; kr[d+1]++; d=DAT(*v);
+      P("%.*sMARK[%ld]:",n,"",v-K);dprint(*v);P("\n");      
+    } mark(v,n+1); break;
+  case TOBJ: { D* o=K+d;
+      P("OBJ %ld: ",d);dprint(*o);P("\n");
+      for(int i=0; i<sizeof(Obj)/SL; i++)
+{P("KR %d\n", i);kr[d+i]++;mark(o+i,n+1);} break; }
+  // TODO: case TFUN: sr[DAT(
+  }
+}
+
 void gc() { memset(sr, 0, sizeof(sr));
+  if (!kr) kr= calloc(KSZ,1); else memset(kr, 0, KSZ*1);
+
   // --- MARK: sr[x]++ for each ref
-  // stack
-  // TODO: what if stack was upper part of heap and grew down?
-  for(int i=0; i<SMAX; i++) { D d= K[i]; if (TYP(d)==TSTR) sr[DAT(d)]++; }
-  // memory (and globals)
-  char* p= M; while(p<H) { D d= *(D*)p; if (TYP(d)==TSTR) sr[DAT(d)]++; }
+  P("\n---GC.STACK\n\n");
+  for(D* s=K;      s<=S; s++) mark(s,0);
+  P("\n---TC.Globals\n");
+  for(D* g=K+SMAX; g<=G; g++) mark(g,0);
+
+  // TODO: C-stack...
 
   // --- SWEEP - prefer lower first
-  for(int i=sn;i;i--)if(!sr[i]){free(ss[i]);ss[i]=ss[0];ss[0]=(char*)(long)i;}
-  
+  //for(int i=sn;i;i--)if(!sr[i]){free(ss[i]);ss[i]=ss[0];ss[0]=(char*)(long)i;}
+  P("\n---GC.Free\n");
+  for(int i=sn-1;i>0;i--)if(!sr[i]){P("TSTR[%d]:\"%s\"\n", i, ss[i]);}
+  char* k=kr+GMAX;
+  for(D* c=K+GMAX; c<C; c++,k++)
+    if(!*k){P("FREE[%ld]: ", c-K); dprint(*c);P("\n");}
+
   DEBUG({long f= 0; P("Free: "); do P("%lu=>", f); while((f=(long)ss[f]));P("\n");});
   
 }

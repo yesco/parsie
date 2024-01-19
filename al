@@ -1,10 +1,10 @@
-l={./wcode al.c}
-abody={./wcode alf-body.c}
+l=$(./wcode al.c)
+alfbody=$(./wcode alf-body.c)
 
 alalf=$(echo "$l+$alfbody"|bc -l)
 
-echo "Al/F.LOC:\t$alalf`"
-echo "AlF.LOC:\t$l"
+printf "Al/F.LOC: $alalf\n"
+printf "AlF .LOC: $l\n"
 clang -DalTEST -O3 al.c && time -p ./a.out $*
 
 

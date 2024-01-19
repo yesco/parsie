@@ -217,7 +217,6 @@
 
 #include "mem.c"
 #include "nantypes.c"
-#include "obj.c"
 
 // total tokens processed
 long nn=0;
@@ -674,6 +673,7 @@ int main(int argc, char** argv) {
     if (G-K+1>=GMAX) { P("\n%%GLOBALS overrun to cons/var storage\n"); err=1; } // DEBUG
     if (C-K+1>=CMAX) { P("\n%%CONS exhausted\n"); err=1; } // DEBUG
     if (err && errstop) abort();
+    gc();
   }
 }
 #endif
