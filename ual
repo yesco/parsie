@@ -1,0 +1,1 @@
+clang -O3 -DPlay/ualTEST Play/ual.c && time -p ./a.out $*
