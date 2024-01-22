@@ -254,6 +254,17 @@ D map(D f, D l, D all, D r, D opt, int k) {if(!iscons(l))RET nil;
   D e,*z= S; {U=r;U=all;U=l;U=k;U=car(l); char*x=dchars(f);
   al(x,x,0,0,0);e=POP;}S=z; RET cons(e,map(f,cdr(l),all,r,opt,k+1));}
 
+// TODO: potentially BUG encoding
+// if followed by a jump...
+//
+//     'foo{jump over me}
+//     _foo{skip}
+
+// TODO: remove isidigit?
+D parseatom(char** p) {
+  if(isdigit(**p)){int n=0;while(isdigit(**p)){n=n*10+**p-'0';(*p)++;}RET n;}
+  if(**p>=128) {int n=0,s=0;while(**p>=128){n=n+((**p-128)<<s);s+=7;(*p)++;}
+    RET K[SMAX+n*2];  } RET atom(parsename(p));}
 
 // al parses code/a function/lambda
 // o=p when call first; "R" resets p=o
@@ -281,7 +292,7 @@ x=0;nn++;switch(c=*p++){case 0:case')':case']':RET(p);Z' ':Z'\n':Z'\t':Z'\r':
 
 // Address  `atm-addr  `$=addr-of-TOPatom  `#=num-args  `0-`9=addr-argN
 Z'`': switch(*p++) { Z'#': U=n; Z'0'...'9': U='0'-p[-1]-1; Z'A'...'Z':
-  case'a'...'z':case'_':p--;U=atom(parsename(&p));
+  case'a'...'z':case'_':p--;U=parseatom(&p);
   case'$': T=atomaddr(T); goto next;default:goto error; }
 
 // -- $stringp  "a string"
@@ -307,16 +318,16 @@ Z'K': T=iscons(T); Z'C':S--;T=cons(T,S1); Z'A':T=car(T); Z'D':T=cdr(T);
 Z'M': S--;d=map(T,S1,S1,nil,nil,0);U=d;   Z'U':T=deq(T,nil)||deq(T,undef);
 Z'L': x=POP;d=nil; while(x-->0)d=cons(T--,d); U=d; Z'H':S--;T=append(T,S1);
 Z'O': if(isobj(T))T=dlen(T);else{x=0;while(iscons(T)&&++x)T=cdr(T);T=x;}
-Z'N': S--;if(isobj(S1))T=get(S1,T);else{while(T-- >0)S1=cdr(S1);T=car(S1);}
+Z'N': S--;if(isobj(S1))T=get(S1,T);else{while(T-- >0)S1=cdr(S1);  T=car(S1);}
 Z'G': while(iscons(T)&&!deq(car(car(T)),S[-1]))T=cdr(T); S--;T=S1;
-Z'B': while(iscons(T)) {if(deq(S[-1],car(T))){S--;T=S1;goto next;}
-  T=cdr(T);}  S--;T=nil; //Z'Q': // eQual
+Z'Q': S--;T=!dcmp(T,S1); Z'B': S--;while(iscons(S1)) {if(deq(T,car(S1))){
+  T=S1;goto next;} S1=cdr(S1);} T=nil;
 
 // -- Control flow:  Eval  If  Recurse  128=tailrecurse  >128=skipchars 
-Z'E': e=dchars(POP);al(e,e,A,n,E); Z'I': if(POP)p++; Z'R': al(o,o,S,0,0);
-Z'^': A++;*A=T;S=A;RET(p-1); //Z'J': // ?? prog1 - ? Jump? Loop?
+Z'E': e=dchars(POP);al(e,e,A,n,E); Z'I': if(POP)p++; //Z'J': // ?? prog1
+Z'_': e=dchars(*(D*)m(parseatom(&p),A,n));al(e,e,A,n,E); Z'R': al(o,o,S,0,0);
 Z(129)...(255):p+=c-128; Z 128:p=o;spc(&p);if(*p=='\\')while(*p&&!isspace(*p))
-  p++; for(int i=0;i<n;i++)A[i+1]=S[-n+i+1]; S-=n;p++;
+  p++; for(c=0;c<n;c++)A[c+1]=S[-n+c+1]; S-=n;p++; Z'^': A++;*A=T;S=A;RET(p-1);
 
 // -- Print Terpri Write/princ X/prin1 (not return val)
 Z'P': pc('\n'); case'W': dprint(POP); Z'T':pc('\n');
@@ -332,7 +343,7 @@ Z'.': S--;T=get(T,atomize(S1)); Z';': U=obj();
 Z'0'...'9':{D v=0;p--;while(isdigit(*p))v=v*10+*p++-'0';U=v;} Z'a'...'z':U=VAR;
 
 // -- \ lambda functions and parameters  a-z vars ------------^
-Z'\\': o=p-1;if(*p>='a')strcpy(a,parsename(&p));n=*a?strlen(a):n+1;A=S-n;
+Z'\\': o=p-1;n=1;while(*p=='\\')n++,p++;if(*p>='a')strcpy(a,parsename(&p));n=*a?strlen(a):n;A=S-n;
 
 // -- Numbers and Math operators AND or &bit, OR or |bit, NOT or ~inv
 #define OP(op,e) Z #op[0]: S--;T=T op##e S1;
@@ -616,6 +627,72 @@ F[]
 
 #ifdef alTEST
 
+#include<sys/time.h>
+
+D stime(void) {
+    struct timeval tv;
+
+    gettimeofday(&tv,NULL);
+    return ((D)tv.tv_sec)+(D)tv.tv_usec/1000000;
+}
+
+// options
+int errstop=0,verbose=0,quiet=0;
+
+void bench(char* ln, int f) {
+  P("\n");
+  char* name= ln;
+  while(*ln && !isspace(*ln))ln++;
+  *ln++= 0;
+  spc(&ln);
+  DEBUG(printf("name>%s\n", name));
+  DEBUG(printf("LN>%s\n", ln));
+  opt(ln);
+  DEBUG(P("calibrating...\n"));
+  D t=stime();
+  // calibrate
+  long n=0;
+  D* s= S;
+  while(stime()-t<0.1) {
+    S= s;
+    al(ln,ln,0,0,0);
+    n++;
+  }
+  n=n*42;
+  DEBUG(P("running... %ld\n", n));
+  // run
+for(int j=0;j<3;j++) {
+  nn=0;
+  t= stime();
+  for(long i=n; i; i--) {
+    S= s;
+    al(ln,ln,0,0,0);
+  }
+  t=stime()-t;
+
+  P("BENCH %-10s %5.3fMops %5.3fMips", name, f*(n+0.0)/1000/1000/t, nn/t/1000/1000);
+  if (verbose) P(" %5.3fs %5.3fM", t, f*(n+0.0)/1000/1000);
+  P("\n");
+
+  nn=0;
+}
+
+return; 
+
+  // maybe if we duplicate the ops
+  // the al call overhead is "gone"
+  if (0==strcmp("bench", name)) return;
+
+  for(int i=1; i<=4; i++) {
+    dstr y= sncat(0,"bench ",-1);
+    for(int j=1; j<=i; j++)
+      y= sncat(y, ln, -1);
+    printf("RUN>%s\n", y);
+    bench(y,i);
+    free(y);
+  }
+}
+
 int main(int argc, char** argv) {
   assert(sizeof(long)==8);
   assert(sizeof(void*)==sizeof(D));
@@ -629,8 +706,6 @@ int main(int argc, char** argv) {
   //   TODO: -v? = variable size
   //   TODO: -h = heap size
   //   TODO: -m = mem size
-  int errstop=0,verbose=0,quiet=0;
-
   while(--argc && argv++) { if(0);
     else if (0==strcmp("-q", *argv)) quiet++,verbose=0;
     else if (0==strcmp("-v", *argv)) verbose++,quiet=0;
@@ -661,19 +736,22 @@ int main(int argc, char** argv) {
   int err=0;
   while((quiet||P("\n> ")) && getline(&ln, &sz, stdin)>=0) {
     if (!ln||!*ln||*ln=='\n') continue;
+    if (0==strncmp("BENCH ",ln,6)) {bench(ln+6,1);continue;}
     if (!quiet) pal(ln);
     opt(ln);
     if (verbose) {P("O "); pal(ln);}
 
+    D s=stime();
     al(ln,ln,0,0,0);
-    DEBUG(printf("\t[%% %ld ops]\n", nn); nn=0);
+    s=stime()-s;
+    if (verbose) {P("\n[%% %ld ops in %5.3fs %5.3f Mops]\n", nn, s, nn/s/1000/1000); nn=0;};
     if (S<=K) { P("\n%%STACK underflow %ld\n", S-K); err=1; } // DEBUG
     if (S+1>=K+SMAX) { P("\n%%STACK overrun\n"); err=1; } // DEBUG
     if (!deq(K[SMAX-1],error)) { P("\n%%STACK corrupted/overrun to cons/var storage\n"); err=1; } // DEBUG
     if (G-K+1>=GMAX) { P("\n%%GLOBALS overrun to cons/var storage\n"); err=1; } // DEBUG
     if (C-K+1>=CMAX) { P("\n%%CONS exhausted\n"); err=1; } // DEBUG
     if (err && errstop) abort();
-    gc();
+    //gc();
   }
 }
 #endif

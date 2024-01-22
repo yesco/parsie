@@ -316,16 +316,6 @@ char* dchars(D d) { int t=TYP(d), x=DAT(d);
 // TODO: length of $" char* ?
 int dlen(D f) { char* r= dchars(f); RET r?strlen(r):TYP(f)==TOBJ?K[DAT(f)+3]:0;}
 
-// compare anything
-// - if both numbers        => <=>
-// - if both strings/atoms  => strcmp
-// - num,nan < obj          => -1 (+1) 
-// - nan and number
-int dcmp(D a, D b) { UL c,d,e=1; switch (!!isnan(a)*10+!!isnan(b)) {
- case 00:RET(a>b)-(a<b);case 01:e=-e;case 10:RET DAT(e>0?a:b)?+256:-256;}
-  c=d2u(a),d=d2u(b);if (c==d) RET 0;  char *g=dchars(a), *h=dchars(b);
-  if (g&&h) RET strcmp(g, h); RET (d<c)-(c<d); }
-
 int pobj(D); // FORWARD
 int cprint(D); // FORWARD
 
@@ -385,12 +375,11 @@ if(**p=='.'){(*p)++;d=reader(p,bq);spc(p);(*p)++;}
 //   this to not continue execute
 //   after error parsing code
 D reader(char** p, int bq){ spc(p); switch(**p){ case 0: RET nil;
-  case'\'': RET cons(atom("quote"), reader(p,bq));
+  case'\'': (*p)++;RET cons(atom("quote"), reader(p,bq));
   case';': if(!bq)assert(!" ; =not bq mode"); (*p)++;RET POP;
 // TODO: for obj... copy all
 //  case'@': {assert(bq||!"@ !bq-mode"); (*p)++;RET append(POP,reader(p,bq));
-  case'"': (*p)++; RET readstr(p, '"');
-  case'(': (*p)++; RET readlist(p,bq);
+  case'"': (*p)++; RET readstr(p, '"'); case'(': (*p)++; RET readlist(p,bq);
   case'{':case'[':{char e=**p=='{'?'}':']';D o=obj();(*p)++;while(**p&&**p!=e){
     spc(p);D a=(**p==',')?undef:reader(p,bq);spc(p);if(**p==':'){(*p)++;
     set(o,atomize(a),reader(p,bq));}else set(o,dlen(o),a);if(**p==',')(*p)++;}
@@ -451,6 +440,20 @@ void funcall(D c) { // DDEBUG
 } // DEBUG
 
 #include "obj.c"
+
+// compare anything
+// - if both numbers        => <=>
+// - if both strings/atoms  => strcmp
+// - num,nan < obj          => -1 (+1) 
+// - nan and number
+//
+// TODO: atom not equal string?
+int dcmp(D a, D b) { UL c,d,e=1; switch (!!isnan(a)*10+!!isnan(b)) {
+ case 00:RET(a>b)-(a<b);case 01:e=-e;case 10:RET DAT(e>0?a:b)?+256:-256;}
+  c=d2u(a),d=d2u(b);if (c==d) RET 0; char *g=dchars(a), *h=dchars(b);
+  if (g&&h) RET strcmp(g, h); if (g||h) RET !!h-!!g;  int i=TYP(a),j=TYP(b);
+  if (i!=j) RET j-i; if (i==TCNS) {int l=dcmp(car(a),car(b));if(l)RET l;
+    RET dcmp(cdr(a),cdr(b));} RET (d<c)-(c<d); }
 
 // GC for managed strings,cons,obj
 

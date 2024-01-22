@@ -43,7 +43,7 @@ double *K,*S,*Y,*G,*C; long mmax=0; char *M=0, *H=0, *F['Z'-'A'+1]={0};
 
 #define POP *S--
 #define U *++S
-#define T *S
+#define T (*S)
 #define S1 S[1]
 
 #define L (long)

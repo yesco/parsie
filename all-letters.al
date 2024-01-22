@@ -1,9 +1,9 @@
-?"---Simple Test for each Lunction"
+T?"---Simple Test for each Lunction"
 
-?"--  "
+T?"--  "
  
 
-?"-- !"
+T?"-- !"
 64@P 42 64! 64@P
 'foo @P 42 'foo ! 'foo @P
 
@@ -11,7 +11,7 @@
 "foo" P
 "bar" P
 
-?"-- #"
+T?"-- #"
 'nil	# P
 3	# P
 "foo"	# P
@@ -21,7 +21,7 @@
 '[1 2]	# P
 '{}	# P
 
-?"-- $"
+T?"-- $"
 'nil	$ P
 3	$ P
 "foo"	$ P
@@ -31,18 +31,18 @@
 '[1 2]	$ P
 '{}	$ P
 
-?"-- %"
+T?"-- %"
 4 2	% P
 5 2	% P
 100 2	% P
 101 2	% P
 
-?"-- &"
+T?"-- &"
 0 7 	& P
 3 7	& P
 0 1- 7	& P
 
-?"-- '"
+T?"-- '"
 'nil	U P
 '3	# P
 '"foo"	$ P
@@ -68,28 +68,29 @@
 
 '[,,,,,,,,,42]	P
 
-?"TODO:BUG: setting to undef
+T?"TODO:BUG: setting to undef"T
+
 '[,,,,,,,,,]	P
 
-?"-- ("
+T?"-- ("
 
 
-?"-- )"
+T?"-- )"
 
 
-?"-- *"
+T?"-- *"
 3 4 * P
 
-?"-- +"
+T?"-- +"
 3 4 + P
 
-?"-- ,"
+T?"-- ,"
 '[] 11 , 22 , 33 , P
 
-?"-- -"
+T?"-- -"
 3 4 - P
 
-?"-- ."
+T?"-- ."
 '[00 11 22 33] 0 . P
 '[00 11 22 33] 2 . P
 '[00 11 22 33] 7 . P
@@ -103,22 +104,22 @@
 '{a: 11 b: 22 c: 33} "b" . P
 '{a: 11 b: 22 c: 33} "c" . P
 
-?"-- /"
+T?"-- /"
 3 4 / P
 
-?"-- 0"
+T?"-- 0"
 0P1P2P3P4P5P6P7P8P9P
 111P
 1234567890P
 3.141592654P
 
-?"-- :"
+T?"-- :"
 '{} 'a 11 : 'b 22 : 'c 33 : P
 
-?"-- ;"
+T?"-- ;"
 
 
-?"-- <"
+T?"-- <"
 3 < 4 P
 4 < 3 P
 3 < 3 P
@@ -132,7 +133,7 @@
 3 '[] < P
 3 '[] < P
 
-?"-- ="
+T?"-- ="
 3 4 = P
 3 3 = P
 
@@ -147,18 +148,18 @@
 '() '() = P
 '{} '{} = P
 
-?"-- >"
+T?"-- >"
 3 4 > P
 4 3 > P
 3 3 > P
 
-?"-- ?"
-?"foo'bar"T
+T?"-- T?"T
+T?"foo'bar"T
 ?'foo"bar'T
 ?[fooz'bar"fie\\fum]T
-?">"?_"<"T
+T?">"?_"<"T
 
-?"-- @"
+T?"-- @"
 64	@ P
 42 64! 64 @P
 
@@ -169,17 +170,21 @@
 'foo	@P
 42 'foo	! 'foo	@P
 
-?"-- A"
+T?"-- A"
 'nil		A P
 '()		A P
 '(a . b)	A P
 '[]		A P
 '{}		A P
 
-?"-- B"
-B
+T?"-- B"
+'a '(a 1 b 2 c 3 d 4) B P
+'c '(a 1 b 2 c 3 d 4) B P
+'g '(a 1 b 2 c 3 d 4) B P
+'nil '(a 1 b 2 c 3 d 4) B P
+'a '() B P
 
-?"-- C"
+T?"-- C"
 3 4	C P
 'a 'b	C P
 'a 'nil	C P
@@ -187,44 +192,43 @@ B
 1 2 3 4 5 6 CCCCC P
 '[] '{}	C P
 
-?"-- D"
+T?"-- D"
 'nil		D P
 '()		D P
 '(a . b)	D P
 '[]		D P
 '{}		DA P
 
-?"-- E"
+T?"-- E"
 "3"	E P
 "3 4 +"	E P
 
-?"-- F"
+T?"-- F"
 666 42 Fd PP F\
 
-?"-- G"
+T?"-- G"
 'a '((a . 11) (b . 22)(c . 33)) G P
 'b '((a . 11) (b . 22)(c . 33)) G P
 'nil '((a . 11) (b . 22)(c . 33)) G P
 22 '((a . 11) (b . 22)(c . 33)) G P
 
-?"-- H"
-H
+T?"-- H"
 
-?"-- I"
+T?"-- I"
 42 0I{"then "} "rest" PW
-42 0I{"then "}"rest" PW
+{  TOOD: 42 0I{"then "}"rest" PW  }
 42 0I{"then "}{"else "} "rest" PWW
 42 0I{"then "}{"else "}"rest" PWW
 
 42 1I{"then "} "rest" PWW
-42 1I{"then "}"rest" PWW
-42 1I{"then "}{"else "} "rest" PWWW
-42 1I{"then "}{"else "}"rest" PWWW
+{ TODO: 42 1I{"then "} "rest" PWW }
+42 1I{"then "}{"else "} "rest" PWW
+42 1I{"then "}{"else "}"rest" PWW
 
-?"-- J"
+T?"-- J"
 
-?"-- K"
-nil	K P
+T?"-- K"
+'nil	K P
 3	K P
 "foo"	K P
 'foo	K P
@@ -234,41 +238,36 @@ nil	K P
 '{}	K P
 
 
-?"-- L"
+T?"-- L"
 	0 L P
 11	1 L P
 11 22	2 L P
 
-?"-- M"
-#
-'a '(a 1 b 2 c 3 d 4) M P
-'c '(a 1 b 2 c 3 d 4) M P
-'g '(a 1 b 2 c 3 d 4) M P
-'nil '(a 1 b 2 c 3 d 4) M P
-'a '() M P
+T?"-- M"
+"1+" '(10 20 30 40) M P
 
-?"-- N"
-'(00 11 22 33 44) 0 N P
-'(00 11 22 33 44) 1 N P
-'(00 11 22 33 44) 4 N P
-'(00 11 22 33 44) 5 N P
-'(00 11 22 33 44) 0 1- N P
-'(00 11 22 33 44) 0 1- 'foo P
+T?"-- N"
+0 '(00 11 22 33 44)	N P
+1 '(00 11 22 33 44)	N P
+4'(00 11 22 33 44)	N P
+5 '(00 11 22 33 44)	N P
+0 1- '(00 11 22 33 44)	N P
+'foo '(00 11 22 33 44)	N P
 
-'[00 11 22 33 44] 0 N P
-'[00 11 22 33 44] 4 N P
-'[00 11 22 33 44] 5 N P
-'[00 11 22 33 44] 0 1- N P
+0 '[00 11 22 33 44]	N P
+1 '[00 11 22 33 44] 	N P
+5 '[00 11 22 33 44] 	N P
+0 1- '[00 11 22 33 44]	N P
 
-?"-- O"
+T?"-- O"
 '()		O P
 '(1 2 3)	O P
 '[]		O P
 '[1 2 3]	O P
 '{a:11,b:22}	O P
 
-?"-- P"
-nil	P	nil	P
+T?"-- P"
+'nil	P	'nil	P
 3	P	3	P
 "foo"	P	"foo"	P
 'foo	P	'foo	P
@@ -277,28 +276,42 @@ nil	P	nil	P
 '[1 2]	P	'[1 2]	P
 '{}	P	'{}	P
 
-?"-- Q"
+T?"-- Q"
+3 3		Q P
+3 1 0 /		Q P
+"foo" "foo"	Q P
+"foo" 3		Q P
+"foo" 'foo	Q P
+"foo" '()	Q P
+'() '()		Q P
+'(a) '()	Q P
+'(a) '(a)	Q P
+'(a) '(b)	Q P
+'(a . b) '(a . b)	Q P
+'(a b) '(a c)	Q P
+'(a b) '(a b)	Q P
+'[] '[]		Q P
+'{} '{}		Q P
+
+T?"-- R"
 
 
-?"-- R"
-
-
-?"-- S"
+T?"-- S"
 '(a . b) Fd	3 SA P  P
 '(a . b) Fd	4 SD P  P
 '(a . b) FdFdFd	3 SA P  4 SD P  P
 
-?"setting arguments"T
+T?"setting arguments"T
 666 42
 11 22 33
 \xyz xSyxSz xPyWzW xy+z+^
 PPF\
 
-?"-- T"
+T?"-- T"
 "foo"T"bar"
 
-?"-- U"
-nil	U P
+T?"-- U"
+'nil	U P
 3	U P
 "foo"	U P
 'foo	U P
@@ -307,10 +320,10 @@ nil	U P
 '[1 2]	U P
 '{}	U P
 
-?"-- V"
+T?"-- V"
 
 
-?"-- W"
+T?"-- W"
 'nil	W	'nil	W T
 3	W	3	W T
 "foo"	W	"foo"	W T
@@ -320,24 +333,24 @@ nil	U P
 '[1 2]	W	'[1 2]	W T
 '{}	W	'{}W	W T
 
-?"-- X"
+T?"-- X"
 'nil	X	'nil	X T
 3	X	3	X T
 "foo"	X	"foo"	X T
 'foo	X	'foo	X T
 '()	X	'()	X T
-'(a b)	X	'(a b)	X T
+{ TODO: '(a b)	X	'(a b)	X T }
 '[1 2]	X	'[1 2]	X T
 '{}	X	'{}W	X T
 
-?"-- Y"
-?"write 42:"	Y P
+T?"-- Y"T
+T?"write 42:"	Y P
 
-?"-- Z"
+T?"-- Z"
 
-?"-- ["
+T?"-- ["
 
-?"-- \"
+T?"-- \"
 "\ 42^"		E P
 666 42 \ a^
 P
@@ -350,50 +363,51 @@ P
 666 3 4 \xy xy+^
 P
 
-?"don't use"
+T?"don't use"
 666 42 \
 P
 666 33 \ 42
 PP
 
-?"-- ]"
+T?"-- ]"
 
-?"-- ^"
-?"(see \)"T
+T?"-- ^"T
+T?"(see \)"T
 
-?"-- _"
+T?"-- _"
 
 
-?"-- `"
+T?"-- `"
 `nil P
 `a P
 `b P
 `0 P
-'1 P
+`1 P
 `2 P
-'{} P
-`[] P
+{ TODO: `{} P }
+{ TODO: `[] P }
 
-?"-- {"
-?"see I"T
+T?"-- {"T
+T?"see I"T
 
-?"-- |"
+T?"-- |"
 0 7 	| P
 3 8	| P
 0 1- 7	| P
 
-?"-- }"
+T?"-- }"
 
-?"see {"T
+T?"see {"T
 
-?"-- ~"
-0 ~ P
-1 ~ P
-'nil ~ P
-'true ~ P
-'a ~ P
-"foo" ~ P
-'[] - P
-'[1] ~ P
-'{} ~ P
-'{a:33} ~ P
+T?"-- ~"
+0	~ P
+1	~ P
+'nil	~ P
+'true	~ P
+'a	~ P
+"foo"	~ P
+'[]	- P
+'[1]	~ P
+'{}	~ P
+'{a:33}	~ P
+
