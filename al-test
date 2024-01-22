@@ -1,0 +1,3 @@
+./al -E <all-letters.al >all-letters.out
+diff -U3 -F="\?\"-- " all-letters.result all-letters.out && echo "=> Tests are OK" || ( printf "\n\n\n-------- test FAIL ------\n" ; exit 1)
+
