@@ -365,8 +365,7 @@ D set(D,D,D); // FORWARD
 D readlist(char** p, int bq) {spc(p);if(!**p||(**p==')'&&(*p)++))RET nil;
   if(**p=='@'){assert(bq||!"@ !bq-mode");(*p)++;RET append(POP,readlist(p,bq));}
   D d,a=(**p=='@')?(*p)++,append(POP,readlist(p,bq)):reader(p,bq);spc(p);
-
-if(**p=='.'){(*p)++;d=reader(p,bq);spc(p);(*p)++;}
+  if(**p=='.'){(*p)++;d=reader(p,bq);spc(p);(*p)++;}
     else d=readlist(p,bq); RET cons(a,d); }
 
 // NOTE: commas are optional!
@@ -377,8 +376,8 @@ if(**p=='.'){(*p)++;d=reader(p,bq);spc(p);(*p)++;}
 D reader(char** p, int bq){ spc(p); switch(**p){ case 0: RET nil;
   case'\'': (*p)++;RET cons(atom("quote"), reader(p,bq));
   case';': if(!bq)assert(!" ; =not bq mode"); (*p)++;RET POP;
-// TODO: for obj... copy all
-//  case'@': {assert(bq||!"@ !bq-mode"); (*p)++;RET append(POP,reader(p,bq));
+  // TODO: for obj... copy all
+  //  case'@': {assert(bq||!"@ !bq-mode"); (*p)++;RET append(POP,reader(p,bq));
   case'"': (*p)++; RET readstr(p, '"'); case'(': (*p)++; RET readlist(p,bq);
   case'{':case'[':{char e=**p=='{'?'}':']';D o=obj();(*p)++;while(**p&&**p!=e){
     spc(p);D a=(**p==',')?undef:reader(p,bq);spc(p);if(**p==':'){(*p)++;
