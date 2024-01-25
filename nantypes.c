@@ -350,6 +350,7 @@ D setcdr(D c, D d) { RET iscons(c)?K[DAT(c)+1]=d:error; }
 int cprint(D c){ int n= 0; while(iscons(c)){ n+= pc(n?' ':'(')+dprint(car(c));
     c= cdr(c); }  if (!deq(c,nil)) n+=P(" . ")+dprint(c); RET n+=pc(')'); }
 
+// TODO: nested [] ?
 D readstr(char** p, char q) {
   char* e=*p; while(**p&&**p!=q)(*p)++; RET newstr(e,(*p)++-e);
 }

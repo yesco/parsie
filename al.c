@@ -347,6 +347,8 @@ Z'a'...'z':{D*z=&VAR;if(!A||z>S||z<K)P("Arg err: %c\n",c);U=*z;}
 
 // -- \ lambda functions and parameters  a-z vars ------------^
 Z'\\': o=p-1;n=1;while(*p=='\\')n++,p++;if(*p>='a')strcpy(a,parsename(&p));n=*a?strlen(a):n;A=S-n;
+// TODO: [] in strings?
+Z'[':x=1;while(*p&&n)n+=(*p==']')-(*p==']'),p++;
 
 // -- Numbers and Math operators AND or &bit, OR or |bit, NOT or ~inv
 #define OP(op,e) Z #op[0]: S--;T=T op##e S1;
@@ -541,7 +543,23 @@ void pal(char* p) {
    P - Print (\n val)
    Q -- eQual
    R - Recurse
-   S -- Setq Sa-Sz SA=SetcAr;SD
+   S - Setq Sa-Sz SA=SetcAr;SD
+     Sa-Sz  - Setq
+     SA - SetcAr
+     SD - SetcDr
+
+     S'foo -- Set ... (globals)
+     SU -- toupper
+     SL -- tolower
+     SS -- concat StrStr
+     SS -- tostring
+     SI -- tointeger
+     SD -- todouble (SF)
+     SC -- tocons(list)
+     SO -- toobj
+     SJ -- tojson
+     SR -- SetRecons (C a d -- C/C')
+
      3       `a !  == set! a
      3 4C    ` @   == car
      3 4C    ` 1+@ == cdr
@@ -565,32 +583,20 @@ void pal(char* p) {
    ^ - return
    _ -- long name call (== 'foo @ E)
 
+   'foo
    `a-`z -  -stack ref for ! and @
   "` " - address (of stack item)
    a-z - var/stack ref how frame?
    { - jump to '}' 1I{3}{4}=>3
    | - and TODO: short-circuit
    } - destination from '{'
-   ~ -- NOT how C: ~
+   ~ - NOT how C: ~
  DEL -- not visible...
  128 - TailRecursion
  129-255 - skipNchars
 
 --- TODO: possibly ???
 
-Sa-Sz - set param/local var
-S'a-S'z --
-SU - toupper
-SL - tolower
-SS - tostring
-SI - tointeger
-SD - todouble (SF)
-SC - tocons(list)
-SO - toobj
-SJ - tojson
-SA - SetcAr
-SD - SetcDr
-SR - SetRecons (C a d -- C/C')
 F[]
 
 ?"foo"
