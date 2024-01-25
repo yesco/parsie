@@ -288,7 +288,7 @@ char a[16];*a=0;if(!p)RET 0; int iff=0; // TODO: remove ALF
 DEBUG(P("\n===AL >>>%s<<<\n", p))
 next: DEBUG(prstack();P("\t>%.10s ...\n",p));
 
-x=0;nn++;switch(c=*p++){case 0:case')':case']':RET(p);Z' ':Z'\n':Z'\t':Z'\r':
+e=p;x=0;nn++;switch(c=*p++){case 0:case')':case']':RET(p);Z' ':Z'\n':Z'\t':Z'\r':
 
 // Address  `atm-addr  `$=addr-of-TOPatom  `#=num-args  `0-`9=addr-argN
 Z'`': switch(*p++) { Z'#': U=n; Z'0'...'9': U='0'-p[-1]-1; Z'A'...'Z':
@@ -340,7 +340,10 @@ Z'.': S--;T=get(T,atomize(S1)); Z';': U=obj();
 
 // faster here than at the beginning, LOL
 // inline makes 5.04s instead of 5.70s for fib-l.al...
-Z'0'...'9':{D v=0;p--;while(isdigit(*p))v=v*10+*p++-'0';U=v;} Z'a'...'z':U=VAR;
+Z'0':if(isdigit(*p))x=8; if(*p=='x')p+=2,x=16; if(*p=='b')p+=2,x=2;
+case'1'...'9':{x=x?x:10;d=0;p--;while(isdigit(*p))d=d*x+*p++-'0';
+U=isxdigit(*p)||*p=='.'?strtod(e,&p):d;}
+Z'a'...'z':{D*z=&VAR;if(!A||z>S||z<K)P("Arg err: %c\n",c);U=*z;}
 
 // -- \ lambda functions and parameters  a-z vars ------------^
 Z'\\': o=p-1;n=1;while(*p=='\\')n++,p++;if(*p>='a')strcpy(a,parsename(&p));n=*a?strlen(a):n;A=S-n;
@@ -493,6 +496,7 @@ void pal(char* p) {
    ' - quoting functions
    '? - atomp symbolp
    '32 - number (no need)
+   '".." -- template string
    'atm - atom
    '{} - obj/array
    '[] - array/obj
@@ -507,7 +511,7 @@ void pal(char* p) {
    - - minus
    . - getprop (O A -- v)
    / - div
-   0-9 - number
+   0-9 - number TODO decimal/0x/0b/07
    : - setprop (O A v--O)
    ; - new Obj TODO: use '{} ???
    < - lt

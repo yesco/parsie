@@ -1,5 +1,5 @@
-Al/F.LOC: 101
-AlF .LOC: 62
+Al/F.LOC: 104
+AlF .LOC: 65
 
 > T?"---Simple Test for each Lunction"
 
@@ -300,7 +300,7 @@ undef
 1234567890
 > 3.141592654P
 
-141592654
+3.141592654
 > 
 > T?"-- :"
 

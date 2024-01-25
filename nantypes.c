@@ -224,8 +224,6 @@ long nameadd(char* s) {char*p=hp;int l=strlen(s),n=0;while(*p){if(!strcmp(s,p+1)
   *p=l; RET -(strcpy(p+1,s)-hp-1+((L n)<<22))-1;
 }
 
-void prnames() { char* p= hp; P("\n"); while(*p) { D* d= (D*)(p+1+strlen(p+1)+1); P("%5ld: %d v=> %10.7g %5ld\t%s\n", p-hp, *p, *d, d2u(*d), p+1); p+=strlen(p+1)+1+1+sizeof(D); } } // DEBUG
-
 // RET a data atom from String
 // empty string RETs nil
 D ofsatom(long ofs, char* s){if(!s||!*s)RET nil; ofs+=512; assert(ofs>=0 && ofs<0x3ff);
@@ -234,6 +232,8 @@ D ofsatom(long ofs, char* s){if(!s||!*s)RET nil; ofs+=512; assert(ofs>=0 && ofs<
   if (ofs<512) { *--Y= undef; *--Y= a; } RET a; }
 
 D atom(char* s) { RET ofsatom(0, s); }
+
+char* dchars(double); // FORWARD
 
 // TODO: set/get??? (JS does...)
 D atomize(D d) { RET TYP(d)==TSTR?atom(dchars(d)):d; }
@@ -277,13 +277,18 @@ void* PTR(int t, D o) { RET TYP(o)==t?M+DAT(o):0;}
 
 void inittypes() {
   // Order matters: first 3 == self
-  // WARNING: Do NOT change order
+
+  // ---WARNING: Do NOT change order
   //nil=ofsatom(-512,"nil");undef=atom("undef");
   nil=atom("nil");undef=atom("undef");
   //assert(DAT(nil)==nilo);
   K[SMAX-2]=K[SMAX-1]=*S=*K=error =atom("*ERROR*");
-  // WARNING: Do NOT add above!
+  // ---WARNING: Do NOT add above!
 
+  // Add after here...
+  // false=atom("false");
+  // true=atom("true");
+  // is == atomno >= true
   proto=atom("__proto__");
   __=atom("__");
 

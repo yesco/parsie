@@ -4,7 +4,7 @@
 #ifndef DEBUG
 int debug= 0; // DEBUG
 #define DEBUG(D) if (debug) do{D;}while(0);
-#endif
+#endif // DEBUG
 
 const long SMAX=16*1024L,GMAX=1024*1024L,CMAX=GMAX*1600,MLIM=1E12L,KSZ=SMAX+GMAX+CMAX;
 
@@ -50,13 +50,12 @@ double *K,*S,*Y,*G,*C; long mmax=0; char *M=0, *H=0, *F['Z'-'A'+1]={0};
 #define UL unsigned long
 #define SL (sizeof L)
 
+// TODO: remove?, not really used
 #define align() while((H-M)%SL)H++
 
 #define RET return
 #define P printf
 #define pc(a) putchar(a)
-
-extern char* dchars(double); // FORWARD
 
 // Interpreation of memory ref
 //  -SMAX ..  0     = stk frm ref
