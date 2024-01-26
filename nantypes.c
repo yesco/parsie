@@ -260,10 +260,11 @@ int istyped(D v) { int t= TYP(v); RET t!=TNAN && (t&TNAN)==TNAN; }
 #define TT(nm, t) int nm(D d) { RET TYP(d)==t; }
 TT(isatom,TATM);TT(isobj,TOBJ);TT(isstr,TSTR);TT(iscons,TCNS);TT(isfun,TFUN);
 
-// lowercase is numeric
-char typ(D d) { int t= TYP(d); RET !isnan(d)?(d==L d?'i':'f'):deq(t,nil)?
-  'N':deq(t,undef)?'U':deq(d,error)?'E':t==TATM?'A':t==TSTR?'S':t==TOBJ?'O':
-  t==TCNS?'C':t==TNAN?'n':t==TFUN?'F':0; }
+// lowercase is numeric! codes returned:
+// i/nt f/loat n/an o/infinite N/il U/ndef E/rror S/ym $/tring O/bj C/ons F/un
+char typ(D d) { int t= TYP(d); RET !isnan(d)?(d==L d?'i':isinf(d)?'o':'f')
+  :deq(t,nil)?'N':deq(t,undef)?'U':deq(d,error)?'E':t==TATM?'S':t==TSTR?'$'
+  :t==TOBJ?'O':t==TCNS?'C':t==TNAN?'n':t==TFUN?'F':0; }
 
 // TODO: remove?
 // TODO: it's not aligned
@@ -468,8 +469,9 @@ char *kr= 0;
 // TODO: 255++ => 0  haha...
 void mark(D *v, int n) { if(!v)return;  UL d= DAT(*v);
   if (!isnan(*v)) return;
-  if (v<K || v>=K+KSZ){P("%%GC:Pointer out of bounds i=%ld p=%p\n",v-K,v);abort();}
-  if (kr[v-K]){P("%.*s- already marked\n",n,"");RET;}
+  //if (v<K || v>=K+KSZ){P("%%GC:Pointer out of bounds i=%ld p=%p\n",v-K,v);abort();}
+  //if (v<K || v>=K+KSZ){P("%%GC:Pointer out of bounds i=%ld p=%p\n",v-K,v);}else
+  //if (kr[v-K]){P("%.*s- already marked\n",n,"");RET;}
   P("%.*sMARK[%ld]:",n,"",v-K);dprint(*v);P("\n");
   switch(TYP(*v)){
   case TSTR: sr[d]++; break;
@@ -486,10 +488,19 @@ void mark(D *v, int n) { if(!v)return;  UL d= DAT(*v);
   }
 }
 
-void gc() { memset(sr, 0, sizeof(sr));
+void gc(D* start, D* end) { memset(sr, 0, sizeof(sr));
   if (!kr) kr= calloc(KSZ,1); else memset(kr, 0, KSZ*1);
+  assert(kr);
 
   // --- MARK: sr[x]++ for each ref
+  P("\n---GC.CTACK\n\n");
+  for(D* s=start; s>=end; s--) {
+    if (!isnan(*s)) continue;
+    P("CTACK[%4ld]: ", start-s);
+    dprint(*s); P("\n");
+    mark(s,2);
+  }
+
   P("\n---GC.STACK\n\n");
   for(D* s=K;      s<=S; s++) mark(s,0);
   P("\n---TC.Globals\n");

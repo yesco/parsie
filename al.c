@@ -480,10 +480,10 @@ void pal(char* p) {
    _foo
 
    !"#$%&'()*+,-./0123456789:;<=>?
-          ()                 ;   
+          ()                     
 
   @ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_
-            J           V   Z[ ] _
+            J           V   Z[ ] 
 
   `abcdefghijklmnopqrstuvwxyz{|}~
   `                            
@@ -491,18 +491,21 @@ void pal(char* p) {
   ' ' -- space/delimiter
    ! - Forth ! (write mem)
    " - string
-   # - numberp
-   $ - stringp
+   # - numberp TODO: change?
+   $ - stringp TOOD: change?
    % - mod
    & - and TODO: short-circuit
    ' - quoting functions
-   '? - atomp symbolp
+   '? - atomp symbolp TODO: change?
    '32 - number (no need)
-   '".." -- template string
+   '".." -- template string S[ S]
    'atm - atom
    '{} - obj/array
    '[] - array/obj
-   '(1 ; 3)' - get value from stack 2'(1;3) => (1 2 3)
+   '(1 ; 3) - from stack insert
+        2 '(1;3) => (1 2 3)
+   '(1 @ 5) - from stack splice in
+        '(2 3 4) '(1 @ 5) => (1 2 3 4 5)
      like lisp `(1 ,(pop) 3)
      TODO: only allow in ` ?
    ( --
@@ -516,9 +519,9 @@ void pal(char* p) {
    0-9 - number TODO decimal/0x/0b/07
    : - setprop (O A v--O)
    ; - new Obj TODO: use '{} ???
-   < - lt
+   < - lt   >~ - ngt - le
    = - eq
-   > - gt
+   > - gt   <~ - nlt - ge
    ?"foo'bar" - print string
    ?'foo"bar"
    ?[foo'"bar]
@@ -541,7 +544,7 @@ void pal(char* p) {
    N - Nth (of list/arr)
    O - Ordinal (length list/arr)
    P - Print (\n val)
-   Q -- eQual
+   Q - eQual
    R - Recurse
    S - Setq Sa-Sz SA=SetcAr;SD
      Sa-Sz  - Setq
@@ -549,9 +552,12 @@ void pal(char* p) {
      SD - SetcDr
 
      S'foo -- Set ... (globals)
+     S[ -- print to string
+     S] -- end/finalize mngd string
      SU -- toupper
      SL -- tolower
      SS -- concat StrStr
+
      SS -- tostring
      SI -- tointeger
      SD -- todouble (SF)
@@ -571,7 +577,7 @@ void pal(char* p) {
      7 3 4C  SD    == SetcDr
    T - Terpri
    U - Undefined? / nUll
-   V -- reVerse / Var
+   V -- Var
    W - princ unquoted
    X - prin1 quoted""
    Y - (Y)read
@@ -581,57 +587,123 @@ void pal(char* p) {
    \ - \ambda "\\\ bca" or \xyz zyx
    ] -- end closure/interpretation
    ^ - return
-   _ -- long name call (== 'foo @ E)
+   _ - long name call (== 'foo @ E)
 
-   'foo
    `a-`z -  -stack ref for ! and @
   "` " - address (of stack item)
    a-z - var/stack ref how frame?
    { - jump to '}' 1I{3}{4}=>3
-   | - and TODO: short-circuit
+   | - bitor 
    } - destination from '{'
-   ~ - NOT how C: ~
+   ~ - NOT - same as C: !
  DEL -- not visible...
  128 - TailRecursion
  129-255 - skipNchars
 
 --- TODO: possibly ???
 
-F[]
+F[] -- forth
 
-?"foo"
-?'foo'
-?[foo]
+? -- if/debug combined
+?"foo" - print
+?'foo' - print
+?[foo] - print
+??     - debug print " [42] "
+?a-?z  - debug print " a=42 "
 
-?{T} - if T
-?{T}{E} - if T E
+?{T} -- if T
+?{T}{E} -- if T E
 
-?c - ischar 0-255
-  ?^ = isctrl 0-31
-  ?8 = isutf8 128-255
-  ?p - isprint 32-126
-    ?n - isalnum
-      ?a - isalpha
-        ?l - islower
-        ?u - isupper
-      ?d - isdigit
-    ?s - isspace
-    ?. - ispunct
+?G? -- Group/charclass
+?Gc -- ischar 0-255
+  ?G^ -- isctrl 0-31
+  ?G8 -- isutf8 128-255
+  ?Gp -- isprint 32-126
+    ?Gn -- isalnum
+      ?Ga -- isalpha
+        ?Gl -- islower
+        ?Gu -- isupper
+        ?G_ -- is alpha or _
+      ?Gd -- isdigit
+      ?Gx -- isxdigit
+      ?G^ -- is alnum or _
+    ?Gs -- isspace
+    ?G. -- ispunct
+
+char charclass(long c) {
+  return c<0||c>255?0:c>=128?'8'
+  :isalpha(c)?(
+    :islower(c)?'l'
+    :isupper(c)?'u':'a') // lol
+  :isdigit(v)?'d'
+  :c<32?'^'
+  :c=='_'?'n'
+  :isspace(c)?'S'
+  :ispunct(c)?'P'
+  :'C';
+}
+
+charclass('A-Z')=> 'h'
+charclass('a-z')=> 'l'
+charclass('_')  => 'n'
+charclass('0-9')=> 'd' 
+
+0...8.C..P..S.^..  d...h..l...n...
+                     -isalpha-
+                   --isalnum--
+
+
+// -- charclass
+switch(c=*p++) { default: p--; goto error;
+  Z'c':T=T>0&&T<256; Z'^':T=T>=0&&T<=32; Z'8':T=T>=128;     Z'p':T=isprint(T);
+  Z'n':T=isalnum(T); Z'a':T=isalpha(T);  Z'l':T=islower(T); Z'u':T=isupper(T);
+  Z'd':T=isdigit(T); Z'x':T=isxdigit(T); Z's':T=isspace(T); Z'.':T=ispunct(T);
+}
+
+// -- type
+// i/nt f/loat n/an o/infinite N/il U/ndef E/rror $/ym $/tring O/bj C/ons F/un
+
+switch(c=*p++){
+  Z'#':T=islower(typ(T));
+  Z'I':T=T==L T;
+  Z'N':T=ISNAN(T);
+  Z'B':T=isinf(T);
+
+  Z'A':T=!iscons(T)&&!isobj(T);
+  Z'T':T=istyped(T);
+  Z'_':T=T==0||deq(T,nil)||deq(T,undef)||deq(T,error);
+  case'1':T=!T;
+  default:T=typ(T)==c;
+}
 
 ?# - !istyped == double:
   ?N - isnan
-  ?I - isinfinity
-  ?f - isfloat
-  ?i - isinteger
+  ?I - isint
+  ?B - isinf == outofBounds
 
-?T istyped
+?{}{} == I{}{}
+
+?? type -> # U S $ C O
+?# isnum == ?T~
+?T istyped == ?#~
 ?U isnull/isundef
-?A isatom
-?S isstring
+?S issymbol
+?$ isstring
 ?C iscons
 ?O isobj (no have any now!)
 
-?? type
+?0 -- isfalse, hmmm
+?1 -- istrue, hmmm
+
+case'T': T= istyped(T); break;
+case'0': if (T==0) break;
+case'U': T= deq(T,nil) || deq(T,undef); break;
+case'S': T= issymbol(T); break;
+case'C': T= iscons(T); break;
+case'1': 
+?^ if return
+?  -- if exit
+
 
 */
 
@@ -647,7 +719,7 @@ D stime(void) {
 }
 
 // options
-int errstop=0,verbose=0,quiet=0;
+int errstop=0,verbose=0,quiet=0,dogc=0;
 
 void bench(char* ln, int f) {
   P("\n");
@@ -703,6 +775,32 @@ return;
   }
 }
 
+D* startstack= 0;
+
+void xgc() {
+  D end= atom("<<<");
+  gc(startstack,&end);
+}
+
+void fillstack(D n) {
+  D a= -n;
+  if (n) fillstack(n-1); else xgc();
+  printf("%.8g ", a);
+}
+
+void xaction() {
+  D d= cons(1,cons(2,cons(3,cons(4,nil))));
+  fillstack(10);
+  dprint(d);
+}
+
+void markstack() {
+  D start= atom(">>>");
+  startstack= &start;
+  xaction();
+}
+
+
 int main(int argc, char** argv) {
   assert(sizeof(long)==8);
   assert(sizeof(void*)==sizeof(D));
@@ -720,7 +818,9 @@ int main(int argc, char** argv) {
     else if (0==strcmp("-q", *argv)) quiet++,verbose=0;
     else if (0==strcmp("-v", *argv)) verbose++,quiet=0;
     else if (0==strcmp("-d", *argv)) debug++,quiet=0;
-    else if (0==strcmp("-E", *argv)) errstop=1; else {P("%%ERROR: alf - no such option '%s'\n", *argv);abort();}
+    else if (0==strcmp("-g", *argv)) dogc=1;
+    else if (0==strcmp("-E", *argv)) errstop=1;
+    else {P("%%ERROR: alf - no such option '%s'\n", *argv);abort();}
   }
 
   initmem(16*1024); inittypes();
@@ -761,7 +861,7 @@ int main(int argc, char** argv) {
     if (G-K+1>=GMAX) { P("\n%%GLOBALS overrun to cons/var storage\n"); err=1; } // DEBUG
     if (C-K+1>=CMAX) { P("\n%%CONS exhausted\n"); err=1; } // DEBUG
     if (err && errstop) abort();
-    //gc();
+    if (dogc) markstack();
   }
 }
 #endif

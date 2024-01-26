@@ -42,14 +42,12 @@
 // pc - "putchar"
 // Q 
 // R - Rules of parser
-//
 // S - (alf) stack pointer top ptr
 // S1 -- S[1]
 // T -- *S top of stack
 // U - pUsh
-//
 // V
-// X
+// X - ?
 // Y - parse; magic calls stack 
 // Z - "goto next; case"
 
