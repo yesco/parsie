@@ -470,9 +470,12 @@ char *kr= 0;
 void mark(D *v, int n) { if(!v)return;  UL d= DAT(*v);
   if (!isnan(*v)) return;
   //if (v<K || v>=K+KSZ){P("%%GC:Pointer out of bounds i=%ld p=%p\n",v-K,v);abort();}
-  //if (v<K || v>=K+KSZ){P("%%GC:Pointer out of bounds i=%ld p=%p\n",v-K,v);}else
-  //if (kr[v-K]){P("%.*s- already marked\n",n,"");RET;}
-  P("%.*sMARK[%ld]:",n,"",v-K);dprint(*v);P("\n");
+  if (v<K || v>=K+KSZ){P("%%GC:Pointer out of bounds i=%ld p=%p\n",v-K,v);RET;} else {
+    // K-address (not C-stack)
+    if (kr[v-K]){P("%.*s- already marked\n",n,"");RET;}
+    P("%.*sMARK[%ld]:",n,"",v-K);dprint(*v);P("\n");
+  }
+
   switch(TYP(*v)){
   case TSTR: sr[d]++; break;
   case TCNS: while(iscons(*v)) {

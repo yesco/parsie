@@ -86,6 +86,7 @@ char* al(char* o, char* p) { int v; char* x;
 
     Z'=': S[s-2]= S[s-2]==S[s-1]; s--;
     Z'<': S[s-2]= S[s-2]<S[s-1]; s--;
+    Z'>': S[s-2]= S[s-2]>S[s-1]; s--;
 
     Z'P': P("\n%.7g ", S[--s]);
     Z'T': P("\n");
