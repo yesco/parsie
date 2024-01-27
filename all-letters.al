@@ -1,4 +1,4 @@
-T?"---Simple Test for each Lunction"
+T?"---Simple Test for each Function"
 
 T?"--  "
  

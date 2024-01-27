@@ -41,6 +41,9 @@ const long SMAX=16*1024L,GMAX=1024*1024L,CMAX=GMAX*1600,MLIM=1E12L,KSZ=SMAX+GMAX
 //
 double *K,*S,*Y,*G,*C; long mmax=0; char *M=0, *H=0, *F['Z'-'A'+1]={0};
 
+// "ref count" for K
+char *kr= 0;
+
 #define POP *S--
 #define U *++S
 #define T (*S)
@@ -82,6 +85,7 @@ void* m(double d, double* A, int n) {long x=L d;if(isnan(d))RET m(atomaddr(d),A,
 
 void initmem(size_t sz) { K=calloc(KSZ,SL);S=K+1; G=K+SMAX;Y=G-2; C=K+GMAX;
   assert(KSZ<MLIM);
+  kr=calloc(KSZ,1);
   M=calloc(mmax=sz,1);H=M+1024; }
 
 // ENDWCOUNT

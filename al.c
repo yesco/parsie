@@ -303,15 +303,17 @@ Z'\'': if(*p=='?'&& p++)T=isatom(T); else if(*p=='$'){p++;char*s=dchars(T);
   T=s?reader(&s,0):error; } else U=reader(&p,1);
 
 // -- (Global Variables)  !  @  SetcAr  SetcDr  Sa-Sz
-Z'@': T= *(D*)m(T,A,n); Z'!': *(D*)m(T,A,n)= S[-1]; S-=2;
+Z'@': T= *(D*)m(T,A,n); Z'!': *(setmark((D*)m(T,A,n), S-1))= S[-1]; 
+S-=2;
 Z'S': switch(c=*p++){ Z'A':S--;T=setcar(T,S1); Z'D':S--;T=setcdr(T,S1);
 Z'a'...'z':VAR=T--; goto next;default:p--;goto error; }
 
 // -- ?"printme" ?'..' ?[..]   ?a=print" a=... " (debug)
 Z'?':switch(c=*p++){
   default:if(!isalpha(c)){p--;goto error;} P(" %c=",c);dprint(VAR);
-  case'_':P(" "); Z'?':P(" [");dprint(T);P("] ");
-  Z'[':c=']';case'"':case'\'':while(*p&&*p!=c)pc(*p++);p++; }
+  case'_':P(" "); Z'?':P(" [");dprint(T);P("] "); Z'!':gc(0,0); Z'@':sweep();
+  Z'[':c=']';case'"':case'\'':while(*p&&*p!=c)pc(*p++);p++;
+}
 
 // -- Konsp? Cons cAr cDr nList memBer Gassoc Happend Mapcar Nth Ordina/length
 Z'K': T=iscons(T); Z'C':S--;T=cons(T,S1); Z'A':T=car(T); Z'D':T=cdr(T);
@@ -788,8 +790,10 @@ void fillstack(D n) {
   printf("%.8g ", a);
 }
 
+int xxx=0;
+
 void xaction() {
-  D d= cons(1,cons(2,cons(3,cons(4,nil))));
+  D d= cons(xxx+1,cons(xxx+2,cons(xxx+3,cons(xxx+4,cons(xxx+5,nil))))); xxx+=5;
   fillstack(10);
   dprint(d);
 }

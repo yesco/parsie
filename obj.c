@@ -37,18 +37,29 @@
 typedef struct Obj{D proto,next,arr,n;struct np{D name,val;}np[NPN];}Obj;
 
 D obj() { Obj* o= (Obj*)C; C+= sizeof(Obj)/SL; memset(o,0,sizeof(Obj));
+  for(int i=0; i<sizeof(Obj)/SL; i++) GCA(((D*)o)+i);
   // TODO: use m() and K() etc...
   for(int i=0; i<NPN; i++)  o->np[i]=(struct np){undef, undef};
   UL x= ((D*)o)-K; RET u2d(BOX(TOBJ, x)); }
 
 Obj* po(D o) { return TYP(o)==TOBJ?(Obj*)(K+DAT(o)):0; }
 
+D* setmark(D*,D*); // FORWARD
+
 // Set in direct obj
 // if val is undef, name is removed
+//
+// TODO: delete? how does it work?
+//   node: removes entry maybe set to
+//   *hole* or *deleted* ???
+// TODO: problem is reused and duplicate
 D set(D d, D name, D val) {Obj*o=po(d),*last=0,*p=o;if(!o)RET undef;
   if(deq(name,proto))RET p->proto=val;if(!ISNAN(name)&&name>=o->n)o->n=name+1;
   while(1){for(int i=0;i<NPN;i++){D n=p->np[i].name; if(deq(n,name)||deq(n,
-      undef)){p->np[i]=(struct np){val==undef?undef:name,val};RET val;
+      undef)){
+//csetmark(d,p->np[i].val,val);
+setmark(&(p->np[i].val),&val);
+p->np[i]=(struct np){name,val};RET val;
     }} last=p;p=po(p->next);if (!p){p=po(last->next=obj());}}}
 
 // TODO: .length set and get

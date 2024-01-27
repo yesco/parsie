@@ -224,11 +224,16 @@ long nameadd(char* s) {char*p=hp;int l=strlen(s),n=0;while(*p){if(!strcmp(s,p+1)
   *p=l; RET -(strcpy(p+1,s)-hp-1+((L n)<<22))-1;
 }
 
+#define GCn(c,n) kr[c-K]=n
+#define GCA(c) GCn(c,2)
+
+void csetmark(D,D,D); // FORWARD
+
 // RET a data atom from String
 // empty string RETs nil
 D ofsatom(long ofs, char* s){if(!s||!*s)RET nil; ofs+=512; assert(ofs>=0 && ofs<0x3ff);
   long x=nameadd(s); D a=u2d(BOX(TATM,(x<0?-x-1:x)|(ofs<<(22+16))));
-  if (x<0) { x=-x-1; *G++= a; long n= (x>>22)&0xffff; *G++= n<3?a:undef; }
+  if (x<0) { x=-x-1; GCn(G,2);*G++= a; long n= (x>>22)&0xffff; GCn(G,2);*G++= n<3?a:undef; }
   if (ofs<512) { *--Y= undef; *--Y= a; } RET a; }
 
 D atom(char* s) { RET ofsatom(0, s); }
@@ -342,11 +347,12 @@ D strnconcat(D d, D s, int i, int n) { char* x= dchars(s);
 //
 //    o= 48 bits offset into K
 
-D cons(D a, D d) { UL o= C-K; *C++= a; *C++= d; RET u2d(BOX(TCNS, o)); }
+D cons(D a, D d) {UL o=C-K;GCA(C);*C++=a;GCA(C);*C++=d;RET u2d(BOX(TCNS, o));}
 D car(D c) { RET iscons(c)?K[DAT(c)+0]:nil; }
 D cdr(D c) { RET iscons(c)?K[DAT(c)+1]:nil; }
-D setcar(D c, D a) { RET iscons(c)?K[DAT(c)+0]=a:error; }
-D setcdr(D c, D d) { RET iscons(c)?K[DAT(c)+1]=d:error; }
+D setcar(D c, D a) { if(iscons(c))csetmark(c,car(c),a); RET iscons(c)?K[DAT(c)+0]=a:error; }
+D setcdr(D c, D d) { if(iscons(c))csetmark(c,cdr(c),d); RET iscons(c)?K[DAT(c)+1]=d:error; }
+//D setcdr(D c, D d) { RET iscons(c)?K[setmark(DAT(c)+1,d)]=d:error; }
 
 int cprint(D c){ int n= 0; while(iscons(c)){ n+= pc(n?' ':'(')+dprint(car(c));
     c= cdr(c); }  if (!deq(c,nil)) n+=P(" . ")+dprint(c); RET n+=pc(')'); }
@@ -463,64 +469,140 @@ int dcmp(D a, D b) { UL c,d,e=1; switch (!!isnan(a)*10+!!isnan(b)) {
 
 // GC for managed strings,cons,obj
 
-// TODO: use bits in long?
-char *kr= 0;
+// reference bits
+// 0   == WHITE (free(list))
+// 1   == allocated
+// 2   == set aside (by set)
+// 3   == used in set
+// 7...== used/marked several times
+// 254 == GRAY (ToScan)
+// 255 == BLACK
 
-// TODO: 255++ => 0  haha...
-void mark(D *v, int n) { if(!v)return;  UL d= DAT(*v);
+// 0000 0000 = WHITE (free)
+// 0000 0010 = allocated
+// 0xxx xx11 = set
+// 1111 1110 = unset (GRAY))
+// 1111 1111 = BLACK
+
+void bits(unsigned char c) {  for(int i=7; i>=0; i--) pc(!!((c&(1<<i)))+'0'); }
+
+// currently we use eager marking
+// 
+
+// <<1 | 1 :  0=>1 1=>11 10=>101 11=>111
+// not ++ as it can overflow
+#define MRK(c,m) c=(m==-1)?((c)&254):(((c)<<1)|m)
+
+void mark(D *v, int n, int m) { if(!v)return;  UL d= DAT(*v);
   if (!isnan(*v)) return;
-  //if (v<K || v>=K+KSZ){P("%%GC:Pointer out of bounds i=%ld p=%p\n",v-K,v);abort();}
-  if (v<K || v>=K+KSZ){P("%%GC:Pointer out of bounds i=%ld p=%p\n",v-K,v);RET;} else {
+  if (v<K || v>=K+KSZ){DEBUG(P("%%GC:Pointer out of bounds (C-stack?) i=%ld p=%p, m=%d\n",v-K,v,m));} else {
     // K-address (not C-stack)
-    if (kr[v-K]){P("%.*s- already marked\n",n,"");RET;}
-    P("%.*sMARK[%ld]:",n,"",v-K);dprint(*v);P("\n");
+    if (kr[v-K]<m) MRK(kr[v-K],m);
+    DEBUG(P("%.*sMARK[%ld]#",n,"",v-K);bits(kr[v-K]);P(" ");dprint(*v);P("\n"););
+    //if (kr[v-K]>=m){ 
+    if (kr[v-K]>=m && m<255 && m>=0){ // !FORCE
+      //P("..mark..m=%d  ", m);dprint(*v);P("\n");
+      DEBUG(if(debug>1)P("%.*s- already marked\n",n,""));RET;}
   }
 
   switch(TYP(*v)){
-  case TSTR: sr[d]++; break;
+  case TSTR: MRK(sr[d],m); break;
   case TCNS: while(iscons(*v)) {
-      mark(K+d+0,n+1); kr[d+0]++;
-      v=K+d+1; kr[d+1]++; d=DAT(*v);
-      P("%.*sMARK[%ld]:",n,"",v-K);dprint(*v);P("\n");      
-    } mark(v,n+1); break;
-  case TOBJ: { D* o=K+d;
-      P("OBJ %ld: ",d);dprint(*o);P("\n");
-      for(int i=0; i<sizeof(Obj)/SL; i++)
-{P("KR %d\n", i);kr[d+i]++;mark(o+i,n+1);} break; }
+      mark(K+d+0,n+1,m); MRK(kr[d+0],m);
+      v=K+d+1; MRK(kr[d+1],m); d=DAT(*v);
+      DEBUG(P("%.*sMARK[%ld]#",n,"",v-K);bits(kr[v-K]);P(" ");dprint(*v);P("\n"););
+      if (kr[v-K]>=m){DEBUG(if(debug>1)P("%.*s- already marked\n",n,""));RET;}
+    } mark(v,n+1,m); break;
+
+  case TOBJ:
+
+DEBUG(P("..mark..--m=%d OBJECT: ", m);dprint(*v);P("\n"););
+
+{ D* o=K+d;
+  DEBUG(P("OBJ %ld: ",d);dprint(*o);P("\n"););
+      // TODO: kr might not be right...
+      for(int i=0; i<sizeof(Obj)/SL; i++){
+MRK(kr[d+i],m);
+mark(o+i,n+1,m);
+DEBUG(P("%.*sKR[%d]#",n,"",i);bits(kr[d+i]);P(" ");dprint(o[i]);P("\n"););
+}
+break; }
   // TODO: case TFUN: sr[DAT(
   }
 }
 
-void gc(D* start, D* end) { memset(sr, 0, sizeof(sr));
-  if (!kr) kr= calloc(KSZ,1); else memset(kr, 0, KSZ*1);
-  assert(kr);
+// inherit of cell set in
+void csetmark(D c, D o, D n) { UL d=DAT(c);
+  int k= kr[d];
+  DEBUG(P("\n[csetmark=%d]\n", k));
+  mark(&o,2,-1);
+  DEBUG(P("\n  [csetmark:NEW:]\n"));
+  mark(&n,2,k);
+  DEBUG(P("\n[/csetmark=%d]\n", k));
+}
 
-  // --- MARK: sr[x]++ for each ref
-  P("\n---GC.CTACK\n\n");
-  for(D* s=start; s>=end; s--) {
-    if (!isnan(*s)) continue;
-    P("CTACK[%4ld]: ", start-s);
-    dprint(*s); P("\n");
-    mark(s,2);
-  }
+D* setmark(D* p, D* n) {
+  // TODO: OOB? neg?
+  int k= kr[p-K];
+  DEBUG(P("\n[setmark=%d @%ld]\n", k, p-K));
+  mark(p,2,-1);
+//  P("VALUE:"); dprint(*n); P("\n");
 
-  P("\n---GC.STACK\n\n");
-  for(D* s=K;      s<=S; s++) mark(s,0);
-  P("\n---TC.Globals\n");
-  for(D* g=K+SMAX; g<=G; g++) mark(g,0);
+  DEBUG(P("\n  [setmark:NEW:]\n"));
+// FORCE: todo, this may loop?
+//k=255+256;
+//k=255;
+  mark(n,2,k);
+  DEBUG(P("\n[/csetmark]\n"));
+  return p;
+}
 
-  // TODO: C-stack...
+void xcsetmark(D c, D o, D n) { UL d=DAT(c);
+  mark(&o,2,kr[d]<<1);
+  mark(&n,2,kr[d]);
+}
 
+
+
+void sweep() {
   // --- SWEEP - prefer lower first
-  //for(int i=sn;i;i--)if(!sr[i]){free(ss[i]);ss[i]=ss[0];ss[0]=(char*)(long)i;}
   P("\n---GC.Free\n");
+
+  // --- managed strings
   for(int i=sn-1;i>0;i--)if(!sr[i]){P("TSTR[%d]:\"%s\"\n", i, ss[i]);}
+  // --- cells
   char* k=kr+GMAX;
   for(D* c=K+GMAX; c<C; c++,k++)
     if(!*k){P("FREE[%ld]: ", c-K); dprint(*c);P("\n");}
+    else if (1){P("used[%ld]#", c-K);bits(*k);P(": ");dprint(*c);P("\n");} // DEBUG
 
+  // --- put in free list
+  //for(int i=sn;i;i--)if(!sr[i]){free(ss[i]);ss[i]=ss[0];ss[0]=(char*)(long)i;}
+
+  // -- print free list
   DEBUG({long f= 0; P("Free: "); do P("%lu=>", f); while((f=(long)ss[f]));P("\n");});
-  
+}
+
+void gc(D* start, D* end) { memset(sr, 0, sizeof(sr));
+  assert(kr);
+
+  // --- MARK: sr[x]++ for each ref
+  if (start && end) {
+    P("\n---GC.CTACK\n\n");
+    for(D* s=start; s>=end; s--) {
+      if (!isnan(*s)) continue;
+      P("CTACK[%4ld]: ", start-s);
+      dprint(*s); P("\n");
+      mark(s,2,4);
+    }
+  }
+
+  P("\n---GC.STACK\n\n");
+  for(D* s=K;      s<=S; s++) mark(s,0,8);
+  P("\n---TC.Globals\n");
+  for(D* g=K+SMAX; g<=G; g++) mark(g,0,255);
+
+  sweep();
 }
 
 // ENDWCOUNT
