@@ -6,7 +6,9 @@ int debug= 0; // DEBUG
 #define DEBUG(D) if (debug) do{D;}while(0);
 #endif // DEBUG
 
-const long SMAX=16*1024L,GMAX=1024*1024L,CMAX=GMAX*1600,MLIM=1E12L,KSZ=SMAX+GMAX+CMAX;
+// will crash termux before...
+//const long SMAX=16*1024L,GMAX=1024*1024L,CMAX=GMAX*1600,MLIM=1E12L,KSZ=SMAX+GMAX+CMAX;
+const long SMAX=16*1024L,GMAX=32*1024L,CMAX=1024*1024L,MLIM=1E12L,KSZ=CMAX;
 
 // -- Memory Layout
 // We use 3 different memory regiops:
@@ -84,7 +86,7 @@ void* m(double d, double* A, int n) {long x=L d;if(isnan(d))RET m(atomaddr(d),A,
 
 
 void initmem(size_t sz) { K=calloc(KSZ,SL);S=K+1; G=K+SMAX;Y=G-2; C=K+GMAX;
-  assert(KSZ<MLIM);
+  assert(KSZ<MLIM); assert(GMAX>SMAX); assert(CMAX>GMAX);
   kr=calloc(KSZ,1);
   M=calloc(mmax=sz,1);H=M+1024; }
 
@@ -132,4 +134,3 @@ void prK() {
     // just RET to continue
   } while(getline(&e,&z,stdin)); 
 }
-

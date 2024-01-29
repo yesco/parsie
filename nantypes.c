@@ -494,22 +494,43 @@ void bits(unsigned char c) {  for(int i=7; i>=0; i--) pc(!!((c&(1<<i)))+'0'); }
 #define MRK(c,m) c=(m==-1)?((c)&254):(((c)<<1)|m)
 
 void mark(D *v, int n, int m) { if(!v)return;  UL d= DAT(*v);
+  DEBUG(P("mark.1:\n"));
   if (!isnan(*v)) return;
+  DEBUG(P("mark.2:\n"));
   if (v<K || v>=K+KSZ){DEBUG(P("%%GC:Pointer out of bounds (C-stack?) i=%ld p=%p, m=%d\n",v-K,v,m));} else {
     // K-address (not C-stack)
-    if (kr[v-K]<m) MRK(kr[v-K],m);
+    DEBUG(P("mark.3:\n"));
+
+    int k=kr[v-K];
+    int kn=kr[v-K]= m==-1? 254: m;
+
+    //TDOO: loop?
+    //if (k==kn) RET; // avoid loop
+
+    DEBUG(P("mark.4:\n"));
+
+    //if (kr[v-K]<m) GCn(v,m);
     DEBUG(P("%.*sMARK[%ld]#",n,"",v-K);bits(kr[v-K]);P(" ");dprint(*v);P("\n"););
     //if (kr[v-K]>=m){ 
-    if (kr[v-K]>=m && m<255 && m>=0){ // !FORCE
+    if (kr[v-K]>=m && m<=255 && m>=0){ // !FORCE
       //P("..mark..m=%d  ", m);dprint(*v);P("\n");
+      DEBUG(P("mark.5:\n"));
+
       DEBUG(if(debug>1)P("%.*s- already marked\n",n,""));RET;}
   }
 
+  DEBUG(P("mark.6:\n"));
+
   switch(TYP(*v)){
   case TSTR: MRK(sr[d],m); break;
-  case TCNS: while(iscons(*v)) {
-      mark(K+d+0,n+1,m); MRK(kr[d+0],m);
-      v=K+d+1; MRK(kr[d+1],m); d=DAT(*v);
+  case TCNS:
+    // CORRECT
+    //printf("---TCNS m=%d\n", m);
+    mark(K+d+0,n+1,m); return mark(K+d+1,n+1,m);
+    while(iscons(*v)) {
+      mark(K+d+0,n+1,m); GCn(v,m);
+      v=K+d+1; d=DAT(*v);
+
       DEBUG(P("%.*sMARK[%ld]#",n,"",v-K);bits(kr[v-K]);P(" ");dprint(*v);P("\n"););
       if (kr[v-K]>=m){DEBUG(if(debug>1)P("%.*s- already marked\n",n,""));RET;}
     } mark(v,n+1,m); break;
@@ -534,11 +555,13 @@ break; }
 // inherit of cell set in
 void csetmark(D c, D o, D n) { UL d=DAT(c);
   int k= kr[d];
+  //debug=1;
   DEBUG(P("\n[csetmark=%d]\n", k));
   mark(&o,2,-1);
   DEBUG(P("\n  [csetmark:NEW:]\n"));
   mark(&n,2,k);
   DEBUG(P("\n[/csetmark=%d]\n", k));
+  //debug=0;
 }
 
 D* setmark(D* p, D* n) {
@@ -551,9 +574,15 @@ D* setmark(D* p, D* n) {
   DEBUG(P("\n  [setmark:NEW:]\n"));
 // FORCE: todo, this may loop?
 //k=255+256;
-//k=255;
+///k=255;
+
+ DEBUG(dprint(*n);P("\n"););
+
+// only works with this, still wrong...
+k=255+256;
+
   mark(n,2,k);
-  DEBUG(P("\n[/csetmark]\n"));
+  DEBUG(P("\n[/setmark]\n"));
   return p;
 }
 
@@ -571,9 +600,15 @@ void sweep() {
   // --- managed strings
   for(int i=sn-1;i>0;i--)if(!sr[i]){P("TSTR[%d]:\"%s\"\n", i, ss[i]);}
   // --- cells
+  D FREE=atom("*FREE*");
   char* k=kr+GMAX;
   for(D* c=K+GMAX; c<C; c++,k++)
-    if(!*k){P("FREE[%ld]: ", c-K); dprint(*c);P("\n");}
+    if(!*k){
+      //if (!deq(*c,FREE)) {
+	P("FREE[%ld]: ", c-K); dprint(*c);P("\n");
+	*c=FREE;
+    //}
+    }
     else if (1){P("used[%ld]#", c-K);bits(*k);P(": ");dprint(*c);P("\n");} // DEBUG
 
   // --- put in free list
@@ -585,6 +620,8 @@ void sweep() {
 
 void gc(D* start, D* end) { memset(sr, 0, sizeof(sr));
   assert(kr);
+  char* cend= kr+(C-K);
+  for(char* k=kr+GMAX; k<cend; k++) if (!(*k&1)) *k=0; // *k=*k&~(2+4);
 
   // --- MARK: sr[x]++ for each ref
   if (start && end) {
@@ -598,9 +635,25 @@ void gc(D* start, D* end) { memset(sr, 0, sizeof(sr));
   }
 
   P("\n---GC.STACK\n\n");
-  for(D* s=K;      s<=S; s++) mark(s,0,8);
-  P("\n---TC.Globals\n");
-  for(D* g=K+SMAX; g<=G; g++) mark(g,0,255);
+  for(D* s=K;      s<=S; s++) {
+    kr[s-K]=0;
+    mark(s,0,8);
+  }
+
+  P("\n---GC.Globals\n");
+  for(D* g=K+SMAX; g<=G; g++) {
+    kr[g-K]=0;
+    mark(g,0,255);
+  }
+
+  P("\n--GC.all marked already\n");
+  for(D* c=K+GMAX; c<=C; c++)
+    if (kr[c-K]==255) {
+      kr[c-K]=0;
+      mark(c,2,255);
+    }
+
+
 
   sweep();
 }
