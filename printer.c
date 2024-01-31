@@ -16,7 +16,7 @@ dstr soprnum(dstr s, D f) {
     s= sncat(s,"-",1);
 
     char w[10]={0};
-    int wc= 1024-(int)trunc(log10(-f));
+    int wc= 512-(int)trunc(log10(-f));
     wctomb(w, wc);
     s= sncat(s,w,-1);
 
@@ -30,18 +30,22 @@ dstr soprnum(dstr s, D f) {
     // TODO: cornercase?
     //if (f<0) s=sncat(s,"_",1); // !
 
-  } else if (f==L f && f<1e10) { // int
+  } else if (0 && f==L f && f<1e10) { // int
+    // Nah, these don't sort right...
     if (f>=10) s= sdprintf(s, "_%1.0f=",trunc(log10(f)));
     s= sdprintf(s, "%.15g", f);
-  } else if (f<0.1) {
-    s= sncat(s,"TODO:small",-1);
+  } else if (0 && f<0.1) {
+    // Nah, these don't sort right...
+    s= sdprintf(s, "%.15g", f);
+  } else if (f==0) {
+    s= sdprintf(s, "^+%.15g", f);
   } else {
     char w[10]={0};
-    int wc= 1024+(int)trunc(log10(f));
+    int wc= 512+(int)trunc(log10(f));
     wctomb(w, wc);
 
     s= sncat(s,w,-1);
-    s= sdprintf(s, "%.17g", f);
+    s= sdprintf(s, "+%.15g", f);
   }
 
   s= sdprintf(s, "\t(%.8g)", f);
@@ -60,45 +64,69 @@ int main(void) {
   initmem(16*1024); inittypes();
 
   dstr s= 0;
-  p(&s); s= oprint(s, -1e300);
-  p(&s); s= oprint(s, -1e100);
-  p(&s); s= oprint(s, -1e18);
-  p(&s); s= oprint(s, -1e17);
-  p(&s); s= oprint(s, -1000000000000016);
-  p(&s); s= oprint(s, -100000000000015);
-  p(&s); s= oprint(s, -10000000000014);
-  p(&s); s= oprint(s, -1000000000013);
-  p(&s); s= oprint(s, -100000000012);
-  p(&s); s= oprint(s, -0000000011);
-  p(&s); s= oprint(s, -1000000010);
-  p(&s); s= oprint(s, -100000009);
-  p(&s); s= oprint(s, -10000008);
-  p(&s); s= oprint(s, -1000000);
-  p(&s); s= oprint(s, -100000);
-  p(&s); s= oprint(s, -10000);
-  p(&s); s= oprint(s, -9999);
-  p(&s); s= oprint(s, -1000);
-  p(&s); s= oprint(s, -999);
-  p(&s); s= oprint(s, -100);
-  p(&s); s= oprint(s, -99);
-  p(&s); s= oprint(s, -9);
-  p(&s); s= oprint(s, -21);
-  p(&s); s= oprint(s, -20);
-  p(&s); s= oprint(s, -19);
-  p(&s); s= oprint(s, -12);
-  p(&s); s= oprint(s, -11);
-  p(&s); s= oprint(s, -10);
-  p(&s); s= oprint(s, -9);
-  p(&s); s= oprint(s, -2);
-  p(&s); s= oprint(s, -1);
+  p(&s); s= oprint(s,-1e300);
+  p(&s); s= oprint(s,-1e100);
+  p(&s); s= oprint(s,-1e18);
+  p(&s); s= oprint(s,-1e17);
+  p(&s); s= oprint(s,-1000000000000016);
+  p(&s); s= oprint(s,-100000000000015);
+  p(&s); s= oprint(s,-10000000000014);
+  p(&s); s= oprint(s,-1000000000013);
+  p(&s); s= oprint(s,-100000000012);
+  p(&s); s= oprint(s,-0000000011);
+  p(&s); s= oprint(s,-1000000010);
+  p(&s); s= oprint(s,-100000009);
+  p(&s); s= oprint(s,-10000008);
+  p(&s); s= oprint(s,-1000000);
+  p(&s); s= oprint(s,-100000);
+  p(&s); s= oprint(s,-10000);
+  p(&s); s= oprint(s,-9999);
+  p(&s); s= oprint(s,-1000);
+  p(&s); s= oprint(s,-999);
+  p(&s); s= oprint(s,-100);
+  p(&s); s= oprint(s,-99);
+  p(&s); s= oprint(s,-9);
+  p(&s); s= oprint(s,-21);
+  p(&s); s= oprint(s,-20);
+  p(&s); s= oprint(s,-19);
+  p(&s); s= oprint(s,-12);
+  p(&s); s= oprint(s,-11);
+  p(&s); s= oprint(s,-10);
+  p(&s); s= oprint(s,-9);
+  p(&s); s= oprint(s,-2);
+  p(&s); s= oprint(s,-1);
 
+  p(&s); s= oprint(s,-0.99);
+  p(&s); s= oprint(s,-0.9);
+  p(&s); s= oprint(s,-0.1);
+  p(&s); s= oprint(s,-0.01);
+  p(&s); s= oprint(s,-0.001);
+  p(&s); s= oprint(s,-0.0001);
+  p(&s); s= oprint(s,-0.00001);
+  p(&s); s= oprint(s,-1e-100);
+  p(&s); s= oprint(s,-1e-200);
   p(&s); s= oprint(s, 0);
+  p(&s); s= oprint(s, 1e-200);
+  p(&s); s= oprint(s, 1e-100);
+  p(&s); s= oprint(s, 2e-10);
+  p(&s); s= oprint(s, 1e-10);
+  p(&s); s= oprint(s, 0.00001);
+  p(&s); s= oprint(s, 0.0001);
+  p(&s); s= oprint(s, 0.001);
+  p(&s); s= oprint(s, 0.01);
+  p(&s); s= oprint(s, 0.1);
+  p(&s); s= oprint(s, 0.9);
+  p(&s); s= oprint(s, 0.99);
 
   p(&s); s= oprint(s, 1);
   p(&s); s= oprint(s, 2);
   p(&s); s= oprint(s, 9);
   p(&s); s= oprint(s, 10);
+  p(&s); s= oprint(s, 99);
   p(&s); s= oprint(s, 100);
+  p(&s); s= oprint(s, 101);
+  p(&s); s= oprint(s, 999);
+  p(&s); s= oprint(s, 1000);
   p(&s); s= oprint(s, 10000008);
   p(&s); s= oprint(s, 100000009);
   p(&s); s= oprint(s, 1000000010);
