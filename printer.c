@@ -20,18 +20,19 @@ dstr soprnum(dstr s, D f) {
     wctomb(w, wc);
     s= sncat(s,w,-1);
 
-    s= sdprintf(s, "%.16g", -f);
+    s= sdprintf(s, "%.15g", -f);
     // "reverse"
     char* p =s+l;
     while(*p) {
       if (isdigit(*p)) *p='9'-*p+'0';
       p++;
     }
+    // TODO: cornercase?
     //if (f<0) s=sncat(s,"_",1); // !
 
   } else if (f==L f && f<1e10) { // int
     if (f>=10) s= sdprintf(s, "_%1.0f=",trunc(log10(f)));
-    s= sdprintf(s, "%.17g", f);
+    s= sdprintf(s, "%.15g", f);
   } else if (f<0.1) {
     s= sncat(s,"TODO:small",-1);
   } else {
