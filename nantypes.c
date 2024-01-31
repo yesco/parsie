@@ -445,9 +445,10 @@ void funcall(D c) { // DDEBUG
   // most function calls would have 0?
   // as end of chain...
   // TODO: n?
-  extern char* alf(char*,D*,int,D*,int); // FORWARD
+  //  extern char* alf(char*,D*,int,D*,int); // FORWARD
 
-  alf(e,A,z,0,0); // DEBUG
+  assert(!"TODO");
+  //alf(e,A,z,0,0); // DEBUG
   // No cleanup!
 } // DEBUG
 

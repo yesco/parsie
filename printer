@@ -1,0 +1,1 @@
+clang -lm printer.c && ./a.out  | sort

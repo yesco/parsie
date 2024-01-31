@@ -3,6 +3,8 @@
 // most about strings/parsing
 // #include directly
 
+#include <ctype.h>
+
 void spc(char**p) {while(isspace(**p))(*p)++;}
 
 // Parse from P a name
