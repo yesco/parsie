@@ -602,9 +602,29 @@ void pal(char* p) {
  128 - TailRecursion
  129-255 - skipNchars
 
+ === AL DRIVER
+   al-code 
+   BENCH name	code-to-run-for-3-5s
+     runs 3 times after "calibration"
+     stack is "reset" in every loop
+
+   out:
+ BENCH memBer-25  0.743Mops 7.430Mips
+ BENCH memBer-25  0.743Mops 7.429Mips
+ BENCH memBer-25  0.744Mops 7.441Mips
+
+   Mops = Mega/Milion code run per s
+   Mips =     -"-     al-instr per s
+
+   ./al -d  ==> more output
+
+
+
+
 --- TODO: possibly ???
 
-F[] -- forth
+F[] -- forth, or have shift word?
+Fforth....forth llisp...lisp
 
 ? -- if/debug combined
 ?"foo" - print
