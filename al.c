@@ -321,7 +321,7 @@ Z'M': S--;d=map(T,S1,S1,nil,nil,0);U=d;   Z'U':T=deq(T,nil)||deq(T,undef);
 Z'L': x=POP;d=nil; while(x-->0)d=cons(*S--,d); U=d; Z'H':S--;T=append(T,S1);
 Z'O': if(isobj(T))T=dlen(T);else{x=0;while(iscons(T)&&++x)T=cdr(T);T=x;}
 Z'N': S--;if(isobj(S1))T=get(S1,T);else{while(T-- >0)S1=cdr(S1);  T=car(S1);}
-Z'G': while(iscons(T)&&!deq(car(car(T)),S[-1]))T=cdr(T); S--;T=S1;
+Z'G': while(iscons(T)&&!deq(car(car(T)),S[-1]))T=cdr(T); S--;T=car(S1);
 Z'Q': S--;T=!dcmp(T,S1); Z'B': S--;while(iscons(S1)) {if(deq(T,car(S1))){
   T=S1;goto next;} S1=cdr(S1);} T=nil;
 

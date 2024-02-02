@@ -560,16 +560,24 @@ nil
 -- G
 > 'a '((a . 11) (b . 22)(c . 33)) G P
 
-((a . 11) (b . 22) (c . 33))
+(a . 11)
 > 'b '((a . 11) (b . 22)(c . 33)) G P
 
-((b . 22) (c . 33))
+(b . 22)
 > 'nil '((a . 11) (b . 22)(c . 33)) G P
 
 nil
 > 22 '((a . 11) (b . 22)(c . 33)) G P
 
 nil
+> 
+> ?"Tolerance of other stuff..."T
+Tolerance of other stuff...
+
+> 
+> 'c '((a . 1) (b . 2) c 33 (c . 3) nil (d . 4)) G P
+
+(c . 3)
 > 
 > T?"-- H"
 
@@ -1098,5 +1106,4 @@ see {
 > '{a:33}	~ P
 
 0
-> 
 > 
