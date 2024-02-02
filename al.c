@@ -536,7 +536,7 @@ void pal(char* p) {
    D - cDr
    E - Eval (al)
    F - Forth prefix
-   G - (G)assoc
+   G - (G)assoc (E L - E../nil)
    H - (H)append
    I - If
    J -- (prog1/progn)
