@@ -399,8 +399,8 @@ char* _opt(char* p, char e, int obj){while(p&&*p){char c;if(!*p||*p==e)RET p;
   case'"':p++;while(*p&&*p!='"')p++; break; case'\'':p++;if(isalnum(*p)){
    parsename(&p);break;} obj=1; case'{':if(!obj)goto jump; case'(':case'[':
     {char*x=strchr("(){}[]",*p); if(x)p= _opt(p+1,x[1],1);break;}
-  case'R': if (p[1]=='^') { *p= 128; } break;// tail rec
-  case'I': jump: { if(*p=='I')p++; if(*p>=128) break; // idempotent
+  case'R': if(obj)break; if (p[1]=='^') { *p= 128; } break;// tail rec
+  case'I': if(obj)break; jump: { if(*p=='I')p++; if(*p>=128) break; // idempotent
     char*e=_opt(p+1, '}',0); *e=' '; int x=e-p+(c=='I'); *p=128+x; p=e;
     assert(128+x<=255);
   }break; } p++; } RET p?p-1:0; }
