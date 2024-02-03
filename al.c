@@ -260,11 +260,12 @@ D map(D f, D l, D all, D r, D opt, int k) {if(!iscons(l))RET nil;
 //     'foo{jump over me}
 //     _foo{skip}
 
+// also parses 7bit inline numbers...
 // TODO: remove isidigit?
 D parseatom(char** p) {
   if(isdigit(**p)){int n=0;while(isdigit(**p)){n=n*10+**p-'0';(*p)++;}RET n;}
   if(**p>=128) {int n=0,s=0;while(**p>=128){n=n+((**p-128)<<s);s+=7;(*p)++;}
-    RET K[SMAX+n*2];  } RET atom(parsename(p));}
+    RET K[SMAX+n*2];  } RET atom(parseatomstr(p));}
 
 // al parses code/a function/lambda
 // o=p when call first; "R" resets p=o
@@ -326,7 +327,8 @@ Z'Q': S--;T=!dcmp(T,S1); Z'B': S--;while(iscons(S1)) {if(deq(T,car(S1))){
   T=S1;goto next;} S1=cdr(S1);} T=nil;
 
 // -- Control flow:  Eval  If  Recurse  128=tailrecurse  >128=skipchars 
-Z'E': e=dchars(POP);al(e,e,A,n,E); Z'I': if(POP)p++; //Z'J': // ?? prog1
+Z'E': if(isatom(T)&&strlen(dchars(T))>1) T= *(D*)m(T,A,n);
+e=dchars(POP);al(e,e,A,n,E); Z'I': if(POP)p++; //Z'J': // ?? prog1
 Z'_': e=dchars(*(D*)m(parseatom(&p),A,n));al(e,e,A,n,E); Z'R': al(o,o,S,0,0);
 Z(129)...(255):p+=c-128; Z 128:p=o;spc(&p);if(*p=='\\')while(*p&&!isspace(*p))
   p++; for(c=0;c<n;c++)A[c+1]=S[-n+c+1]; S-=n;p++; Z'^': A++;*A=T;S=A;RET(p-1);
@@ -349,8 +351,12 @@ Z'a'...'z':{D*z=&VAR;if(!A||z>S||z<K)P("Arg err: %c\n",c);U=*z;}
 
 // -- \ lambda functions and parameters  a-z vars ------------^
 Z'\\': o=p-1;n=1;while(*p=='\\')n++,p++;if(*p>='a')strcpy(a,parsename(&p));n=*a?strlen(a):n;A=S-n;
+
 // TODO: [] in strings?
-Z'[':x=1;while(*p&&n)n+=(*p==']')-(*p==']'),p++;
+// TODO: merge with readstr ?
+void opt(char*p); // FORWARD
+Z'[':x=1;o=p;while(*p&&x)x+=(*p=='[')-(*p==']'),p++;
+   U=newstr(o,p-1-o);p++;opt(dchars(T));
 
 // -- Numbers and Math operators AND or &bit, OR or |bit, NOT or ~inv
 #define OP(op,e) Z #op[0]: S--;T=T op##e S1;
@@ -535,12 +541,16 @@ void pal(char* p) {
    C - Cons
    D - cDr
    E - Eval (al)
+    atom 1 char or string => call
+    atom 2+ chars lookup var => call
+    "C" E == 'C E
+    'car E == 'car @ E
    F - Forth prefix
    G - (G)assoc (E L - E../nil)
    H - (H)append
    I - If
    J -- (prog1/progn)
-   K - Konsp
+   K - Konsp consp listp
    L - n List (<n items> n -- L)
    M - Mapcar [\raekv ...] L
    N - Nth (of list/arr)

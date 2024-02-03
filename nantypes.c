@@ -398,7 +398,7 @@ D reader(char** p, int bq){ spc(p); switch(**p){ case 0: RET nil;
   if(*p)(*p)++; RET o; }
   // TODO: other 0x 07 0b1010?
   case'0'...'9': { D d=0;while(isdigit(**p))d=d*10+*(*p)++-'0'; RET d; }
-  default:RET isalpha(**p)?atom(parsename(p)) :(*p=0,error);
+  default:RET atom(parseatomstr(p));
   }
 }
 

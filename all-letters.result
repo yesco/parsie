@@ -1,5 +1,5 @@
-Al/F.LOC: 106
-AlF .LOC: 67
+Al/F.LOC: 108
+AlF .LOC: 69
 
 > T?"---Simple Test for each Function"
 
@@ -132,6 +132,9 @@ bar
 > ''foo	'? P
 
 0
+> '+	'? P
+
+1
 > '()	U P
 
 1
@@ -157,6 +160,9 @@ foo
 > ''foo	P
 
 (quote . foo)
+> '+	P
+
++
 > '()	P
 
 nil
@@ -449,7 +455,7 @@ nil
 undef
 > "*error*" '$	@ P
 
-*ERROR*
+undef
 > 
 > 'foo	@P
 
