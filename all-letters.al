@@ -260,6 +260,22 @@ T?"-- M"
 
 ?"------- ATOM MODIFIERS -----"T
 
+?"-without-"T
+[\fl lUI{1^} lAfEI{flDR^}    0^] 'all !
+[\fl lUI{0^} lAfEI{   1^} flDR^] 'exists !
+[\fl lUI{1^} lAfEI{   0^} flDR^] 'none !
+
+[] '(1 2 3 4 5) _all P
+[] '(1 2 3 4 0) _all P
+
+[] '(0 0 0 0 5) _exists P
+[] '(0 0 0 0 0) _exists P
+
+[] '(0 0 0 0 0) _none P
+[] '(0 0 0 0 5) _none P
+
+
+
 ?"=== ALL TRUE ==="T
 
 [10+] '(1 2 3 4 5) M P

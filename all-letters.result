@@ -683,6 +683,39 @@ FOO=[11 22 33 a:7 d:8 e:9]
 ------- ATOM MODIFIERS -----
 
 > 
+> ?"-without-"T
+-without-
+
+> [\fl lUI{1^} lAfEI{flDR^}    0^] 'all !
+
+> [\fl lUI{0^} lAfEI{   1^} flDR^] 'exists !
+
+> [\fl lUI{1^} lAfEI{   0^} flDR^] 'none !
+
+> 
+> [] '(1 2 3 4 5) _all P
+
+1
+> [] '(1 2 3 4 0) _all P
+
+0
+> 
+> [] '(0 0 0 0 5) _exists P
+
+1
+> [] '(0 0 0 0 0) _exists P
+
+0
+> 
+> [] '(0 0 0 0 0) _none P
+
+1
+> [] '(0 0 0 0 5) _none P
+
+0
+> 
+> 
+> 
 > ?"=== ALL TRUE ==="T
 === ALL TRUE ===
 
