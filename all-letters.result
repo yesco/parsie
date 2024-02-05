@@ -667,6 +667,10 @@ nil
 > T?"-- M"
 
 -- M
+> [\fl lUI{l^} lAfE flDR C^] 'map !   [10+] '(1 2 3 4 5) _map P
+
+(11 12 13 14 15)
+> 
 > "1+" '(10 20 30 40) M P
 
 (11 21 31 41)
@@ -686,11 +690,11 @@ FOO=[11 22 33 a:7 d:8 e:9]
 > ?"-without-"T
 -without-
 
-> [\fl lUI{1^} lAfEI{flDR^}    0^] 'all !
+> [\fl lUI{1^} lAfE I{flDR^} 0^] 'all !
 
-> [\fl lUI{0^} lAfEI{   1^} flDR^] 'exists !
+> [\fl lUI{1^} lAfE~I{flDR^} 0^] 'none !
 
-> [\fl lUI{1^} lAfEI{   0^} flDR^] 'none !
+> [\fl lUI{0^} lAfE~I{flDR^} 1^] 'exists !
 
 > 
 > [] '(1 2 3 4 5) _all P

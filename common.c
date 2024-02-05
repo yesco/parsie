@@ -18,7 +18,7 @@ char* parsename(char** p) { static char s[64], i; i=0; while((isalnum(**p)
   ||**p=='_') && i<sizeof(s)-1) s[i++]=*(*p)++; s[i]= 0; RET s;}
 
 char* parseatomstr(char** p){static char s[64],i;i=0;while(!strchr(
-":(){}[]`!@'\", \n\r\t",**p)&&i<sizeof(s)-1)s[i++]=*(*p)++; s[i]=0;RET s;}
+"^:(){}[]`!@'\", \n\r\t",**p)&&i<sizeof(s)-1)s[i++]=*(*p)++; s[i]=0;RET s;}
 
 // skips a { block } returns after
 //   TODO: must skip STRINGs!!! lol

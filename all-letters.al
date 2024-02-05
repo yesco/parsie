@@ -254,6 +254,8 @@ T?"-- L"
 11 22	2 L P
 
 T?"-- M"
+[\fl lUI{l^} lAfE flDR C^] 'map !   [10+] '(1 2 3 4 5) _map P
+
 "1+" '(10 20 30 40) M P
 [\kv k] '[11 22 33 a:7 b:8 c:9] M P
 [\kv k] '[__proto__: [44 55 66 a: 1 b:2 c:3] 11 22 33 a:7 d:8 e:9] M P
@@ -261,9 +263,9 @@ T?"-- M"
 ?"------- ATOM MODIFIERS -----"T
 
 ?"-without-"T
-[\fl lUI{1^} lAfEI{flDR^}    0^] 'all !
-[\fl lUI{0^} lAfEI{   1^} flDR^] 'exists !
-[\fl lUI{1^} lAfEI{   0^} flDR^] 'none !
+[\fl lUI{1^} lAfE I{flDR^} 0^] 'all !
+[\fl lUI{1^} lAfE~I{flDR^} 0^] 'none !
+[\fl lUI{0^} lAfE~I{flDR^} 1^] 'exists !
 
 [] '(1 2 3 4 5) _all P
 [] '(1 2 3 4 0) _all P
