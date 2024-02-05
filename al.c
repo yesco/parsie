@@ -261,11 +261,11 @@ D mc(char*f,D r,D all,D k,D v){D*z=S,e;{U=r;U=all;U=k;U=v;
 
 D mapper(char*fun,D ll,D s,D k,I m,I r,I l,I i,I p,I f,I R,I b,I t,I e,I a,I n){
 //  P("mapper:m%dr%dl%dp%d:f%dc%db%dt%de:a%d%dn%d fun=%s\n", m,r,l,p,f,R,b,t,e,a,n,fun);dprint(ll);P("\n");
-  assert(!r||!f||!R||!b||!t);
+  assert(!(l||f||R||b||t));
   if(N(ll)){RET a?1:e?0:n?1:i?s:nil;}
   if(iscons(ll)){D x,v;
-    if(r&&!i&&deq(cdr(ll),nil))RET car(ll);
-    if(!r&&!l) v=mc(fun,s,ll,k,car(ll));
+    if(r&&!i&&N(cdr(ll)))RET car(ll);
+    if(!r) v=mc(fun,s,ll,k,car(ll));
     // rl p fcbt
     if(N(v)||!v){if(a)RET 0;}else{if(e)RET 1;if(n)RET 0;}
     // TODO: loop?
@@ -282,7 +282,7 @@ D mapper(char*fun,D ll,D s,D k,I m,I r,I l,I i,I p,I f,I R,I b,I t,I e,I a,I n){
   assert(!(m||r||l||i||p||f||R||b||t||e||a||n));
 
   if(!isobj(ll))RET error; D no=obj();Obj*o=po(ll),*cp=o,*nw=po(no);while(cp){
-    for(I i=0;i<NPN;i++){D k=cp->np[i].name;if(!deq(k,nil)&&!deq(k,undef)){
+    for(I i=0;i<NPN;i++){D k=cp->np[i].name;if(!N(k)){
 	D x=mc(fun,ll,ll,k,cp->np[i].val);set(no,k,x);}} cp=po(cp->next); } RET no;}
 
 //RET o?get(o->proto, name):undef;
