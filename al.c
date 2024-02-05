@@ -261,16 +261,16 @@ D mc(char*f,D r,D all,D k,D v){D*z=S,e;{U=r;U=all;U=k;U=v;
 
 D mapper(char*fun,D ll,D s,D k,I m,I r,I l,I i,I p,I f,I R,I b,I t,I e,I a,I n){
 //  P("mapper:m%dr%dl%dp%d:f%dc%db%dt%de:a%d%dn%d fun=%s\n", m,r,l,p,f,R,b,t,e,a,n,fun);dprint(ll);P("\n");
-  assert(!(l||f||R||b||t));
+  assert(!(f||R||b||t));
   if(N(ll)){RET a?1:e?0:n?1:i?s:nil;}
   if(iscons(ll)){D x,v;
     if(r&&!i&&N(cdr(ll)))RET car(ll);
-    if(!r) v=mc(fun,s,ll,k,car(ll));
+    if(!r) v=mc(fun,s,ll,l?s:k,car(ll));
     // rl p fcbt
     if(N(v)||!v){if(a)RET 0;}else{if(e)RET 1;if(n)RET 0;}
     // TODO: loop?
-    x=mapper(fun,cdr(ll),s,k+1,m,r,l,i,p,f,R,b,t,e,a,n);
-    if(m||a||e||n||p&&(N(v)||!v))RET x;
+    x=mapper(fun,cdr(ll),l?v:s,l?v:k+1,m,r,l,i,p,f,R,b,t,e,a,n);
+    if(l||m||a||e||n||p&&(N(v)||!v))RET x;
     // this is actually 'r'
     if(r)RET mc(fun,s,ll,car(ll),x);
     RET cons(p?car(ll):v,x);
