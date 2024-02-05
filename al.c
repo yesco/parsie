@@ -245,7 +245,6 @@ char* al(char*o,char*p,D*A,int n,D*E);// FORWARD
 //   p = Predicate(filter)
 //
 //   f = Flatten -- TODO
-//   R = Recurse -- TODO
 //   b = Bottomup -- TODO
 //   t = Topdown -- TODO
 //
@@ -259,20 +258,19 @@ char* al(char*o,char*p,D*A,int n,D*E);// FORWARD
 D mc(char*f,D r,D all,D k,D v){D*z=S,e;{U=r;U=all;U=k;U=v;
   al(f,f,0,0,0);e=POP;}S=z;RET e;}
 
-D mapper(char*fun,D ll,D s,D k,I m,I r,I l,I i,I p,I f,I R,I b,I t,I e,I a,I n){
+// TODO: can we collapse s and k? never used same time? how about map?
+D mapper(char*fun,D ll,D s,D k,I m,I r,I l,I i,I p,I f,I b,I t,I e,I a,I n){
 //  P("mapper:m%dr%dl%dp%d:f%dc%db%dt%de:a%d%dn%d fun=%s\n", m,r,l,p,f,R,b,t,e,a,n,fun);dprint(ll);P("\n");
-  assert(!(f||R||b||t));
+  assert(!(f||b||t)); // TODO: f b t
   if(N(ll)){RET a?1:e?0:n?1:i?s:nil;}
   if(iscons(ll)){D x,v;
-    if(l&&!i)RET mapper(fun,cdr(ll),car(ll),car(ll),m,r,l,1,p,f,R,b,t,e,a,n);
+    if(l&&!i)RET mapper(fun,cdr(ll),car(ll),car(ll),m,r,l,1,p,f,b,t,e,a,n);
     if(r&&!i&&N(cdr(ll)))RET car(ll);
     if(!r) v=mc(fun,s,ll,l?s:k,car(ll));
-    // rl p fcbt
     if(N(v)||!v){if(a)RET 0;}else{if(e)RET 1;if(n)RET 0;}
     // TODO: loop?
-    x=mapper(fun,cdr(ll),l?v:s,l?v:k+1,m,r,l,i,p,f,R,b,t,e,a,n);
+    x=mapper(fun,cdr(ll),l?v:s,l?v:k+1,m,r,l,i,p,f,b,t,e,a,n);
     if(l||m||a||e||n||p&&(N(v)||!v))RET x;
-    // this is actually 'r'
     if(r)RET mc(fun,s,ll,car(ll),x);
     RET cons(p?car(ll):v,x);
   }
@@ -280,7 +278,7 @@ D mapper(char*fun,D ll,D s,D k,I m,I r,I l,I i,I p,I f,I R,I b,I t,I e,I a,I n){
   P("FOO=");dprint(ll);P(" ");P("\n");
   // TODO: make object implmment
   //   the atom
-  assert(!(m||r||l||i||p||f||R||b||t||e||a||n));
+  assert(!(m||r||l||i||p||f||b||t||e||a||n));
 
   if(!isobj(ll))RET error; D no=obj();Obj*o=po(ll),*cp=o,*nw=po(no);while(cp){
     for(I i=0;i<NPN;i++){D k=cp->np[i].name;if(!N(k)){
@@ -290,7 +288,7 @@ D mapper(char*fun,D ll,D s,D k,I m,I r,I l,I i,I p,I f,I R,I b,I t,I e,I a,I n){
 
 #define SC(f) !!strchr(flag,#f [0])
 D mapp(char*f,D l,char*flag) {RET mapper(f,l,SC(i)?(POP,T):nil,0,
-SC(m),SC(r),SC(l),SC(i),SC(p),SC(f),SC(c),SC(b),SC(t),SC(E),SC(A),SC(N));}
+SC(m),SC(r),SC(l),SC(i),SC(p),SC(f),SC(b),SC(t),SC(E),SC(A),SC(N));}
 
 // TODO: potentially BUG encoding
 // if followed by a jump...
