@@ -238,8 +238,9 @@ char* al(char*o,char*p,D*A,int n,D*E);// FORWARD
 // TODO: flag lettes of
 //   m = Map(no result) sideeffect
 //
-//   r = foldR -- TODO
+//   r = foldR
 //   l = foldL -- TODO
+//   i = initial value for fold
 //
 //   p = Predicate(filter)
 //
@@ -258,21 +259,26 @@ char* al(char*o,char*p,D*A,int n,D*E);// FORWARD
 D mc(char*f,D r,D all,D k,D v){D*z=S,e;{U=r;U=all;U=k;U=v;
   al(f,f,0,0,0);e=POP;}S=z;RET e;}
 
-D mapper(char*fun,D ll,D k,I m,I r,I l,I p,I f,I R,I b,I t,I e,I a,I n){
-//P("mapper:m%dr%dl%dp%d:f%dc%db%dt%de:a%d%dn%d\n", m,r,l,p,f,R,b,t,e,a,n);
-if(N(ll)){RET a?1:e?0:n?1:nil;}
-  if(iscons(ll)){D x,v=mc(fun,ll,ll,k,car(ll));
+D mapper(char*fun,D ll,D s,D k,I m,I r,I l,I i,I p,I f,I R,I b,I t,I e,I a,I n){
+//  P("mapper:m%dr%dl%dp%d:f%dc%db%dt%de:a%d%dn%d fun=%s\n", m,r,l,p,f,R,b,t,e,a,n,fun);dprint(ll);P("\n");
+  assert(!r||!f||!R||!b||!t);
+  if(N(ll)){RET a?1:e?0:n?1:i?s:nil;}
+  if(iscons(ll)){D x,v;
+    if(!r&&!l) v=mc(fun,s,ll,k,car(ll));
     // rl p fcbt
     if(N(v)||!v){if(a)RET 0;}else{if(e)RET 1;if(n)RET 0;}
     // TODO: loop?
-    x=mapper(fun,cdr(ll),k+1,m,r,l,p,f,R,b,t,e,a,n);
+    x=mapper(fun,cdr(ll),s,k+1,m,r,l,i,p,f,R,b,t,e,a,n);
     if(m||a||e||n||p&&(N(v)||!v))RET x;
+    // this is actually 'r'
+    if(r)RET mc(fun,s,ll,car(ll),x);
     RET cons(p?car(ll):v,x);
   }
 
+  P("FOO=");dprint(ll);P(" ");P("\n");
   // TODO: make object implmment
   //   the atom
-  assert(!(m||r||l||p||f||R||b||t||e||a||n));
+  assert(!(m||r||l||i||p||f||R||b||t||e||a||n));
 
   if(!isobj(ll))RET error; D no=obj();Obj*o=po(ll),*cp=o,*nw=po(no);while(cp){
     for(I i=0;i<NPN;i++){D k=cp->np[i].name;if(!deq(k,nil)&&!deq(k,undef)){
@@ -281,8 +287,8 @@ if(N(ll)){RET a?1:e?0:n?1:nil;}
 //RET o?get(o->proto, name):undef;
 
 #define SC(f) !!strchr(flag,#f [0])
-D mapp(char*f,D l,char*flag) {RET mapper(f,l,0,
-SC(m),SC(r),SC(l),SC(p),SC(f),SC(c),SC(b),SC(t),SC(E),SC(A),SC(N));}
+D mapp(char*f,D l,char*flag) {RET mapper(f,l,SC(i)?(POP,T):nil,0,
+SC(m),SC(r),SC(l),SC(i),SC(p),SC(f),SC(c),SC(b),SC(t),SC(E),SC(A),SC(N));}
 
 //D map(char*f,D l,D all,D r,D k,D v){NN(l);if(iscons(l))RET cons(mc(f,r,all,k,car(l)),map(f,l,all,r,k+1,v));
 //  if(!isobj(l))RET error; D no=obj();Obj*o=po(l),*p=o,*n=po(no);while(p){
