@@ -291,13 +291,6 @@ D mapper(char*fun,D ll,D s,D k,I m,I r,I l,I i,I p,I f,I R,I b,I t,I e,I a,I n){
 D mapp(char*f,D l,char*flag) {RET mapper(f,l,SC(i)?(POP,T):nil,0,
 SC(m),SC(r),SC(l),SC(i),SC(p),SC(f),SC(c),SC(b),SC(t),SC(E),SC(A),SC(N));}
 
-//D map(char*f,D l,D all,D r,D k,D v){NN(l);if(iscons(l))RET cons(mc(f,r,all,k,car(l)),map(f,l,all,r,k+1,v));
-//  if(!isobj(l))RET error; D no=obj();Obj*o=po(l),*p=o,*n=po(no);while(p){
-//  for(I i=0;i<NPN;i++){D k=p->np[i].name;if(!deq(k,nil)&&!deq(k,undef)){
-//    D e=mc(f,r,all,k,p->np[i].val);set(no,k,e);}} p=po(p->next); } RET no;}
-
-//RET o?get(o->proto, name):undef;
-
 // TODO: potentially BUG encoding
 // if followed by a jump...
 //
@@ -373,7 +366,7 @@ Z'?':switch(c=*p++){
 // -- Konsp? Cons cAr cDr nList memBer Gassoc Happend Mapcar Nth Ordina/length
 Z'K': T=iscons(T); Z'C':S--;T=cons(T,S1); Z'A':T=car(T); Z'D':T=cdr(T);
 Z'M':d=isatom(T)?POP:empty;S--;d=mapp(getf(T,A,n),S1,dchars(d));U=d;
-Z'U':T=deq(T,nil)||deq(T,undef);
+Z'U':T=N(T);
 Z'L': x=POP;d=nil; while(x-->0)d=cons(*S--,d); U=d; Z'H':S--;T=append(T,S1);
 Z'O': if(isobj(T))T=dlen(T);else{x=0;while(iscons(T)&&++x)T=cdr(T);T=x;}
 Z'N': S--;if(isobj(S1))T=get(S1,T);else{while(T-- >0)S1=cdr(S1);  T=car(S1);}
@@ -777,7 +770,7 @@ switch(c=*p++){
 
   Z'A':T=!iscons(T)&&!isobj(T);
   Z'T':T=istyped(T);
-  Z'_':T=T==0||deq(T,nil)||deq(T,undef)||deq(T,error);
+  Z'_':T=T==0||N(T)||deq(T,error);
   case'1':T=!T;
   default:T=typ(T)==c;
 }
@@ -792,7 +785,7 @@ switch(c=*p++){
 ?? type -> # U S $ C O
 ?# isnum == ?T~
 ?T istyped == ?#~
-?U isnull/isundef
+?U isnull/isundef == N
 ?S issymbol
 ?$ isstring
 ?C iscons
@@ -803,7 +796,7 @@ switch(c=*p++){
 
 case'T': T= istyped(T); break;
 case'0': if (T==0) break;
-case'U': T= deq(T,nil) || deq(T,undef); break;
+case'U': T= N(T);
 case'S': T= issymbol(T); break;
 case'C': T= iscons(T); break;
 case'1': 
