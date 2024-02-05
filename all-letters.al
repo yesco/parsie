@@ -317,6 +317,8 @@ T?"-- M"
 
 ?"=== FOLD w initial val ==="T
 
+'nil [2L] '(1 2 3 4 5) 'ir M P
+
 0 [\ab a??b??+T^] '(1 2 3 4 5) 'ir M P
 
 1 [*] '(1 2 3 4 5) 'ir M P
@@ -329,6 +331,8 @@ T?"-- M"
 
 ?"=== FOLDR ==="T
 
+[2L] '(1 2 3 4 5) 'r M P
+
 [\ab a??b??+T^] '(1 2 3 4 5) 'r M P
 
 [*] '(1 2 3 4 5) 'r M P
@@ -337,7 +341,12 @@ T?"-- M"
 [*] '() 'r M P
 [*] '(3) 'r M P
 
+?"-COPY-"T
+'nil 'C '(1 2 3 4 5) 'ir M P
+
 ?"=== FOLDL w initial val ==="T
+
+'nil [2L] '(1 2 3 4 5) 'il M P
 
 0 [\ab a??b??+T^] '(1 2 3 4 5) 'il M P
 
@@ -347,6 +356,28 @@ T?"-- M"
 
 100 [+] '(1 2 3 4 5) 'il M P
 100 [*] '(1 2 3 4 5) 'il M P
+
+?"=== FOLDL ==="T
+
+[2L] '(1 2 3 4 5) 'l M P
+
+[\ab a??b??+T^] '(1 2 3 4 5) 'l M P
+
+"'+ '(1 2 3 4 5) 'l M P"
+
+[*] '(1 2 3 4 5) 'l M P
+
+[+] '(1 2 3 4 5) 'l M P
+[*] '(1 2 3 4 5) 'l M P
+
+[*] '() 'l M P
+[*] '(3) 'l M P
+[*] '(3 4) 'l M P
+
+?"-reverse using FOLDL-"T
+
+'nil [FsC] '(1 2 3 4 5) 'il M P
+'nil [\ab baC] '(1 2 3 4 5) 'il M P
 
 T?"-- N"
 0 '(00 11 22 33 44)	N P

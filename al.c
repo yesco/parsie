@@ -264,6 +264,7 @@ D mapper(char*fun,D ll,D s,D k,I m,I r,I l,I i,I p,I f,I R,I b,I t,I e,I a,I n){
   assert(!(f||R||b||t));
   if(N(ll)){RET a?1:e?0:n?1:i?s:nil;}
   if(iscons(ll)){D x,v;
+    if(l&&!i)RET mapper(fun,cdr(ll),car(ll),car(ll),m,r,l,1,p,f,R,b,t,e,a,n);
     if(r&&!i&&N(cdr(ll)))RET car(ll);
     if(!r) v=mc(fun,s,ll,l?s:k,car(ll));
     // rl p fcbt
