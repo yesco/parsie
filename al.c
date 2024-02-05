@@ -304,6 +304,16 @@ D parseatom(char** p) {
   if(**p>=128) {int n=0,s=0;while(**p>=128){n=n+((**p-128)<<s);s+=7;(*p)++;}
     RET K[SMAX+n*2];  } RET atom(parseatomstr(p));}
 
+// A function can be:
+//  '+  = byte code
+//  ".." = a string
+//  'var = a global variable (if name>1 chars)
+//
+// RETURNS: the string byte code
+
+char* getf(D v, D* A, int n){char*r=dchars(v);
+  RET isatom(v)&&strlen(r)>1?dchars(*(D*)m(v,A,n)):r; }
+
 // al parses code/a function/lambda
 // o=p when call first; "R" resets p=o
 char* al(char*o,char*p,D*A,int n,D*E){ long x;char*e=0,*s,c,*X=0;D d;size_t z;
@@ -355,7 +365,7 @@ Z'?':switch(c=*p++){
 
 // -- Konsp? Cons cAr cDr nList memBer Gassoc Happend Mapcar Nth Ordina/length
 Z'K': T=iscons(T); Z'C':S--;T=cons(T,S1); Z'A':T=car(T); Z'D':T=cdr(T);
-Z'M':d=isatom(T)?POP:empty;S--;e=isatom(T)?dchars(*(D*)m(T,A,n)):dchars(T);d=mapp(e,S1,dchars(d));U=d;
+Z'M':d=isatom(T)?POP:empty;S--;d=mapp(getf(T,A,n),S1,dchars(d));U=d;
 Z'U':T=deq(T,nil)||deq(T,undef);
 Z'L': x=POP;d=nil; while(x-->0)d=cons(*S--,d); U=d; Z'H':S--;T=append(T,S1);
 Z'O': if(isobj(T))T=dlen(T);else{x=0;while(iscons(T)&&++x)T=cdr(T);T=x;}
@@ -365,8 +375,7 @@ Z'Q': S--;T=!dcmp(T,S1); Z'B': S--;while(iscons(S1)) {if(deq(T,car(S1))){
   T=S1;goto next;} S1=cdr(S1);} T=nil;
 
 // -- Control flow:  Eval  If  Recurse  128=tailrecurse  >128=skipchars 
-Z'E': if(isatom(T)&&strlen(dchars(T))>1) T= *(D*)m(T,A,n);
-e=dchars(POP);al(e,e,A,n,E); Z'I': if(POP)p++; //Z'J': // ?? prog1
+Z'E': e=getf(POP,A,n);al(e,e,A,n,E); Z'I': if(POP)p++; //Z'J': // ?? prog1
 Z'_': e=dchars(*(D*)m(parseatom(&p),A,n));al(e,e,A,n,E); Z'R': al(o,o,S,0,0);
 Z(129)...(255):p+=c-128; Z 128:p=o;spc(&p);if(*p=='\\')while(*p&&!isspace(*p))
   p++; for(c=0;c<n;c++)A[c+1]=S[-n+c+1]; S-=n;p++; Z'^': A++;*A=T;S=A;RET(p-1);
@@ -385,7 +394,7 @@ Z'.': S--;T=get(T,atomize(S1)); Z';': U=obj();
 Z'0':if(isdigit(*p))x=8; if(*p=='x')p+=2,x=16; if(*p=='b')p+=2,x=2;
 case'1'...'9':{x=x?x:10;d=0;p--;while(isdigit(*p))d=d*x+*p++-'0';
 U=isxdigit(*p)||*p=='.'?strtod(e,&p):d;}
-Z'a'...'z':{D*z=&VAR;if(!A||z>S||z<K)P("Arg err: %c\n",c);U=*z;}
+Z'a'...'z':{D*z=&VAR;if(!A||z>S||z<K)P("Arg err: '%c' in '%s'\n",c,s);U=*z;}
 
 // -- \ lambda functions and parameters  a-z vars ------------^
 Z'\\': o=p-1;n=1;while(*p=='\\')n++,p++;if(*p>='a')strcpy(a,parsename(&p));n=*a?strlen(a):n;A=S-n;
