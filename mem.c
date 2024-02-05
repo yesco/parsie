@@ -51,6 +51,7 @@ char *kr= 0;
 #define T (*S)
 #define S1 S[1]
 
+#define I int
 #define L (long)
 #define UL unsigned long
 #define SL (sizeof L)
@@ -61,6 +62,11 @@ char *kr= 0;
 #define RET return
 #define P printf
 #define pc(a) putchar(a)
+
+#define N(a) (deq(a,nil)||deq(a,undef))
+#define NN(a) if(N(a))RET nil
+
+#define elif(a) else if(a)
 
 // Interpreation of memory ref
 //  -SMAX ..  0     = stk frm ref

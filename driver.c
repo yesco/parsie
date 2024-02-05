@@ -30,13 +30,14 @@
 // F - alf: functions
 // G - Globals
 // H - here for M (hmmm)
-// I
+// I - int
 // J
 // K - K storage
 // L - "(long)"
 // UL - "unsigned long"
 // M - byte Memory storage, rename to B?
-// N
+// N - NULL?
+// NN - if "NULL" ret nil;
 //(O) -- NEVER USE looks like 0O??
 // P - "printf"
 // pc - "putchar"

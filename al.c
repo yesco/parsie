@@ -232,27 +232,64 @@ char* al(char*o,char*p,D*A,int n,D*E);// FORWARD
 // callback:
 //  \v                       value
 //  \kv                  key value
-//  \rkv             ref key value
-//  \alkv        all ref key value
-//  \ralkv  rest all ref key value
+//  \akv             all key value
+//  \rakv        res all key value
 
-// TODO: ??? opt:
-//   'noresult
-//   'foldr
-//   'foldl
-//   'filter
-//   'tree
-//   'flatten
-//   'bottomup
-//   'exist
-//   'every
-//   'none
+// TODO: flag lettes of
+//   m = Map(no result) sideeffect
+//
+//   r = foldR -- TODO
+//   l = foldL -- TODO
+//
+//   p = Predicate(filter)
+//
+//   f = Flatten -- TODO
+//   R = Recurse -- TODO
+//   b = Bottomup -- TODO
+//   t = Topdown -- TODO
+//
+//   E = Exists
+//   A = All
+//   N = None
+
 // TODO: not recurse... stack
 // TODO: need setcdr...
 // TODO: A,n for access to var?
-D map(D f, D l, D all, D r, D opt, int k) {if(!iscons(l))RET nil;
-  D e,*z= S; {U=r;U=all;U=l;U=k;U=car(l); char*x=dchars(f);
-  al(x,x,0,0,0);e=POP;}S=z; RET cons(e,map(f,cdr(l),all,r,opt,k+1));}
+D mc(char*f,D r,D all,D k,D v){D*z=S,e;{U=r;U=all;U=k;U=v;
+  al(f,f,0,0,0);e=POP;}S=z;RET e;}
+
+D mapper(char*fun,D ll,D k,I m,I r,I l,I p,I f,I R,I b,I t,I e,I a,I n){
+//P("mapper:m%dr%dl%dp%d:f%dc%db%dt%de:a%d%dn%d\n", m,r,l,p,f,R,b,t,e,a,n);
+if(N(ll)){RET a?1:e?0:n?1:nil;}
+  if(iscons(ll)){D x,v=mc(fun,ll,ll,k,car(ll));
+    // rl p fcbt
+    if(N(v)||!v){if(a)RET 0;}else{if(e)RET 1;if(n)RET 0;}
+    // TODO: loop?
+    x=mapper(fun,cdr(ll),k+1,m,r,l,p,f,R,b,t,e,a,n);
+    if(m||a||e||n||p&&(N(v)||!v))RET x;
+    RET cons(p?car(ll):v,x);
+  }
+
+  // TODO: make object implmment
+  //   the atom
+  assert(!(m||r||l||p||f||R||b||t||e||a||n));
+
+  if(!isobj(ll))RET error; D no=obj();Obj*o=po(ll),*cp=o,*nw=po(no);while(cp){
+    for(I i=0;i<NPN;i++){D k=cp->np[i].name;if(!deq(k,nil)&&!deq(k,undef)){
+	D x=mc(fun,ll,ll,k,cp->np[i].val);set(no,k,x);}} cp=po(cp->next); } RET no;}
+
+//RET o?get(o->proto, name):undef;
+
+#define SC(f) !!strchr(flag,#f [0])
+D mapp(char*f,D l,char*flag) {RET mapper(f,l,0,
+SC(m),SC(r),SC(l),SC(p),SC(f),SC(c),SC(b),SC(t),SC(E),SC(A),SC(N));}
+
+//D map(char*f,D l,D all,D r,D k,D v){NN(l);if(iscons(l))RET cons(mc(f,r,all,k,car(l)),map(f,l,all,r,k+1,v));
+//  if(!isobj(l))RET error; D no=obj();Obj*o=po(l),*p=o,*n=po(no);while(p){
+//  for(I i=0;i<NPN;i++){D k=p->np[i].name;if(!deq(k,nil)&&!deq(k,undef)){
+//    D e=mc(f,r,all,k,p->np[i].val);set(no,k,e);}} p=po(p->next); } RET no;}
+
+//RET o?get(o->proto, name):undef;
 
 // TODO: potentially BUG encoding
 // if followed by a jump...
@@ -318,7 +355,8 @@ Z'?':switch(c=*p++){
 
 // -- Konsp? Cons cAr cDr nList memBer Gassoc Happend Mapcar Nth Ordina/length
 Z'K': T=iscons(T); Z'C':S--;T=cons(T,S1); Z'A':T=car(T); Z'D':T=cdr(T);
-Z'M': S--;d=map(T,S1,S1,nil,nil,0);U=d;   Z'U':T=deq(T,nil)||deq(T,undef);
+Z'M':d=isatom(T)?POP:empty;S--;e=isatom(T)?dchars(*(D*)m(T,A,n)):dchars(T);d=mapp(e,S1,dchars(d));U=d;
+Z'U':T=deq(T,nil)||deq(T,undef);
 Z'L': x=POP;d=nil; while(x-->0)d=cons(*S--,d); U=d; Z'H':S--;T=append(T,S1);
 Z'O': if(isobj(T))T=dlen(T);else{x=0;while(iscons(T)&&++x)T=cdr(T);T=x;}
 Z'N': S--;if(isobj(S1))T=get(S1,T);else{while(T-- >0)S1=cdr(S1);  T=car(S1);}
@@ -552,7 +590,27 @@ void pal(char* p) {
    J -- (prog1/progn)
    K - Konsp consp listp
    L - n List (<n items> n -- L)
-   M - Mapcar [\raekv ...] L
+   M - Mapcar [\raekv ...] L -> L
+       Mapdict [\rakv ...] O -> O
+     --- flag lettes of ---
+       'odd '(1 3 5) 'a M P
+
+       m = Map(no result) sideeffect
+     
+       r = foldR -- TODO
+       l = foldL -- TODO
+
+       p = Predicate(filter)
+
+       f = Flatten -- TODO
+       c = reCurse -- TODO
+       b = Bottomup -- TODO
+       t = Topdown -- TODO
+
+       e = Exists
+       a = All
+       n = None
+
    N - Nth (of list/arr)
    O - Ordinal (length list/arr)
    P - Print (\n val)

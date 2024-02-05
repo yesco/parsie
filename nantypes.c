@@ -197,7 +197,7 @@ const UL TNAN=0x7ff8,TATM=0x7ffa,TSTR=0xfffb,TOBJ=0xfffc,TCNS=0xfffe,TFUN=0xfffd
 // TODO? unify with svar + K + M ???
 
 #define HPSIZE 16*1024
-char hp[HPSIZE]= {0}; int nilo=0; D nil, undef, error, proto, __;
+char hp[HPSIZE]= {0}; int nilo=0; D nil, undef, error, empty, proto, __;
 
 // TODO: global storage idea
 // - treat:SMAX..VMAX
@@ -217,7 +217,8 @@ char hp[HPSIZE]= {0}; int nilo=0; D nil, undef, error, proto, __;
 //   HP=[len=3, "foo", 8b data]...
 //   len=0 means end of list
 //   note: assumes zeroed HeaP
-long nameadd(char* s) {char*p=hp;int l=strlen(s),n=0;while(*p){if(!strcmp(s,p+1))
+long nameadd(char* s) {
+char*p=hp;int l=strlen(s),n=0;while(*p){if(!strcmp(s,p+1))
  RET p-hp+((L n)<<22); p+=1+strlen(p+1)+1+sizeof(D);n++;}
   assert(p+l+2-hp < HPSIZE);
   // create new (neg)
@@ -231,7 +232,7 @@ void csetmark(D,D,D); // FORWARD
 
 // RET a data atom from String
 // empty string RETs nil
-D ofsatom(long ofs, char* s){if(!s||!*s)RET nil; ofs+=512; assert(ofs>=0 && ofs<0x3ff);
+D ofsatom(long ofs, char* s){if(empty&&(!s||!*s))RET empty; ofs+=512; assert(ofs>=0 && ofs<0x3ff);
   long x=nameadd(s); D a=u2d(BOX(TATM,(x<0?-x-1:x)|(ofs<<(22+16))));
   if (x<0) { x=-x-1; GCn(G,2);*G++= a; long n= (x>>22)&0xffff; GCn(G,2);*G++= n<3?a:undef; }
   if (ofs<512) { *--Y= undef; *--Y= a; } RET a; }
@@ -293,9 +294,17 @@ void inittypes() {
 
   // Add after here...
   // false=atom("false");
+
+  // emtpy becomes same as next?
+  // TODO: BUG: fix
+  empty=atom("_");
+
   // true=atom("true");
   // is == atomno >= true
+  
   proto=atom("__proto__");
+
+P("%lx\n%lx\n", *(long*)&empty, *(long*)&proto);
   __=atom("__");
 
   // TODO:
