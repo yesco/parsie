@@ -142,8 +142,8 @@
 //
 //   (\ambda (l)
 //     (If (Kons? l)
-//         (return (+ (Recurse (cDr l)) 1))
-//        (return 0) ) )
+//         (^return (+ (Recurse (cDr l)) 1))
+//        (^return 0) ) )
 //
 // AL's 18 characters represent 62 in LISP.
 // LISP uses 18 cons:es, and 13 symbols.
@@ -219,7 +219,7 @@
 #include "nantypes.c"
 
 // total tokens processed
-long nn=0;
+long nn=0; /// DEBUG
 
 char* alf(char*p,D*A,int n,D*E,int iff){assert(!"not ALF it's AL!\n");} // DEBUG
 
@@ -234,12 +234,13 @@ char* al(char*o,D*A,int n,D*E);// FORWARD
 //  \kv                  key value
 //  \akv             all key value
 //  \rakv        res all key value
+//  \av                accum value
 
 // TODO: flag lettes of
 //   m = Map(no result) sideeffect
 //
 //   r = foldR
-//   l = foldL -- TODO
+//   l = foldL
 //   i = initial value for fold
 //
 //   p = Predicate(filter)
@@ -275,7 +276,7 @@ D mapper(char*fun,D ll,D s,D k,I m,I r,I l,I i,I p,I f,I b,I t,I e,I a,I n){
     RET cons(p?car(ll):v,x);
   }
 
-  P("FOO=");dprint(ll);P(" ");P("\n");
+  //P("FOO=");dprint(ll);P(" ");P("\n");
   // TODO: make object implmment
   //   the atom
   assert(!(m||r||l||i||p||f||b||t||e||a||n));
