@@ -223,7 +223,7 @@ long nn=0;
 
 char* alf(char*p,D*A,int n,D*E,int iff){assert(!"not ALF it's AL!\n");} // DEBUG
 
-char* al(char*o,char*p,D*A,int n,D*E);// FORWARD
+char* al(char*o,D*A,int n,D*E);// FORWARD
 // (Map [\vkor ..] '(1 2 3) r-value)
 // TODO: [] and {} iterator obj
 //   TODO: do numbers first?
@@ -256,7 +256,7 @@ char* al(char*o,char*p,D*A,int n,D*E);// FORWARD
 // TODO: need setcdr...
 // TODO: A,n for access to var?
 D mc(char*f,D r,D all,D k,D v){D*z=S,e;{U=r;U=all;U=k;U=v;
-  al(f,f,0,0,0);e=POP;}S=z;RET e;}
+  al(f,0,0,0);e=POP;}S=z;RET e;}
 
 // TODO: can we collapse s and k? never used same time? how about map?
 D mapper(char*fun,D ll,D s,D k,I m,I r,I l,I i,I p,I f,I b,I t,I e,I a,I n){
@@ -304,18 +304,25 @@ D parseatom(char** p) {
     RET K[SMAX+n*2];  } RET atom(parseatomstr(p));}
 
 // A function can be:
-//  '+  = byte code
-//  ".." = a string
+//  '+  = a single byte code string
+//  ".." = a byte code string
 //  'var = a global variable (if name>1 chars)
 //
-// RETURNS: the string byte code
-
+// Returns: the string byte code
 char* getf(D v, D* A, int n){char*r=dchars(v);
   RET isatom(v)&&strlen(r)>1?dchars(*(D*)m(v,A,n)):r; }
 
+// access local/arguemnt var using c
+#define VAR A[(*a)?strchr(a,c)-a+1:c-'a'+1]
+
 // al parses code/a function/lambda
 // o=p when call first; "R" resets p=o
-char* al(char*o,char*p,D*A,int n,D*E){ long x;char*e=0,*s,c,*X=0;D d;size_t z;
+//   o = original code
+//   A = args array
+//   n = number of args 
+//   E = static (up) env (TODO:)
+// Returns: next pos to interpret
+char* al(char*o,D*A,int n,D*E){ long x;char*p=o,*e=0,*s,c,*X=0;D d;size_t z;
 // Temp vars: L x ; char*e,*s,c ; D d ; size_t z ;
 
 // Argument names string: xyz=3 args
@@ -325,12 +332,9 @@ char* al(char*o,char*p,D*A,int n,D*E){ long x;char*e=0,*s,c,*X=0;D d;size_t z;
 // 20 bytes fib 35 => 4.37s
 // 26 bytes fib 35 => 4.77s
 // 32 bytes fib 35 => 4.47s
-char a[16];*a=0;if(!p)RET 0; int iff=0; // TODO: remove ALF
+char a[16];*a=0; if(!p)RET 0;
 
 #define Z goto next; case
-
-// access local/arguemnt var using c
-#define VAR A[(*a)?strchr(a,c)-a+1:c-'a'+1]
 
 DEBUG(P("\n===AL >>>%s<<<\n", p))
 next: DEBUG(prstack();P("\t>%.10s ...\n",p));
@@ -350,8 +354,7 @@ Z'\'': if(*p=='?'&& p++)T=isatom(T); else if(*p=='$'){p++;char*s=dchars(T);
   T=s?reader(&s,0):error; } else U=reader(&p,1);
 
 // -- (Global Variables)  !  @  SetcAr  SetcDr  Sa-Sz
-Z'@': T= *(D*)m(T,A,n); Z'!': *(setmark((D*)m(T,A,n), S-1))= S[-1]; 
-S-=2;
+Z'@': T= *(D*)m(T,A,n); Z'!': *(setmark((D*)m(T,A,n), S-1))= S[-1];S-=2;
 Z'S': switch(c=*p++){ Z'A':S--;T=setcar(T,S1); Z'D':S--;T=setcdr(T,S1);
 Z'a'...'z':VAR=T--; goto next;default:p--;goto error; }
 
@@ -374,8 +377,8 @@ Z'Q': S--;T=!dcmp(T,S1); Z'B': S--;while(iscons(S1)) {if(deq(T,car(S1))){
   T=S1;goto next;} S1=cdr(S1);} T=nil;
 
 // -- Control flow:  Eval  If  Recurse  128=tailrecurse  >128=skipchars 
-Z'E': e=getf(POP,A,n);al(e,e,A,n,E); Z'I': if(POP)p++; //Z'J': // ?? prog1
-Z'_': e=dchars(*(D*)m(parseatom(&p),A,n));al(e,e,A,n,E); Z'R': al(o,o,S,0,0);
+Z'E': e=getf(POP,A,n);al(e,A,n,E); Z'I': if(POP)p++; //Z'J': // ?? prog1
+Z'_': e=dchars(*(D*)m(parseatom(&p),A,n));al(e,A,n,E); Z'R': al(o,S,0,0);
 Z(129)...(255):p+=c-128; Z 128:p=o;spc(&p);if(*p=='\\')while(*p&&!isspace(*p))
   p++; for(c=0;c<n;c++)A[c+1]=S[-n+c+1]; S-=n;p++; Z'^': A++;*A=T;S=A;RET(p-1);
 
@@ -416,6 +419,7 @@ OP(+,);OP(-,);OP(*,);OP(/,);OP(<,);OP(>,);OP(=,=);   Z'|': S--;T=L T|L S1;
 #endif // DEBUG
 #ifdef ALF // DEBUG
 Z'F': switch(c=*p++){ // DEBUG
+  int iff=0; // dummy // DEBUG
   #include "alf-body.c" // DEBUG
 } // DEBUG
 #endif // DEBUG
@@ -835,7 +839,7 @@ void bench(char* ln, int f) {
   D* s= S;
   while(stime()-t<0.1) {
     S= s;
-    al(ln,ln,0,0,0);
+    al(ln,0,0,0);
     n++;
   }
   n=n*42;
@@ -846,7 +850,7 @@ for(int j=0;j<3;j++) {
   t= stime();
   for(long i=n; i; i--) {
     S= s;
-    al(ln,ln,0,0,0);
+    al(ln,0,0,0);
   }
   t=stime()-t;
 
@@ -932,13 +936,13 @@ int main(int argc, char** argv) {
     pal(p);
     opt(p);
     pal(p);
-    al(p,p,0,0,0); pc('\n');
+    al(p,0,0,0); pc('\n');
   
     p= strdup("666666 42 0 I{111}{222}F.F.F\\\n");
     pal(p);
     opt(p);
     pal(p);
-    al(p,p,0,0,0); pc('\n');
+    al(p,0,0,0); pc('\n');
   }
 
   // read-eval
@@ -952,7 +956,7 @@ int main(int argc, char** argv) {
     if (verbose) {P("O "); pal(ln);}
 
     D s=stime();
-    al(ln,ln,0,0,0);
+    al(ln,0,0,0);
     s=stime()-s;
     if (verbose) {P("\n[%% %ld ops in %5.3fs %5.3f Mops]\n", nn, s, nn/s/1000/1000); nn=0;};
     if (S<=K) { P("\n%%STACK underflow %ld\n", S-K); err=1; } // DEBUG
