@@ -219,7 +219,8 @@
 #include "nantypes.c"
 
 // total tokens processed
-long nn=0; /// DEBUG
+// options
+int errstop=0,verbose=0,quiet=0,dogc=0; long nn=0;
 
 char* alf(char*p,D*A,int n,D*E,int iff){assert(!"not ALF it's AL!\n");} // DEBUG
 
@@ -338,14 +339,11 @@ char a[16];*a=0; if(!p)RET 0;
 #define Z goto next; case
 
 DEBUG(P("\n===AL >>>%s<<<\n", p))
-next: DEBUG(prstack();P("\t>%.10s ...\n",p));
+next: if(verbose)P(" [%c] ", *p); DEBUG(prstack();P("\t>%.10s ...\n",p));
+
 
 e=p;x=0;nn++;switch(c=*p++){case 0:case')':case']':RET(p);Z' ':Z'\n':Z'\t':Z'\r':
-
-// Address  `atm-addr  `$=addr-of-TOPatom  `#=num-args  `0-`9=addr-argN
-Z'`': switch(*p++) { Z'#': U=n; Z'0'...'9': U='0'-p[-1]-1; Z'A'...'Z':
-  case'a'...'z':case'_':p--;U=parseatom(&p);
-  case'$': T=atomaddr(T); goto next;default:goto error; }
+Z'{':assert(!"%% Compilation failed!"); // DEBUG
 
 // -- $stringp  "a string"
 Z'$':T=isstr(T); Z'"':U=readstr(&p,'"');
@@ -353,18 +351,6 @@ Z'$':T=isstr(T); Z'"':U=readstr(&p,'"');
 // -- `atom  '?=atomp/symbolp  '$=atom-from-str
 Z'\'': if(*p=='?'&& p++)T=isatom(T); else if(*p=='$'){p++;char*s=dchars(T);
   T=s?reader(&s,0):error; } else U=reader(&p,1);
-
-// -- (Global Variables)  !  @  SetcAr  SetcDr  Sa-Sz
-Z'@': T= *(D*)m(T,A,n); Z'!': *(setmark((D*)m(T,A,n), S-1))= S[-1];S-=2;
-Z'S': switch(c=*p++){ Z'A':S--;T=setcar(T,S1); Z'D':S--;T=setcdr(T,S1);
-Z'a'...'z':VAR=T--; goto next;default:p--;goto error; }
-
-// -- ?"printme" ?'..' ?[..]   ?a=print" a=... " (debug)
-Z'?':switch(c=*p++){
-  default:if(!isalpha(c)){p--;goto error;} P(" %c=",c);dprint(VAR);
-  case'_':P(" "); Z'?':P(" [");dprint(T);P("] "); Z'!':gc(0,0); Z'@':sweep();
-  Z'[':c=']';case'"':case'\'':while(*p&&*p!=c)pc(*p++);p++;
-}
 
 // -- Konsp? Cons cAr cDr nList memBer Gassoc Happend Mapcar Nth Ordina/length
 Z'K': T=iscons(T); Z'C':S--;T=cons(T,S1); Z'A':T=car(T); Z'D':T=cdr(T);
@@ -379,7 +365,7 @@ Z'Q': S--;T=!dcmp(T,S1); Z'B': S--;while(iscons(S1)) {if(deq(T,car(S1))){
 
 // -- Control flow:  Eval  If  Recurse  128=tailrecurse  >128=skipchars 
 Z'E': e=getf(POP,A,n);al(e,A,n,E); Z'I': if(POP)p++; //Z'J': // ?? prog1
-Z'_': e=dchars(*(D*)m(parseatom(&p),A,n));al(e,A,n,E); Z'R': al(o,S,0,0);
+Z'_': e=dchars(*(D*)m(parseatom(&p),A,n));al(e,A,n,E); Z'R':al(o,0,0,0);
 Z(129)...(255):p+=c-128; Z 128:p=o;spc(&p);if(*p=='\\')while(*p&&!isspace(*p))
   p++; for(c=0;c<n;c++)A[c+1]=S[-n+c+1]; S-=n;p++; Z'^': A++;*A=T;S=A;RET(p-1);
 
@@ -397,21 +383,39 @@ Z'.': S--;T=get(T,atomize(S1)); Z';': U=obj();
 Z'0':if(isdigit(*p))x=8; if(*p=='x')p+=2,x=16; if(*p=='b')p+=2,x=2;
 case'1'...'9':{x=x?x:10;d=0;p--;while(isdigit(*p))d=d*x+*p++-'0';
 U=isxdigit(*p)||*p=='.'?strtod(e,&p):d;}
-Z'a'...'z':{D*z=&VAR;if(!A||z>S||z<K)P("Arg err: '%c' in '%s'\n",c,s);U=*z;}
+Z'a'...'z':{D*z=&VAR;if(!A||z>S||z<K){P("Arg err: '%c' in '%s' (arg consumed?)\n",c,p-1);abort();abort();}
+U=*z;}
 
 // -- \ lambda functions and parameters  a-z vars ------------^
 Z'\\': o=p-1;n=1;while(*p=='\\')n++,p++;if(*p>='a')strcpy(a,parsename(&p));n=*a?strlen(a):n;A=S-n;
-
 // TODO: [] in strings?
 // TODO: merge with readstr ?
 void opt(char*p); // FORWARD
 Z'[':x=1;o=p;while(*p&&x)x+=(*p=='[')-(*p==']'),p++;
    U=newstr(o,p-1-o);p++;opt(dchars(T));
 
+
 // -- Numbers and Math operators AND or &bit, OR or |bit, NOT or ~inv
 #define OP(op,e) Z #op[0]: S--;T=T op##e S1;
 Z'#':T=!istyped(T); Z'%': S--;T=L T%L S1; Z'~':T=!T; Z'&': S--;T=L T&L S1;
 OP(+,);OP(-,);OP(*,);OP(/,);OP(<,);OP(>,);OP(=,=);   Z'|': S--;T=L T|L S1;
+
+// Address  `atm-addr  `$=addr-of-TOPatom  `#=num-args  `0-`9=addr-argN
+Z'`': switch(*p++) { Z'#': U=n; Z'0'...'9': U='0'-p[-1]-1; Z'A'...'Z':
+  case'a'...'z':case'_':p--;U=parseatom(&p);
+  case'$': T=atomaddr(T); goto next;default:goto error; }
+
+// -- (Global Variables)  !  @  SetcAr  SetcDr  Sa-Sz
+Z'@': T= *(D*)m(T,A,n); Z'!': *(setmark((D*)m(T,A,n), S-1))= S[-1];S-=2;
+Z'S': switch(c=*p++){ Z'A':S--;T=setcar(T,S1); Z'D':S--;T=setcdr(T,S1);
+Z'a'...'z':VAR=T--; goto next;default:p--;goto error; }
+
+// -- ?"printme" ?'..' ?[..]   ?a=print" a=... " (debug)
+Z'?':switch(c=*p++){
+  default:if(!isalpha(c)){p--;goto error;} P(" [%c=",c);dprint(VAR);P("] ");
+  case'_':P(" "); Z'?':P(" [");dprint(T);P("] "); Z'!':gc(0,0); Z'@':sweep();
+  Z'[':c=']';case'"':case'\'':while(*p&&*p!=c)pc(*p++);p++;
+}
 
 // -- include the body of alf.c
 // There is no slowdown even if switch is bigger...
@@ -453,10 +457,10 @@ char* _opt(char* p, char e, int obj){while(p&&*p){char c;if(!*p||*p==e)RET p;
   switch(c=*p){case')':case'}':case']':P("\n%%ERROR: opt ");
     e?P("expected '%c' (%d)",e,e):P("unexpected '%c", c);
     P(" at\n%.*s <--HERE---> %s\n", (int)(p-_sopt), _sopt, p); abort();
-  case'"':p++;while(*p&&*p!='"')p++; break; case'\'':p++;if(isalnum(*p)){
-   parsename(&p);break;} obj=1; case'{':if(!obj)goto jump; case'(':case'[':
+  case'"':p++;while(*p&&*p!='"')p++; break; case'\'':p++;if(*p=='?')break;if(isalnum(*p)){
+   parseatomstr(&p);break;} obj=1; case'{':if(!obj)goto jump; case'(':case'[':
     {char*x=strchr("(){}[]",*p); if(x)p= _opt(p+1,x[1],1);break;}
-  case'R': if(obj)break; if (p[1]=='^') { *p= 128; } break;// tail rec
+  case'R': if(obj)break; if (p[1]=='^') { *p= 128;} break;// tail rec
   case'I': if(obj)break; jump: { if(*p=='I')p++; if(*p>=128) break; // idempotent
     char*e=_opt(p+1, '}',0); *e=' '; int x=e-p+(c=='I'); *p=128+x; p=e;
     assert(128+x<=255);
@@ -820,9 +824,6 @@ D stime(void) {
     gettimeofday(&tv,NULL);
     return ((D)tv.tv_sec)+(D)tv.tv_usec/1000000;
 }
-
-// options
-int errstop=0,verbose=0,quiet=0,dogc=0;
 
 void bench(char* ln, int f) {
   P("\n");
