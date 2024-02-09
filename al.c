@@ -797,17 +797,21 @@ switch(c=*p++){
 ?S issymbol
 ?$ isstring
 ?C iscons
-?O isobj (no have any now!)
+?O isobj
 
 ?0 -- isfalse, hmmm
 ?1 -- istrue, hmmm
 
+case'?': // TODO: used by print val ??
+case'#': T= !istyped(T); break;
 case'T': T= istyped(T); break;
-case'0': if (T==0) break;
-case'U': T= N(T);
+case'0': T= isobj(T); break;
+case'U': T= N(T); break;
 case'S': T= issymbol(T); break;
 case'C': T= iscons(T); break;
-case'1': 
+case'F': T= isfunc(T); break;
+case'1': T= !T||N(T); break;
+case'0': T= T||!N(T); break;
 ?^ if return
 ?  -- if exit
 
@@ -897,7 +901,8 @@ int xxx=0;
 void xaction() {
   D d= cons(xxx+1,cons(xxx+2,cons(xxx+3,cons(xxx+4,cons(xxx+5,nil))))); xxx+=5;
   fillstack(10);
-  dprint(d);
+  P("\nThese should still be a list: ");
+  dprint(d); P("\n");
 }
 
 void markstack() {

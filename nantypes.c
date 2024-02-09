@@ -505,12 +505,11 @@ void bits(unsigned char c) {  for(int i=7; i>=0; i--) pc(!!((c&(1<<i)))+'0'); }
 #define MRK(c,m) c=(m==-1)?((c)&254):(((c)<<1)|m)
 
 void mark(D *v, int n, int m) { if(!v)return;  UL d= DAT(*v);
-  DEBUG(P("mark.1:\n"));
-  if (!isnan(*v)) return;
-  DEBUG(P("mark.2:\n"));
-  if (v<K || v>=K+KSZ){DEBUG(P("%%GC:Pointer out of bounds (C-stack?) i=%ld p=%p, m=%d\n",v-K,v,m));} else {
+  DEBUG(if (debug>2) P("mark.1:\n"));
+  DEBUG(if (debug>2) P("mark.2:\n"));
+  if (v<K || v>=K+KSZ){DEBUG(if (debug>3)P("%%GC:Pointer out of bounds (C-stack?) i=%ld p=%p, m=%d\n",v-K,v,m));} else {
     // K-address (not C-stack)
-    DEBUG(P("mark.3:\n"));
+    DEBUG(if (debug>2) P("mark.3:\n"));
 
     int k=kr[v-K];
     int kn=kr[v-K]= m==-1? 254: m;
@@ -518,19 +517,26 @@ void mark(D *v, int n, int m) { if(!v)return;  UL d= DAT(*v);
     //TDOO: loop?
     //if (k==kn) RET; // avoid loop
 
-    DEBUG(P("mark.4:\n"));
+    DEBUG(if (debug>2) P("mark.4:\n"));
 
     //if (kr[v-K]<m) GCn(v,m);
     DEBUG(P("%.*sMARK[%ld]#",n,"",v-K);bits(kr[v-K]);P(" ");dprint(*v);P("\n"););
     //if (kr[v-K]>=m){ 
     if (kr[v-K]>=m && m<=255 && m>=0){ // !FORCE
-      //P("..mark..m=%d  ", m);dprint(*v);P("\n");
-      DEBUG(P("mark.5:\n"));
+      //if (debug>2) P("..mark..m=%d  ", m);dprint(*v);P("\n");
+      DEBUG(if (debug>2) P("mark.5:\n"));
 
-      DEBUG(if(debug>1)P("%.*s- already marked\n",n,""));RET;}
+      DEBUG(if(debug>2)P("%.*s- already marked\n",n,""));
+
+// TODO: BUG erh, we just marked it so...
+      //RET;
+    }
   }
 
-  DEBUG(P("mark.6:\n"));
+  DEBUG(if (debug>2) P("mark.6:\n"));
+
+  // Not an istyped (i.e. number)
+  if (!isnan(*v)) return;
 
   switch(TYP(*v)){
   case TSTR: MRK(sr[d],m); break;
@@ -543,7 +549,7 @@ void mark(D *v, int n, int m) { if(!v)return;  UL d= DAT(*v);
       v=K+d+1; d=DAT(*v);
 
       DEBUG(P("%.*sMARK[%ld]#",n,"",v-K);bits(kr[v-K]);P(" ");dprint(*v);P("\n"););
-      if (kr[v-K]>=m){DEBUG(if(debug>1)P("%.*s- already marked\n",n,""));RET;}
+      if (kr[v-K]>=m){DEBUG(if(debug>2)P("%.*s- already marked\n",n,""));RET;}
     } mark(v,n+1,m); break;
 
   case TOBJ:
@@ -565,6 +571,7 @@ break; }
 
 // inherit of cell set in
 void csetmark(D c, D o, D n) { UL d=DAT(c);
+  return;
   int k= kr[d];
   //debug=1;
   DEBUG(P("\n[csetmark=%d]\n", k));
@@ -576,6 +583,7 @@ void csetmark(D c, D o, D n) { UL d=DAT(c);
 }
 
 D* setmark(D* p, D* n) {
+  return p;
   // TODO: OOB? neg?
   int k= kr[p-K];
   DEBUG(P("\n[setmark=%d @%ld]\n", k, p-K));
@@ -603,68 +611,72 @@ void xcsetmark(D c, D o, D n) { UL d=DAT(c);
 }
 
 
-
 void sweep() {
   // --- SWEEP - prefer lower first
-  P("\n---GC.Free\n");
+  DEBUG(P("\n---GC.Free\n"));
 
   // --- managed strings
   for(int i=sn-1;i>0;i--)if(!sr[i]){P("TSTR[%d]:\"%s\"\n", i, ss[i]);}
+
   // --- cells
   D FREE=atom("*FREE*");
   char* k=kr+GMAX;
   for(D* c=K+GMAX; c<C; c++,k++)
     if(!*k){
       //if (!deq(*c,FREE)) {
-	P("FREE[%ld]: ", c-K); dprint(*c);P("\n");
-	*c=FREE;
-    //}
+      DEBUG(P("FREE[%ld]: ", c-K); dprint(*c);P("\n"););
+      *c=FREE;
+      //}
     }
-    else if (1){P("used[%ld]#", c-K);bits(*k);P(": ");dprint(*c);P("\n");} // DEBUG
+    else DEBUG(P("used[%ld]#", c-K);bits(*k);P(": ");dprint(*c);P("\n"););
 
   // --- put in free list
   //for(int i=sn;i;i--)if(!sr[i]){free(ss[i]);ss[i]=ss[0];ss[0]=(char*)(long)i;}
 
   // -- print free list
-  DEBUG({long f= 0; P("Free: "); do P("%lu=>", f); while((f=(long)ss[f]));P("\n");});
+  if (0) {
+    DEBUG({long f= 0; P("Free: "); do P("%lu=>", f); while((f=(long)ss[f]));P("\n");});
+  }
 }
 
 void gc(D* start, D* end) { memset(sr, 0, sizeof(sr));
   assert(kr);
   char* cend= kr+(C-K);
-  for(char* k=kr+GMAX; k<cend; k++) if (!(*k&1)) *k=0; // *k=*k&~(2+4);
+  // incremental? TODO: it's incorrect...
+  //for(char* k=kr+GMAX; k<cend; k++) if (!(*k&1)) *k=0; // *k=*k&~(2+4);
+
+  for(char* k=kr+GMAX; k<cend; k++) *k=0;
 
   // --- MARK: sr[x]++ for each ref
   if (start && end) {
-    P("\n---GC.CTACK\n\n");
+    DEBUG(P("\n---GC.CTACK\n\n"));
     for(D* s=start; s>=end; s--) {
       if (!isnan(*s)) continue;
-      P("CTACK[%4ld]: ", start-s);
-      dprint(*s); P("\n");
+      DEBUG(P("CTACK[%4ld]: ", start-s);dprint(*s);P("\n"););
       mark(s,2,4);
     }
   }
 
-  P("\n---GC.STACK\n\n");
+  DEBUG(P("\n---GC.STACK\n\n"));
   for(D* s=K;      s<=S; s++) {
     kr[s-K]=0;
     mark(s,0,8);
   }
 
-  P("\n---GC.Globals\n");
+  DEBUG(P("\n---GC.Globals\n"));
   for(D* g=K+SMAX; g<=G; g++) {
     kr[g-K]=0;
     mark(g,0,255);
   }
 
-  P("\n--GC.all marked already\n");
+if (0) {
+  DEBUG(P("\n--GC.all marked already\n"));
   for(D* c=K+GMAX; c<=C; c++)
     if (kr[c-K]==255) {
       kr[c-K]=0;
       mark(c,2,255);
     }
-
-
+}
 
   sweep();
 }
