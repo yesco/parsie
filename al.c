@@ -820,15 +820,6 @@ case'0': T= T||!N(T); break;
 
 #ifdef alTEST
 
-#include<sys/time.h>
-
-D stime(void) {
-    struct timeval tv;
-
-    gettimeofday(&tv,NULL);
-    return ((D)tv.tv_sec)+(D)tv.tv_usec/1000000;
-}
-
 void bench(char* ln, int f) {
   P("\n");
   char* name= ln;
@@ -893,7 +884,7 @@ void xgc() {
 void fillstack(D n) {
   D a= -n;
   if (n) fillstack(n-1); else xgc();
-  printf("%.8g ", a);
+  DEBUG(P("%.8g ", a));
 }
 
 int xxx=0;
@@ -901,8 +892,7 @@ int xxx=0;
 void xaction() {
   D d= cons(xxx+1,cons(xxx+2,cons(xxx+3,cons(xxx+4,cons(xxx+5,nil))))); xxx+=5;
   fillstack(10);
-  P("\nThese should still be a list: ");
-  dprint(d); P("\n");
+  DEBUG(P("\nThese should still be a list: ");dprint(d); P("\n"););
 }
 
 void markstack() {

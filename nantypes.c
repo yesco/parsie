@@ -504,7 +504,10 @@ void bits(unsigned char c) {  for(int i=7; i>=0; i--) pc(!!((c&(1<<i)))+'0'); }
 // not ++ as it can overflow
 #define MRK(c,m) c=(m==-1)?((c)&254):(((c)<<1)|m)
 
+int marks=0, nfree=0, nused=0; // DEBUG
+
 void mark(D *v, int n, int m) { if(!v)return;  UL d= DAT(*v);
+  marks++;
   DEBUG(if (debug>2) P("mark.1:\n"));
   DEBUG(if (debug>2) P("mark.2:\n"));
   if (v<K || v>=K+KSZ){DEBUG(if (debug>3)P("%%GC:Pointer out of bounds (C-stack?) i=%ld p=%p, m=%d\n",v-K,v,m));} else {
@@ -623,12 +626,16 @@ void sweep() {
   char* k=kr+GMAX;
   for(D* c=K+GMAX; c<C; c++,k++)
     if(!*k){
+      nfree++;
       //if (!deq(*c,FREE)) {
       DEBUG(P("FREE[%ld]: ", c-K); dprint(*c);P("\n"););
       *c=FREE;
       //}
     }
-    else DEBUG(P("used[%ld]#", c-K);bits(*k);P(": ");dprint(*c);P("\n"););
+    else {
+      nused++;
+      DEBUG(P("used[%ld]#", c-K);bits(*k);P(": ");dprint(*c);P("\n"););
+    }
 
   // --- put in free list
   //for(int i=sn;i;i--)if(!sr[i]){free(ss[i]);ss[i]=ss[0];ss[0]=(char*)(long)i;}
@@ -639,7 +646,9 @@ void sweep() {
   }
 }
 
-void gc(D* start, D* end) { memset(sr, 0, sizeof(sr));
+void gc(D* start, D* end) { int omarks=marks,ofree=nfree,oused=nused;
+  D t= stime(); marks=nfree=nused=0;
+  memset(sr, 0, sizeof(sr));
   assert(kr);
   char* cend= kr+(C-K);
   // incremental? TODO: it's incorrect...
@@ -679,6 +688,13 @@ if (0) {
 }
 
   sweep();
+  extern int dogc; // FORWARD
+  if (dogc) {
+    P("\n[GC: %7.6fs free:%+d used:%+d", stime()-t, nfree-ofree, nused-oused);
+    if (debug) 
+      P("(marks=%d nfree=%d nused=%d)", marks, nfree, nused);
+    P("]\n");
+  }
 }
 
 // ENDWCOUNT

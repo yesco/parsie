@@ -5,6 +5,17 @@
 
 #include <ctype.h>
 
+#include<sys/time.h>
+
+// Returns current unix time as seconds
+// (a double with fractions down to usec)
+double stime(void) {
+    struct timeval tv;
+
+    gettimeofday(&tv,NULL);
+    return ((D)tv.tv_sec)+(D)tv.tv_usec/1000000;
+}
+
 void spc(char**p) {while(isspace(**p))(*p)++;}
 
 // Parse from P a name
