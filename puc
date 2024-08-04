@@ -27,4 +27,5 @@ echo
 #gcc -g driver.c && ((echo "run $*" ; cat - )| time -p gdb ./a.out)
 
 # normal
-printf "(compiling PARSER...)\r" ; gcc -Ofast driver.c && printf "                                   \r" && echo "---" && time -p ./a.out $*
+#printf "(compiling PARSER...)\r" ; gcc -Ofast driver.c && printf "                                   \r" && echo "---" && time -p ./a.out $*
+printf "(compiling PARSER...)\r" ; gcc -O3 driver.c && printf "                                   \r" && echo "---" && time -p ./a.out $*
