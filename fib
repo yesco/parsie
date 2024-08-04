@@ -1,7 +1,9 @@
+#!/bin/env bash
+
+# need to do "pkg intall time" LOL WTF?
+
 # s3 : 7.5s for fib 35
 # alf: 5.8s
-
-echo | ./alf
 
 echo "===ALF"
 #clang -DalfTEST -Ofast alf.c # same
@@ -10,14 +12,17 @@ clang -DalfTEST -O3 alf.c
 # TODO: how to pass arg?
 # cat fib.alf | time -p ./a.out
 
+echo
 echo "\"fib \"$1.\"=> \":Fdz?{\0}{d1=?{\1}{d1-Fs2-F+}}; $1F.\$n" | time -p ./a.out
 
 # erh, fewer spaces => slower??? WTF
 #echo "\"fib \"$1.\"=> \":Fdz?{\0}{d1=?{\1}{d1-Fs2-F+}}; $1F.\$n" | time -p ./a.out
 
 
+echo
 echo "===C -O3"
 clang -O3 fib.c && (time -p ./a.out $1)
+echo
 clang -Ofast fib.c && (time -p ./a.out $1)
 
 

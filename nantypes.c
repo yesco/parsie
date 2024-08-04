@@ -646,6 +646,8 @@ void sweep() {
   }
 }
 
+int dogc= 0; // FORWARD
+
 void gc(D* start, D* end) { int omarks=marks,ofree=nfree,oused=nused;
   D t= stime(); marks=nfree=nused=0;
   memset(sr, 0, sizeof(sr));
@@ -688,7 +690,6 @@ if (0) {
 }
 
   sweep();
-  extern int dogc; // FORWARD
   if (dogc) {
     P("\n[GC: %7.6fs free:%+d used:%+d", stime()-t, nfree-ofree, nused-oused);
     if (debug) 

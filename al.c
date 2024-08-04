@@ -220,7 +220,7 @@
 
 // total tokens processed
 // options
-int errstop=0,verbose=0,quiet=0,dogc=0; long nn=0;
+int errstop=0,verbose=0,quiet=0; long nn=0;
 
 char* alf(char*p,D*A,int n,D*E,int iff){assert(!"not ALF it's AL!\n");} // DEBUG
 
